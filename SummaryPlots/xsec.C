@@ -5,287 +5,294 @@
 //________________________________________________________________________________________________
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include <TROOT.h>                  // access to gROOT, entry point to ROOT system
-#include <TSystem.h>                // interface to OS
-#include <vector>                   // STL vector class
-#include <iostream>                 // standard I/O
-#include <iomanip>                  // functions to format standard I/O
-#include <fstream>                  // functions for file I/O
-#include <string>                   // C++ string class
-#include <sstream>                  // class for parsing strings
+#include <TROOT.h> // access to gROOT, entry point to ROOT system
+#include <TSystem.h> // interface to OS
+#include <fstream> // functions for file I/O
+#include <iomanip> // functions to format standard I/O
+#include <iostream> // standard I/O
+#include <sstream> // class for parsing strings
+#include <string> // C++ string class
+#include <vector> // STL vector class
 
-#include "CSummaryPlot.hh"          // Class to for making cross section summary plots
+#include "CSummaryPlot.hh" // Class to for making cross section summary plots
 #endif
 
-void xsec(const TString infilename="input.txt", const TString outputDir=".")
-{   
-  // theory predictions
-  const Double_t theory_xsW   = 19.70;   const Double_t theory_xsWerr   = 0.45;//theory_xsW*0.27/10.44;//0.018;
-  const Double_t theory_xsWp  =  11.33;   const Double_t theory_xsWperr  = 0.26;//theory_xsWp*0.17/6.15;//0.015;
-  const Double_t theory_xsWm  =  8.37;   const Double_t theory_xsWmerr  = 0.20;//theory_xsWm*0.11/4.29;//0.010;
-  const Double_t theory_xsZ   =  1.87;  const Double_t theory_xsZerr   = 0.04;//theory_xsZ*0.03/0.97;//0.0009;
-  
-  const Double_t theory_xsWZ  = 10.55;    const Double_t theory_xsWZerr  = 0.05;//theory_xsWZ*0.04/10.74;//0.02;
-  const Double_t theory_xsWpm =  1.35;   const Double_t theory_xsWpmerr = 0.01;//theory_xsWpm*0.01/1.43;//0.004;
+void xsec(const TString infilename = "input.txt", const TString outputDir = ".")
+{
+    // theory predictions
+    const Double_t theory_xsW = 19.70;
+    const Double_t theory_xsWerr = 0.45; //theory_xsW*0.27/10.44;//0.018;
+    const Double_t theory_xsWp = 11.33;
+    const Double_t theory_xsWperr = 0.26; //theory_xsWp*0.17/6.15;//0.015;
+    const Double_t theory_xsWm = 8.37;
+    const Double_t theory_xsWmerr = 0.20; //theory_xsWm*0.11/4.29;//0.010;
+    const Double_t theory_xsZ = 1.87;
+    const Double_t theory_xsZerr = 0.04; //theory_xsZ*0.03/0.97;//0.0009;
 
-  const Double_t theory_xsWpZ  = 6.06;    const Double_t theory_xsWpZerr  = 0.04;//theory_xsWZ*0.04/10.74;//0.02;
-  const Double_t theory_xsWmZ  = 4.48;    const Double_t theory_xsWmZerr  = 0.02;//theory_xsWZ*0.04/10.74;//0.02;
-    
-  CSummaryPlot::sOutDir = outputDir;
-  TString format("png");
-  
-  
-  //--------------------------------------------------------------------------------------------------------------
-  // Main analysis code 
-  //==============================================================================================================  
+    const Double_t theory_xsWZ = 10.55;
+    const Double_t theory_xsWZerr = 0.05; //theory_xsWZ*0.04/10.74;//0.02;
+    const Double_t theory_xsWpm = 1.35;
+    const Double_t theory_xsWpmerr = 0.01; //theory_xsWpm*0.01/1.43;//0.004;
 
-  Double_t nWmp,      nWmm,      nWm,      nZmm,      nWep,      nWem,      nWe,      nZee;
-  Double_t nWmpErr,   nWmmErr,   nWmErr,   nZmmErr,   nWepErr,   nWemErr,   nWeErr,   nZeeErr;
-  Double_t accWmp,    accWmm,    accWm,    accZmm,    accWep,    accWem,    accWe,    accZee;
-  //Double_t accWmpErr, accWmmErr, accWmErr, accZmmErr, accWepErr, accWemErr, accWeErr, accZeeErr;
-  Double_t lumi, lumiErr;
-  
-  Double_t errWmp=0, errWmm=0, errWm=0, errZmm=0, errWmpm=0, errWZm=0, errWmpZm=0, errWmmZm=0;
-  Double_t errWep=0, errWem=0, errWe=0, errZee=0, errWepm=0, errWZe=0, errWepZe=0, errWemZe=0; 
-  
-  ifstream ifs;
-  ifs.open(infilename.Data());
-  assert(ifs.is_open());
-  string line;
-  Int_t state=0;
-  while(getline(ifs,line)) {
-    if(line[0]=='#') continue;
-    
-    if(state==0) {
-      stringstream ss(line);
-      ss >> lumi >> lumiErr;
-      state++;
-      
-    } else if(state==1) {
-      stringstream ss(line);
-      string label;
-      ss >> label >> nWmp >> nWmm >> nWm >> nZmm >> nWep >> nWem >> nWe >> nZee;
-      state++;
-      
-    } else if(state==2) {
-      stringstream ss(line);
-      string label;
-      ss >> label >> nWmpErr >> nWmmErr >> nWmErr >> nZmmErr >> nWepErr >> nWemErr >> nWeErr >> nZeeErr;
-      state++;
-      
-    } else if(state==3) {
-      stringstream ss(line);
-      string label;
-      ss >> label >> accWmp >> accWmm >> accWm >> accZmm >> accWep >> accWem >> accWe >> accZee;
-      state++;
-    
-    } else if(state==4) {
-      stringstream ss(line);
-      string label;
-      //ss >> label >> accWmpErr >> accWmmErr >> accWmErr >> accZmmErr >> accWepErr >> accWemErr >> accWeErr >> accZeeErr;
-      state++;
-      //errWmp  = accWmpErr*accWmpErr/accWmp/accWmp;
-      //errWmm  = accWmmErr*accWmmErr/accWmm/accWmm;
-      //errWm   = accWmErr*accWmErr/accWm/accWm;
-      //errZmm  = accZmmErr*accZmmErr/accZmm/accZmm;
-      //errWmpm = errWmp+errWmm;
-      //errWmpZm  = errWmp+errZmm;
-      //errWmmZm  = errWmm+errZmm;
-      //errWZm  = errWm+errZmm;
-      //errWep  = accWepErr*accWepErr/accWep/accWep;
-      //errWem  = accWemErr*accWemErr/accWem/accWem;
-      //errWe   = accWeErr*accWeErr/accWe/accWe;
-      //errZee  = accZeeErr*accZeeErr/accZee/accZee;
-      //errWepm = errWep+errWem;
-      //errWepZe  = errWep+errZee;
-      //errWemZe  = errWem+errZee;
-      //errWZe  = errWe+errZee;
-    } else {
-      stringstream ss(line);
-      string label;
-      Double_t err[16];
-      ss >> label >> err[0] >> err[1] >> err[2] >> err[3] >> err[4] >> err[5] >> err[6] >> err[7] >> err[8] >> err[9] >> err[10] >> err[11] >>err[12] >> err[13] >> err[14] >> err[15];
-      errWmp  += err[0] *err[0];
-      errWmm  += err[1] *err[1];
-      errWm   += err[2] *err[2];
-      errZmm  += err[3] *err[3];
-      errWmpm += err[4] *err[4];
-      errWmpZm  += err[14] *err[14];
-      errWmmZm  += err[15] *err[15];
-      errWZm  += err[5] *err[5];
-      std::cout << err[5] << std::endl;
-      std::cout << errWZm << std::endl;
-      errWep  += err[6] *err[6];
-      errWem  += err[7] *err[7];
-      errWe   += err[8] *err[8];
-      errZee  += err[9] *err[9];
-      errWepm += err[10]*err[10];
-      errWZe  += err[11]*err[11];
-      errWepZe  += err[12] *err[12];
-      errWemZe  += err[13] *err[13];
+    const Double_t theory_xsWpZ = 6.06;
+    const Double_t theory_xsWpZerr = 0.04; //theory_xsWZ*0.04/10.74;//0.02;
+    const Double_t theory_xsWmZ = 4.48;
+    const Double_t theory_xsWmZerr = 0.02; //theory_xsWZ*0.04/10.74;//0.02;
+
+    CSummaryPlot::sOutDir = outputDir;
+    TString format("png");
+
+    //--------------------------------------------------------------------------------------------------------------
+    // Main analysis code
+    //==============================================================================================================
+
+    Double_t nWmp, nWmm, nWm, nZmm, nWep, nWem, nWe, nZee;
+    Double_t nWmpErr, nWmmErr, nWmErr, nZmmErr, nWepErr, nWemErr, nWeErr, nZeeErr;
+    Double_t accWmp, accWmm, accWm, accZmm, accWep, accWem, accWe, accZee;
+    //Double_t accWmpErr, accWmmErr, accWmErr, accZmmErr, accWepErr, accWemErr, accWeErr, accZeeErr;
+    Double_t lumi, lumiErr;
+
+    Double_t errWmp = 0, errWmm = 0, errWm = 0, errZmm = 0, errWmpm = 0, errWZm = 0, errWmpZm = 0, errWmmZm = 0;
+    Double_t errWep = 0, errWem = 0, errWe = 0, errZee = 0, errWepm = 0, errWZe = 0, errWepZe = 0, errWemZe = 0;
+
+    ifstream ifs;
+    ifs.open(infilename.Data());
+    assert(ifs.is_open());
+    string line;
+    Int_t state = 0;
+    while (getline(ifs, line)) {
+        if (line[0] == '#')
+            continue;
+
+        if (state == 0) {
+            stringstream ss(line);
+            ss >> lumi >> lumiErr;
+            state++;
+
+        } else if (state == 1) {
+            stringstream ss(line);
+            string label;
+            ss >> label >> nWmp >> nWmm >> nWm >> nZmm >> nWep >> nWem >> nWe >> nZee;
+            state++;
+
+        } else if (state == 2) {
+            stringstream ss(line);
+            string label;
+            ss >> label >> nWmpErr >> nWmmErr >> nWmErr >> nZmmErr >> nWepErr >> nWemErr >> nWeErr >> nZeeErr;
+            state++;
+
+        } else if (state == 3) {
+            stringstream ss(line);
+            string label;
+            ss >> label >> accWmp >> accWmm >> accWm >> accZmm >> accWep >> accWem >> accWe >> accZee;
+            state++;
+
+        } else if (state == 4) {
+            stringstream ss(line);
+            string label;
+            //ss >> label >> accWmpErr >> accWmmErr >> accWmErr >> accZmmErr >> accWepErr >> accWemErr >> accWeErr >> accZeeErr;
+            state++;
+            //errWmp  = accWmpErr*accWmpErr/accWmp/accWmp;
+            //errWmm  = accWmmErr*accWmmErr/accWmm/accWmm;
+            //errWm   = accWmErr*accWmErr/accWm/accWm;
+            //errZmm  = accZmmErr*accZmmErr/accZmm/accZmm;
+            //errWmpm = errWmp+errWmm;
+            //errWmpZm  = errWmp+errZmm;
+            //errWmmZm  = errWmm+errZmm;
+            //errWZm  = errWm+errZmm;
+            //errWep  = accWepErr*accWepErr/accWep/accWep;
+            //errWem  = accWemErr*accWemErr/accWem/accWem;
+            //errWe   = accWeErr*accWeErr/accWe/accWe;
+            //errZee  = accZeeErr*accZeeErr/accZee/accZee;
+            //errWepm = errWep+errWem;
+            //errWepZe  = errWep+errZee;
+            //errWemZe  = errWem+errZee;
+            //errWZe  = errWe+errZee;
+        } else {
+            stringstream ss(line);
+            string label;
+            Double_t err[16];
+            ss >> label >> err[0] >> err[1] >> err[2] >> err[3] >> err[4] >> err[5] >> err[6] >> err[7] >> err[8] >> err[9] >> err[10] >> err[11] >> err[12] >> err[13] >> err[14] >> err[15];
+            errWmp += err[0] * err[0];
+            errWmm += err[1] * err[1];
+            errWm += err[2] * err[2];
+            errZmm += err[3] * err[3];
+            errWmpm += err[4] * err[4];
+            errWmpZm += err[14] * err[14];
+            errWmmZm += err[15] * err[15];
+            errWZm += err[5] * err[5];
+            std::cout << err[5] << std::endl;
+            std::cout << errWZm << std::endl;
+            errWep += err[6] * err[6];
+            errWem += err[7] * err[7];
+            errWe += err[8] * err[8];
+            errZee += err[9] * err[9];
+            errWepm += err[10] * err[10];
+            errWZe += err[11] * err[11];
+            errWepZe += err[12] * err[12];
+            errWemZe += err[13] * err[13];
+        }
     }
-  }
-  ifs.close();
-  
-  cout << endl;   
-  cout << setprecision(3) << fixed; 
-  
-  Double_t xsWmp = nWmp/accWmp/lumi/1e6;
-  cout << "    W+(mu): " << setw(8) << xsWmp  << " +/- " << setw(7) << xsWmp*nWmpErr/nWmp << " (stat) +/- " << setw(7) << sqrt(errWmp)*xsWmp << " (syst) +/- " << setw(7) << xsWmp*lumiErr << " (lumi) nb" << endl;
-  
-  Double_t xsWmm = nWmm/accWmm/lumi/1e6;
-  cout << "    W-(mu): " << setw(8) << xsWmm  << " +/- " << setw(7) << xsWmm*nWmmErr/nWmm << " (stat) +/- " << setw(7) << sqrt(errWmm)*xsWmm << " (syst) +/- " << setw(7) << xsWmm*lumiErr << " (lumi) nb" << endl;
-  
-  nWm=nWmm+nWmp;
-  Double_t xsWm = xsWmm+xsWmp; 
-  nWmErr=sqrt(nWmmErr*nWmmErr + nWmpErr*nWmpErr);  
-  cout << "     W(mu): " << setw(8) << xsWm   << " +/- " << setw(7) << xsWm*nWmErr/nWm    << " (stat) +/- " << setw(7) << sqrt(errWm)*xsWm   << " (syst) +/- " << setw(7) << xsWm*lumiErr  << " (lumi) nb" <<  endl;
-  
-  Double_t xsZmm  = nZmm/accZmm/lumi/1e6;
-  cout << "     Z(mu): " << setw(8) << xsZmm  << " +/- " << setw(7) << xsZmm*nZmmErr/nZmm << " (stat) +/- " << setw(7) << sqrt(errZmm)*xsZmm << " (syst) +/- " << setw(7) << xsZmm*lumiErr << " (lumi) nb" << endl;
-  
-  cout << setprecision(3) << fixed;
-  
-  Double_t xsWmpm = nWmp/nWmm/accWmp*accWmm;
-  cout << " W+/W-(mu): " << setw(8) << xsWmpm << " +/- " << setw(7) << sqrt(nWmpErr*nWmpErr/nWmp/nWmp+nWmmErr*nWmmErr/nWmm/nWmm)*xsWmpm << " (stat) +/- " << setw(7) << sqrt(errWmpm)*xsWmpm << " (syst)" << endl;
-  
-  Double_t xsWmpZm = xsWmp/xsZmm;
-  cout << "   W+/Z(mu): " << setw(8) << xsWmpZm  << " +/- " << setw(7) << sqrt(nWmpErr*nWmpErr/nWmp/nWmp+nZmmErr*nZmmErr/nZmm/nZmm)*xsWmpZm      << " (stat) +/- " << setw(7) << sqrt(errWmpZm)*xsWmpZm   << " (syst)" << endl;
+    ifs.close();
 
-  Double_t xsWmmZm = xsWmm/xsZmm;
-  cout << "   W-/Z(mu): " << setw(8) << xsWmmZm  << " +/- " << setw(7) << sqrt(nWmmErr*nWmmErr/nWmm/nWmm+nZmmErr*nZmmErr/nZmm/nZmm)*xsWmmZm      << " (stat) +/- " << setw(7) << sqrt(errWmmZm)*xsWmmZm   << " (syst)" << endl;
+    cout << endl;
+    cout << setprecision(3) << fixed;
 
-  Double_t xsWZm = xsWm/xsZmm;
-  cout << "   W/Z(mu): " << setw(8) << xsWZm  << " +/- " << setw(7) << sqrt(nWmErr*nWmErr/nWm/nWm+nZmmErr*nZmmErr/nZmm/nZmm)*xsWZm      << " (stat) +/- " << setw(7) << sqrt(errWZm)*xsWZm   << " (syst)" << endl;
+    Double_t xsWmp = nWmp / accWmp / lumi / 1e6;
+    cout << "    W+(mu): " << setw(8) << xsWmp << " +/- " << setw(7) << xsWmp * nWmpErr / nWmp << " (stat) +/- " << setw(7) << sqrt(errWmp) * xsWmp << " (syst) +/- " << setw(7) << xsWmp * lumiErr << " (lumi) nb" << endl;
 
-  cout << endl;
-  cout << setprecision(3) << fixed; 
-  
-  Double_t xsWep = nWep/accWep/lumi/1e6;
-  cout << "     W+(e): " << setw(8) << xsWep  << " +/- " << setw(7) << xsWep*nWepErr/nWep   << " (stat) +/- " << setw(7) << sqrt(errWep)*xsWep   << " (syst) +/- " << setw(7) << xsWep*lumiErr << " (lumi) nb" << endl;
-  
-  Double_t xsWem = nWem/accWem/lumi/1e6;
-  cout << "     W-(e): " << setw(8) << xsWem  << " +/- " << setw(7) << xsWem*nWemErr/nWem   << " (stat) +/- " << setw(7) << sqrt(errWem)*xsWem   << " (syst) +/- " << setw(7) << xsWem*lumiErr << " (lumi) nb" << endl;
+    Double_t xsWmm = nWmm / accWmm / lumi / 1e6;
+    cout << "    W-(mu): " << setw(8) << xsWmm << " +/- " << setw(7) << xsWmm * nWmmErr / nWmm << " (stat) +/- " << setw(7) << sqrt(errWmm) * xsWmm << " (syst) +/- " << setw(7) << xsWmm * lumiErr << " (lumi) nb" << endl;
 
-  nWe=nWem+nWep;
-  Double_t xsWe = xsWem+xsWep; 
-  nWeErr=sqrt(nWemErr*nWemErr + nWepErr*nWepErr);
-  cout << "      W(e): " << setw(8) << xsWe   << " +/- " << setw(7) << xsWe*nWeErr/nWe      << " (stat) +/- " << setw(7) << sqrt(errWe)*xsWe	 << " (syst) +/- " << setw(7) << xsWe*lumiErr  << " (lumi) nb" <<  endl;
-  
-  Double_t xsZee = nZee/accZee/lumi/1e6;
-  cout << "      Z(e): " << setw(8) << xsZee  << " +/- " << setw(7) << xsZee*nZeeErr/nZee   << " (stat) +/- " << setw(7) << sqrt(errZee)*xsZee   << " (syst) +/- " << setw(7) << xsZee*lumiErr << " (lumi) nb" << endl;
-  
-  cout << setprecision(3) << fixed;
-  
-  Double_t xsWepm = nWep/nWem/accWep*accWem;
-  cout << "  W+/W-(e): " << setw(8) << xsWepm << " +/- " << setw(7) << sqrt(nWepErr*nWepErr/nWep/nWep+nWemErr*nWemErr/nWem/nWem)*xsWepm << " (stat) +/- " << setw(7) << sqrt(errWepm)*xsWepm << " (syst)" << endl;
+    nWm = nWmm + nWmp;
+    Double_t xsWm = xsWmm + xsWmp;
+    nWmErr = sqrt(nWmmErr * nWmmErr + nWmpErr * nWmpErr);
+    cout << "     W(mu): " << setw(8) << xsWm << " +/- " << setw(7) << xsWm * nWmErr / nWm << " (stat) +/- " << setw(7) << sqrt(errWm) * xsWm << " (syst) +/- " << setw(7) << xsWm * lumiErr << " (lumi) nb" << endl;
 
-  Double_t xsWepZe = xsWep/xsZee;
-  cout << "   W+/Z(e): " << setw(8) << xsWepZe  << " +/- " << setw(7) << sqrt(nWepErr*nWepErr/nWep/nWep+nZeeErr*nZeeErr/nZee/nZee)*xsWepZe      << " (stat) +/- " << setw(7) << sqrt(errWepZe)*xsWepZe   << " (syst)" << endl;
+    Double_t xsZmm = nZmm / accZmm / lumi / 1e6;
+    cout << "     Z(mu): " << setw(8) << xsZmm << " +/- " << setw(7) << xsZmm * nZmmErr / nZmm << " (stat) +/- " << setw(7) << sqrt(errZmm) * xsZmm << " (syst) +/- " << setw(7) << xsZmm * lumiErr << " (lumi) nb" << endl;
 
-  Double_t xsWemZe = xsWem/xsZee;
-  cout << "   W-/Z(e): " << setw(8) << xsWemZe  << " +/- " << setw(7) << sqrt(nWemErr*nWemErr/nWem/nWem+nZeeErr*nZeeErr/nZee/nZee)*xsWemZe      << " (stat) +/- " << setw(7) << sqrt(errWemZe)*xsWemZe   << " (syst)" << endl;
-  
-  Double_t xsWZe = xsWe/xsZee;
-  cout << "    W/Z(e): " << setw(8) << xsWZe  << " +/- " << setw(7) << sqrt(nWeErr*nWeErr/nWe/nWe+nZeeErr*nZeeErr/nZee/nZee)*xsWZe      << " (stat) +/- " << setw(7) << sqrt(errWZe)*xsWZe   << " (syst)" << endl;
+    cout << setprecision(3) << fixed;
 
-  cout << endl;
+    Double_t xsWmpm = nWmp / nWmm / accWmp * accWmm;
+    cout << " W+/W-(mu): " << setw(8) << xsWmpm << " +/- " << setw(7) << sqrt(nWmpErr * nWmpErr / nWmp / nWmp + nWmmErr * nWmmErr / nWmm / nWmm) * xsWmpm << " (stat) +/- " << setw(7) << sqrt(errWmpm) * xsWmpm << " (syst)" << endl;
 
-  
-  //--------------------------------------------------------------------------------------------------------------
-  // Make plots 
-  //==============================================================================================================  
-  
-  TCanvas *c = MakeCanvas("c","c",800,600);
-  c->SetTickx(1);
-  c->SetTicky(0);
-  c->SetFrameFillStyle(0);
-  c->SetFrameLineWidth(2);
-  c->SetFrameBorderMode(0);  
-  c->SetLeftMargin(0.07);
-  
-  gStyle->SetEndErrorSize(8);
-  
-  enum { kEle=0, kMu=1 };
-  
-  CSummaryPlot plotWplus("xsWplus",
-                         "#sigma(pp#rightarrowW^{+})#timesBR(W^{+}#rightarrowl^{+}#nu) [nb]",
-                         "W^{+}#rightarrowe^{+}#nu",
-			 "W^{+}#rightarrow#mu^{+}#nu",
-			 "W^{+}#rightarrowl^{+}#nu (combined)",
-		         lumi*1e3,theory_xsWp,theory_xsWperr,-5,20);
-  plotWplus.SetResults(kEle,xsWep, xsWep*nWepErr/nWep, sqrt(errWep)*xsWep, xsWep*lumiErr);
-  plotWplus.SetResults(kMu ,xsWmp, xsWmp*nWmpErr/nWmp, sqrt(errWmp)*xsWmp, xsWmp*lumiErr);
-  plotWplus.Draw(c,format);
-  
-  CSummaryPlot plotWminus("xsWminus",
-                          "#sigma(pp#rightarrowW^{-})#timesBR(W^{-}#rightarrowl^{-}#nu) [nb]",
-                          "W^{-}#rightarrowe^{-}#nu",
-			  "W^{-}#rightarrow#mu^{-}#nu",
-			  "W^{-}#rightarrowl^{-}#nu (combined)",
-		          lumi*1e3,theory_xsWm,theory_xsWmerr,-5,15);
-  plotWminus.SetResults(kEle,xsWem, xsWem*nWemErr/nWem, sqrt(errWem)*xsWem, xsWem*lumiErr);
-  plotWminus.SetResults(kMu ,xsWmm, xsWmm*nWmmErr/nWmm, sqrt(errWmm)*xsWmm, xsWmm*lumiErr);
-  plotWminus.Draw(c,format);
-  
-  CSummaryPlot plotW("xsW",
-                     "#sigma(pp#rightarrowW)#timesBR(W#rightarrowl#nu) [nb]",
-                     "W#rightarrowe#nu",
-		     "W#rightarrow#mu#nu",
-		     "W#rightarrowl#nu (combined)",
-		     lumi*1e3,theory_xsW,theory_xsWerr,0,30);
-  plotW.SetResults(kEle,xsWe, xsWe*nWeErr/nWe, sqrt(errWe)*xsWe, xsWe*lumiErr);
-  plotW.SetResults(kMu ,xsWm, xsWm*nWmErr/nWm, sqrt(errWm)*xsWm, xsWm*lumiErr);
-  plotW.Draw(c,format);
-  
-  CSummaryPlot plotWpm("ratioWpm",
-                       "R_{+/-} = [ #sigma#timesBR ](W^{+}) / [ #sigma#timesBR ](W^{-})",
-                       "W^{+}#rightarrowe^{+}#nu, W^{-}#rightarrowe^{-}#nu",
-		       "W^{+}#rightarrow#mu^{+}#nu, W^{-}#rightarrow#mu^{-}#nu",
-		       "W^{+}#rightarrowl^{+}#nu, W^{-}#rightarrowl^{-}#nu (combined)",
-		       lumi*1e3,theory_xsWpm,theory_xsWpmerr,0,1.8);
-  plotWpm.SetResults(kEle,xsWepm,sqrt(nWepErr*nWepErr/nWep/nWep+nWemErr*nWemErr/nWem/nWem)*xsWepm,sqrt(errWepm)*xsWepm);
-  plotWpm.SetResults(kMu, xsWmpm,sqrt(nWmpErr*nWmpErr/nWmp/nWmp+nWmmErr*nWmmErr/nWmm/nWmm)*xsWmpm,sqrt(errWmpm)*xsWmpm);
-  plotWpm.Draw(c,format);  
-  
-  CSummaryPlot plotZ("xsZ",
-                     "#sigma(pp#rightarrowZ)#timesBR(Z#rightarrowll) [nb]",
-                     "Z#rightarrowee",
-		     "Z#rightarrow#mu#mu",
-		     "Z#rightarrowll (combined)",
-		     lumi*1e3,theory_xsZ,theory_xsZerr,0,3.0);
-  plotZ.SetResults(kEle,xsZee, xsZee*nZeeErr/nZee, sqrt(errZee)*xsZee, xsZee*lumiErr);
-  plotZ.SetResults(kMu ,xsZmm, xsZmm*nZmmErr/nZmm, sqrt(errZmm)*xsZmm, xsZmm*lumiErr);
-  plotZ.Draw(c,format);
-  
-  CSummaryPlot plotWZ("ratioWZ",
-                      "R_{W/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
-                      "W#rightarrowe#nu, Z#rightarrowee",
-		      "W#rightarrow#mu#nu, Z#rightarrow#mu#mu",
-		      "W#rightarrowl#nu, Z#rightarrowll (combined)",
-		      lumi*1e3,theory_xsWZ,theory_xsWZerr,0,14);
-  plotWZ.SetResults(kEle,xsWZe,sqrt(nWeErr*nWeErr/nWe/nWe+nZeeErr*nZeeErr/nZee/nZee)*xsWZe,sqrt(errWZe)*xsWZe);
-  plotWZ.SetResults(kMu, xsWZm,sqrt(nWmErr*nWmErr/nWm/nWm+nZmmErr*nZmmErr/nZmm/nZmm)*xsWZm,sqrt(errWZm)*xsWZm);
-  plotWZ.Draw(c,format);  
+    Double_t xsWmpZm = xsWmp / xsZmm;
+    cout << "   W+/Z(mu): " << setw(8) << xsWmpZm << " +/- " << setw(7) << sqrt(nWmpErr * nWmpErr / nWmp / nWmp + nZmmErr * nZmmErr / nZmm / nZmm) * xsWmpZm << " (stat) +/- " << setw(7) << sqrt(errWmpZm) * xsWmpZm << " (syst)" << endl;
 
-  CSummaryPlot plotWpZ("ratioWpZ",
-                      "R_{W^{+}/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
-                      "W^{+}#rightarrowe#nu, Z#rightarrowee",
-		      "W^{+}#rightarrow#mu#nu, Z#rightarrow#mu#mu",
-		      "W^{+}#rightarrowl#nu, Z#rightarrowll (combined)",
-		      lumi*1e3,theory_xsWpZ,theory_xsWpZerr,0,10);
-  plotWpZ.SetResults(kEle,xsWepZe,sqrt(nWepErr*nWepErr/nWep/nWep+nZeeErr*nZeeErr/nZee/nZee)*xsWepZe,sqrt(errWepZe)*xsWepZe);
-  plotWpZ.SetResults(kMu, xsWmpZm,sqrt(nWmpErr*nWmpErr/nWmp/nWmp+nZmmErr*nZmmErr/nZmm/nZmm)*xsWmpZm,sqrt(errWmpZm)*xsWmpZm);
-  plotWpZ.Draw(c,format);  
+    Double_t xsWmmZm = xsWmm / xsZmm;
+    cout << "   W-/Z(mu): " << setw(8) << xsWmmZm << " +/- " << setw(7) << sqrt(nWmmErr * nWmmErr / nWmm / nWmm + nZmmErr * nZmmErr / nZmm / nZmm) * xsWmmZm << " (stat) +/- " << setw(7) << sqrt(errWmmZm) * xsWmmZm << " (syst)" << endl;
 
-   CSummaryPlot plotWmZ("ratioWmZ",
-                      "R_{W^{-}/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
-                      "W^{-}#rightarrowe#nu, Z#rightarrowee",
-		      "W^{-}#rightarrow#mu#nu, Z#rightarrow#mu#mu",
-		      "W^{-}#rightarrowl#nu, Z#rightarrowll (combined)",
-		      lumi*1e3,theory_xsWmZ,theory_xsWmZerr,-4,7);
-  plotWmZ.SetResults(kEle,xsWemZe,sqrt(nWemErr*nWemErr/nWem/nWem+nZeeErr*nZeeErr/nZee/nZee)*xsWemZe,sqrt(errWemZe)*xsWemZe);
-  plotWmZ.SetResults(kMu, xsWmmZm,sqrt(nWmmErr*nWmmErr/nWmm/nWmm+nZmmErr*nZmmErr/nZmm/nZmm)*xsWmmZm,sqrt(errWmmZm)*xsWmmZm);
-  plotWmZ.Draw(c,format);  
-  
+    Double_t xsWZm = xsWm / xsZmm;
+    cout << "   W/Z(mu): " << setw(8) << xsWZm << " +/- " << setw(7) << sqrt(nWmErr * nWmErr / nWm / nWm + nZmmErr * nZmmErr / nZmm / nZmm) * xsWZm << " (stat) +/- " << setw(7) << sqrt(errWZm) * xsWZm << " (syst)" << endl;
+
+    cout << endl;
+    cout << setprecision(3) << fixed;
+
+    Double_t xsWep = nWep / accWep / lumi / 1e6;
+    cout << "     W+(e): " << setw(8) << xsWep << " +/- " << setw(7) << xsWep * nWepErr / nWep << " (stat) +/- " << setw(7) << sqrt(errWep) * xsWep << " (syst) +/- " << setw(7) << xsWep * lumiErr << " (lumi) nb" << endl;
+
+    Double_t xsWem = nWem / accWem / lumi / 1e6;
+    cout << "     W-(e): " << setw(8) << xsWem << " +/- " << setw(7) << xsWem * nWemErr / nWem << " (stat) +/- " << setw(7) << sqrt(errWem) * xsWem << " (syst) +/- " << setw(7) << xsWem * lumiErr << " (lumi) nb" << endl;
+
+    nWe = nWem + nWep;
+    Double_t xsWe = xsWem + xsWep;
+    nWeErr = sqrt(nWemErr * nWemErr + nWepErr * nWepErr);
+    cout << "      W(e): " << setw(8) << xsWe << " +/- " << setw(7) << xsWe * nWeErr / nWe << " (stat) +/- " << setw(7) << sqrt(errWe) * xsWe << " (syst) +/- " << setw(7) << xsWe * lumiErr << " (lumi) nb" << endl;
+
+    Double_t xsZee = nZee / accZee / lumi / 1e6;
+    cout << "      Z(e): " << setw(8) << xsZee << " +/- " << setw(7) << xsZee * nZeeErr / nZee << " (stat) +/- " << setw(7) << sqrt(errZee) * xsZee << " (syst) +/- " << setw(7) << xsZee * lumiErr << " (lumi) nb" << endl;
+
+    cout << setprecision(3) << fixed;
+
+    Double_t xsWepm = nWep / nWem / accWep * accWem;
+    cout << "  W+/W-(e): " << setw(8) << xsWepm << " +/- " << setw(7) << sqrt(nWepErr * nWepErr / nWep / nWep + nWemErr * nWemErr / nWem / nWem) * xsWepm << " (stat) +/- " << setw(7) << sqrt(errWepm) * xsWepm << " (syst)" << endl;
+
+    Double_t xsWepZe = xsWep / xsZee;
+    cout << "   W+/Z(e): " << setw(8) << xsWepZe << " +/- " << setw(7) << sqrt(nWepErr * nWepErr / nWep / nWep + nZeeErr * nZeeErr / nZee / nZee) * xsWepZe << " (stat) +/- " << setw(7) << sqrt(errWepZe) * xsWepZe << " (syst)" << endl;
+
+    Double_t xsWemZe = xsWem / xsZee;
+    cout << "   W-/Z(e): " << setw(8) << xsWemZe << " +/- " << setw(7) << sqrt(nWemErr * nWemErr / nWem / nWem + nZeeErr * nZeeErr / nZee / nZee) * xsWemZe << " (stat) +/- " << setw(7) << sqrt(errWemZe) * xsWemZe << " (syst)" << endl;
+
+    Double_t xsWZe = xsWe / xsZee;
+    cout << "    W/Z(e): " << setw(8) << xsWZe << " +/- " << setw(7) << sqrt(nWeErr * nWeErr / nWe / nWe + nZeeErr * nZeeErr / nZee / nZee) * xsWZe << " (stat) +/- " << setw(7) << sqrt(errWZe) * xsWZe << " (syst)" << endl;
+
+    cout << endl;
+
+    //--------------------------------------------------------------------------------------------------------------
+    // Make plots
+    //==============================================================================================================
+
+    TCanvas* c = MakeCanvas("c", "c", 800, 600);
+    c->SetTickx(1);
+    c->SetTicky(0);
+    c->SetFrameFillStyle(0);
+    c->SetFrameLineWidth(2);
+    c->SetFrameBorderMode(0);
+    c->SetLeftMargin(0.07);
+
+    gStyle->SetEndErrorSize(8);
+
+    enum { kEle = 0,
+        kMu = 1 };
+
+    CSummaryPlot plotWplus("xsWplus",
+        "#sigma(pp#rightarrowW^{+})#timesBR(W^{+}#rightarrowl^{+}#nu) [nb]",
+        "W^{+}#rightarrowe^{+}#nu",
+        "W^{+}#rightarrow#mu^{+}#nu",
+        "W^{+}#rightarrowl^{+}#nu (combined)",
+        lumi * 1e3, theory_xsWp, theory_xsWperr, -5, 20);
+    plotWplus.SetResults(kEle, xsWep, xsWep * nWepErr / nWep, sqrt(errWep) * xsWep, xsWep * lumiErr);
+    plotWplus.SetResults(kMu, xsWmp, xsWmp * nWmpErr / nWmp, sqrt(errWmp) * xsWmp, xsWmp * lumiErr);
+    plotWplus.Draw(c, format);
+
+    CSummaryPlot plotWminus("xsWminus",
+        "#sigma(pp#rightarrowW^{-})#timesBR(W^{-}#rightarrowl^{-}#nu) [nb]",
+        "W^{-}#rightarrowe^{-}#nu",
+        "W^{-}#rightarrow#mu^{-}#nu",
+        "W^{-}#rightarrowl^{-}#nu (combined)",
+        lumi * 1e3, theory_xsWm, theory_xsWmerr, -5, 15);
+    plotWminus.SetResults(kEle, xsWem, xsWem * nWemErr / nWem, sqrt(errWem) * xsWem, xsWem * lumiErr);
+    plotWminus.SetResults(kMu, xsWmm, xsWmm * nWmmErr / nWmm, sqrt(errWmm) * xsWmm, xsWmm * lumiErr);
+    plotWminus.Draw(c, format);
+
+    CSummaryPlot plotW("xsW",
+        "#sigma(pp#rightarrowW)#timesBR(W#rightarrowl#nu) [nb]",
+        "W#rightarrowe#nu",
+        "W#rightarrow#mu#nu",
+        "W#rightarrowl#nu (combined)",
+        lumi * 1e3, theory_xsW, theory_xsWerr, 0, 30);
+    plotW.SetResults(kEle, xsWe, xsWe * nWeErr / nWe, sqrt(errWe) * xsWe, xsWe * lumiErr);
+    plotW.SetResults(kMu, xsWm, xsWm * nWmErr / nWm, sqrt(errWm) * xsWm, xsWm * lumiErr);
+    plotW.Draw(c, format);
+
+    CSummaryPlot plotWpm("ratioWpm",
+        "R_{+/-} = [ #sigma#timesBR ](W^{+}) / [ #sigma#timesBR ](W^{-})",
+        "W^{+}#rightarrowe^{+}#nu, W^{-}#rightarrowe^{-}#nu",
+        "W^{+}#rightarrow#mu^{+}#nu, W^{-}#rightarrow#mu^{-}#nu",
+        "W^{+}#rightarrowl^{+}#nu, W^{-}#rightarrowl^{-}#nu (combined)",
+        lumi * 1e3, theory_xsWpm, theory_xsWpmerr, 0, 1.8);
+    plotWpm.SetResults(kEle, xsWepm, sqrt(nWepErr * nWepErr / nWep / nWep + nWemErr * nWemErr / nWem / nWem) * xsWepm, sqrt(errWepm) * xsWepm);
+    plotWpm.SetResults(kMu, xsWmpm, sqrt(nWmpErr * nWmpErr / nWmp / nWmp + nWmmErr * nWmmErr / nWmm / nWmm) * xsWmpm, sqrt(errWmpm) * xsWmpm);
+    plotWpm.Draw(c, format);
+
+    CSummaryPlot plotZ("xsZ",
+        "#sigma(pp#rightarrowZ)#timesBR(Z#rightarrowll) [nb]",
+        "Z#rightarrowee",
+        "Z#rightarrow#mu#mu",
+        "Z#rightarrowll (combined)",
+        lumi * 1e3, theory_xsZ, theory_xsZerr, 0, 3.0);
+    plotZ.SetResults(kEle, xsZee, xsZee * nZeeErr / nZee, sqrt(errZee) * xsZee, xsZee * lumiErr);
+    plotZ.SetResults(kMu, xsZmm, xsZmm * nZmmErr / nZmm, sqrt(errZmm) * xsZmm, xsZmm * lumiErr);
+    plotZ.Draw(c, format);
+
+    CSummaryPlot plotWZ("ratioWZ",
+        "R_{W/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
+        "W#rightarrowe#nu, Z#rightarrowee",
+        "W#rightarrow#mu#nu, Z#rightarrow#mu#mu",
+        "W#rightarrowl#nu, Z#rightarrowll (combined)",
+        lumi * 1e3, theory_xsWZ, theory_xsWZerr, 0, 14);
+    plotWZ.SetResults(kEle, xsWZe, sqrt(nWeErr * nWeErr / nWe / nWe + nZeeErr * nZeeErr / nZee / nZee) * xsWZe, sqrt(errWZe) * xsWZe);
+    plotWZ.SetResults(kMu, xsWZm, sqrt(nWmErr * nWmErr / nWm / nWm + nZmmErr * nZmmErr / nZmm / nZmm) * xsWZm, sqrt(errWZm) * xsWZm);
+    plotWZ.Draw(c, format);
+
+    CSummaryPlot plotWpZ("ratioWpZ",
+        "R_{W^{+}/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
+        "W^{+}#rightarrowe#nu, Z#rightarrowee",
+        "W^{+}#rightarrow#mu#nu, Z#rightarrow#mu#mu",
+        "W^{+}#rightarrowl#nu, Z#rightarrowll (combined)",
+        lumi * 1e3, theory_xsWpZ, theory_xsWpZerr, 0, 10);
+    plotWpZ.SetResults(kEle, xsWepZe, sqrt(nWepErr * nWepErr / nWep / nWep + nZeeErr * nZeeErr / nZee / nZee) * xsWepZe, sqrt(errWepZe) * xsWepZe);
+    plotWpZ.SetResults(kMu, xsWmpZm, sqrt(nWmpErr * nWmpErr / nWmp / nWmp + nZmmErr * nZmmErr / nZmm / nZmm) * xsWmpZm, sqrt(errWmpZm) * xsWmpZm);
+    plotWpZ.Draw(c, format);
+
+    CSummaryPlot plotWmZ("ratioWmZ",
+        "R_{W^{-}/Z} = [ #sigma#timesBR ](W) / [ #sigma#timesBR ](Z)",
+        "W^{-}#rightarrowe#nu, Z#rightarrowee",
+        "W^{-}#rightarrow#mu#nu, Z#rightarrow#mu#mu",
+        "W^{-}#rightarrowl#nu, Z#rightarrowll (combined)",
+        lumi * 1e3, theory_xsWmZ, theory_xsWmZerr, -4, 7);
+    plotWmZ.SetResults(kEle, xsWemZe, sqrt(nWemErr * nWemErr / nWem / nWem + nZeeErr * nZeeErr / nZee / nZee) * xsWemZe, sqrt(errWemZe) * xsWemZe);
+    plotWmZ.SetResults(kMu, xsWmmZm, sqrt(nWmmErr * nWmmErr / nWmm / nWmm + nZmmErr * nZmmErr / nZmm / nZmm) * xsWmmZm, sqrt(errWmmZm) * xsWmmZm);
+    plotWmZ.Draw(c, format);
 }

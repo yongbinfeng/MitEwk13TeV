@@ -1,6 +1,6 @@
-{    
-  gROOT->Macro("MitStyleRemix.cc++");  
+{
+    gROOT->Macro("MitStyleRemix.cc++");
 
-  // Show which process needs debugging
-  gInterpreter->ProcessLine(".! ps |grep root.exe");
+    // Show which process needs debugging
+    gInterpreter->ProcessLine(".! ps |grep root.exe");
 }

@@ -23,31 +23,30 @@ class RooRealVar;
 
 class RooVoigtianShape : public RooAbsPdf {
 public:
-  RooVoigtianShape() {}
-  RooVoigtianShape(const char *name, const char *title, RooAbsReal& _m,
-	     RooAbsReal& _m0, RooAbsReal& _sigma,
-		   RooAbsReal& _alpha, RooAbsReal& _n,RooAbsReal& _width,Bool_t doFast);
+    RooVoigtianShape() {}
+    RooVoigtianShape(const char* name, const char* title, RooAbsReal& _m,
+        RooAbsReal& _m0, RooAbsReal& _sigma,
+        RooAbsReal& _alpha, RooAbsReal& _n, RooAbsReal& _width, Bool_t doFast);
 
-  RooVoigtianShape(const RooVoigtianShape& other, const char* name = 0);
-  virtual TObject* clone(const char* newname) const { return new RooVoigtianShape(*this,newname); }
+    RooVoigtianShape(const RooVoigtianShape& other, const char* name = 0);
+    virtual TObject* clone(const char* newname) const { return new RooVoigtianShape(*this, newname); }
 
-  inline virtual ~RooVoigtianShape() { }
+    inline virtual ~RooVoigtianShape() {}
 
 protected:
+    RooRealProxy m;
+    RooRealProxy m0;
+    RooRealProxy sigma;
+    RooRealProxy alpha;
+    RooRealProxy n;
+    RooRealProxy width;
+    Double_t evaluate() const;
+    Double_t voigtian(Double_t iX) const;
 
-
-  RooRealProxy m;
-  RooRealProxy m0;
-  RooRealProxy sigma;
-  RooRealProxy alpha;
-  RooRealProxy n;
-  RooRealProxy width;
-  Double_t evaluate() const;
-  Double_t voigtian(Double_t iX) const;
 private:
-  Bool_t   _doFast;
-  Double_t _invRootPi;
-  ClassDef(RooVoigtianShape,1) // Crystal Ball lineshape PDF
+    Bool_t _doFast;
+    Double_t _invRootPi;
+    ClassDef(RooVoigtianShape, 1) // Crystal Ball lineshape PDF
 };
 
 #endif
