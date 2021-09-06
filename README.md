@@ -1,4 +1,4 @@
-------| INTRODUCTION |------
+## Introduction
 
 This folder contains the various modules needed to go from BACON ntuples to W/Z production cross section measurements. 
 
@@ -8,7 +8,7 @@ experimental/scientific background the overall analysis and each individual modu
 minutia of how to actually run the code as well as guidance on where modifications will be needed to use this code on new
 data. 
 
-------| MODULES |------
+## Modules
 
 The Bacon ntuples are produced with the BaconProd module and read using the BaconAna module.
 
@@ -34,7 +34,15 @@ Summary Plots:	     signal yields	-> cross sections and plots
 		     acc. numbers
 		     syst. uncer. %'s
 
-------| TOOLS |------
+## Tools
 
 The Tools folder contains a number of useful macros I needed along the way including ones for merging root files, merging and doing simple logic with json files, etc. I also used tools available at https://twiki.cern.ch/twiki/bin/viewauth/CMS/LumiCalc from the official CMS Luminosity calculation tools.
 
+## Recipe
+
+To make the analysis-level ntuples, first need to run the selections, then run the scripts in NtupleMod to apply lepton scale factors and recoil corrections, together with the uncertainties.
+
+## ToDos
+- Figure out how to run condor jobs
+- Fix the muon-jet cleaning for ecal prefiring
+- Implement the muon prefiring
