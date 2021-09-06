@@ -110,11 +110,11 @@ void toolbox::fillGen(TClonesArray* genPartArr, Int_t vid, TLorentzVector*& vec,
     TLorentzVector *preLepPos = 0, *preLepNeg = 0;
     for (Int_t i = 0; i < genPartArr->GetEntries(); i++) {
         const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
-        if (fabs(genloop->pdgId) != 22)
-            //std::cout << i << " " << genloop->pdgId << " " << genloop->status << " " << genloop->parent << " " <<dynamic_cast<baconhep::TGenParticle *>(genPartArr->At(genloop->parent>0 ? genloop->parent : 1))->pdgId << " " << genloop->pt << " " << genloop->mass << std::endl;
-            else if (fabs(genloop->pdgId) == 22 && fabs(dynamic_cast<baconhep::TGenParticle*>(genPartArr->At(genloop->parent > 0 ? genloop->parent : 1))->pdgId) == 11)
-                    std::cout
-                << i << " " << genloop->pdgId << " " << genloop->status << " " << genloop->parent << " " << dynamic_cast<baconhep::TGenParticle*>(genPartArr->At(genloop->parent > 0 ? genloop->parent : 1))->pdgId << " " << genloop->pt << " " << genloop->mass << std::endl;
+        //if (fabs(genloop->pdgId) != 22)
+        //    std::cout << i << " " << genloop->pdgId << " " << genloop->status << " " << genloop->parent << " " <<dynamic_cast<baconhep::TGenParticle *>(genPartArr->At(genloop->parent>0 ? genloop->parent : 1))->pdgId << " " << genloop->pt << " " << genloop->mass << std::endl;
+        //    else if (fabs(genloop->pdgId) == 22 && fabs(dynamic_cast<baconhep::TGenParticle*>(genPartArr->At(genloop->parent > 0 ? genloop->parent : 1))->pdgId) == 11)
+        //            std::cout
+        //        << i << " " << genloop->pdgId << " " << genloop->status << " " << genloop->parent << " " << dynamic_cast<baconhep::TGenParticle*>(genPartArr->At(genloop->parent > 0 ? genloop->parent : 1))->pdgId << " " << genloop->pt << " " << genloop->mass << std::endl;
 
         if (genloop->status == 44 && (fabs(genloop->pdgId) == 15 || fabs(genloop->pdgId) == 13 || fabs(genloop->pdgId) == 11 || fabs(genloop->pdgId) == 16 || fabs(genloop->pdgId) == 14 || fabs(genloop->pdgId) == 12)) {
             if (genloop->pdgId < 0 && lepPos == 0) {

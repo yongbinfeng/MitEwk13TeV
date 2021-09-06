@@ -24,12 +24,13 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-#include "../Utils/CPlot.hh" // helper class for plots
+//#include "../Utils/CPlot.hh" // helper class for plots
 #include "../Utils/LeptonCorr.hh" // Scale and resolution corrections
-#include "../Utils/MitStyleRemix.hh" // style settings for drawing
+//#include "../Utils/MitStyleRemix.hh" // style settings for drawing
 #include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/RecoilCorrector_asym2.hh"
-#include "../Utils/WModels.hh" // definitions of PDFs for fitting
+//#include "../Utils/RecoilCorrector_asym2.hh"
+#include "../Utils/RecoilCorrector.hh"
+//#include "../Utils/WModels.hh" // definitions of PDFs for fitting
 #include "TRandom.h"
 // helper class to handle efficiency tables
 #include "../Utils/CEffUser1D.hh"
@@ -51,7 +52,9 @@ void muonNtupleMod(const TString outputDir, // output directory
     const TString sysFileSta // contains the alternate shape info for standalone efficiencies
     )
 {
+    std::cout << "start running new " << std::endl;
     gBenchmark->Start("fitWm");
+    gROOT->SetBatch(1);
 
     //--------------------------------------------------------------------------------------------------------------
     // Settings
@@ -127,7 +130,8 @@ void muonNtupleMod(const TString outputDir, // output directory
     // -----------------------------------------------------------
     //   Point to the Efficiency SF
     // -----------------------------------------------------------
-    TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
+    //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
+    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/results/Zmm/";
     AppEffSF effs(effDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
@@ -163,7 +167,8 @@ void muonNtupleMod(const TString outputDir, // output directory
     //   Load the Recoil Correction Files
     // ------------------------------------------------------------------------------------------------------------------------------------------
     // ===================== Recoil correction files ============================
-    const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
+    //const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
+    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
 
     // New Recoil Correctors for everything
     RecoilCorrector* rcMainWp = new RecoilCorrector("", "");
@@ -241,9 +246,10 @@ void muonNtupleMod(const TString outputDir, // output directory
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
-    CPlot::sOutDir = outputDir;
+    //CPlot::sOutDir = outputDir;
 
-    RoccoR rc("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
+    //RoccoR rc("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
+    RoccoR rc("../RochesterCorr/RoccoR2017.txt");
 
     TFile* infile = 0;
     TTree* intree = 0;
@@ -565,7 +571,10 @@ void muonNtupleMod(const TString outputDir, // output directory
     outFile->Write();
     std::cout << "wrote outfile" << std::endl;
 
+    std::cout << "start deleting" << std::endl;
     delete intree;
+    std::cout << "deleted intree " << std::endl;
     delete infile;
+    std::cout << "deleted infile " << std::endl;
     return;
 } // end of function
