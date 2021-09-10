@@ -295,6 +295,13 @@ void selectZee(const TString conf = "zee.conf", // input file
             const Double_t xsec = samp->xsecv[ifile];
             Double_t puWeight = 0, puWeightUp = 0, puWeightDown = 0;
 
+            TLorentzVector* gvec = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* glep1 = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* glep2 = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* glep3 = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* glep4 = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
+
             //
             // loop over events
             //
@@ -647,13 +654,9 @@ void selectZee(const TString conf = "zee.conf", // input file
                 nselvar += isData ? 1 : weight * weight;
 
                 // Perform matching of dileptons to GEN leptons from Z decay
-                TLorentzVector* gvec = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* glep1 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* glep2 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
                 Bool_t hasGenMatch = kFALSE;
                 if (isRecoil && hasGen) {
-                    toolbox::fillGen(genPartArr, BOSON_ID, gvec, glep1, glep2, &glepq1, &glepq2, 1);
+                    toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glep3, glep4, glep1, glep2);
 
                     Bool_t match1 = (((glep1) && toolbox::deltaR(vTagfinal.Eta(), vTagfinal.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vTagfinal.Eta(), vTagfinal.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
 
@@ -665,12 +668,6 @@ void selectZee(const TString conf = "zee.conf", // input file
                     genlep2 = new TLorentzVector(0, 0, 0, 0);
                     genlep1->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
                     genlep2->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
-                    delete gvec;
-                    delete glep1;
-                    delete glep2;
-                    glep1 = 0;
-                    glep2 = 0;
-                    gvec = 0;
 
                     if (match1 && match2)
                         hasGenMatch = kTRUE;

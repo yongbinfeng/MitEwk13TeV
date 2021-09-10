@@ -113,8 +113,8 @@ void computeAccGenZmm(const TString conf, // input file
     TString sqrts = "13TeV";
     if (conf.Contains("5"))
         sqrts = "5TeV";
-    TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
-    TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
+    //TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
+    //TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
     //
     // loop through files
     //
@@ -159,7 +159,8 @@ void computeAccGenZmm(const TString conf, // input file
         //
         // loop over events
         //
-        for (UInt_t ientry = 0; ientry < eventTree->GetEntries(); ientry++) {
+        //for (UInt_t ientry = 0; ientry < eventTree->GetEntries(); ientry++) {
+        for (UInt_t ientry = 0; ientry < 4000000; ientry++) {
             if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
 
@@ -174,12 +175,12 @@ void computeAccGenZmm(const TString conf, // input file
             toolbox::fillGenBorn(genPartArr, BOSON_ID, vec, lep1, lep2, lep3, lep4);
 
             double ptWeight = 1;
-            for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
-                if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
-                    ptWeight = hh_diff->GetBinContent(i);
-                    break;
-                }
-            }
+            //for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
+            //    if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
+            //        ptWeight = hh_diff->GetBinContent(i);
+            //        break;
+            //    }
+            //}
 
             if (doDressed) {
                 for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++) {
@@ -235,6 +236,7 @@ void computeAccGenZmm(const TString conf, // input file
                 continue;
             //std::cout << dilep.M() << " " << vec->M() << std::endl;
 
+            //if(dilep.Pt()>25 || dilep.Pt()<2.0) continue;
             Bool_t isB1 = (fabs(lep1->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
             Bool_t isB2 = (fabs(lep2->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
 

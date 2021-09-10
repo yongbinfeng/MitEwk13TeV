@@ -1,17 +1,19 @@
 #! /bin/bash
 
-
 # integrated luminosity for data
-# LUMI=213.1 # Low PU 13 TeV 2017
 LUMI13=199.270 # Low PU 13 TeV 2017
 LUMI5=294.4 # Low PU 5 TeV 2017 ele trigger
-# LUMI5=291.1 # Low PU 5 TeV 2017 muon trigger
 
 # # LUMI2=199.270 # not used in Low PU atm
 # INPUTDIR=/afs/cern.ch/user/s/sabrandt/work/public/LowPU2017ID_13TeV_LHE/Wmunu/ntuples/
 INPUTDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_wGM/Wmunu/ntuples
 # INPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/LowPU2017ID_13TeV/Wmunu_testGen/ntuples/
 OUTPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/LowPU2017ID_13TeV_wGM/Wmunu/ntuples/
+INPUTDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_wGM/Wmunu/ntuples
+INPUTDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Selection/test/Wmunu/ntuples_0_100
+# INPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/LowPU2017ID_13TeV/Wmunu_testGen/ntuples/
+OUTPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/LowPU2017ID_13TeV_wGM/Wmunu/ntuples/
+OUTPUTDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Selection/test/NTuple
 # S="5TeV"
 S="13TeV"
 

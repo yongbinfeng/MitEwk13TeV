@@ -24,11 +24,9 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-#include "../Utils/MitStyleRemix.hh" // style settings for drawing
 #include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/RecoilCorrector_asym2.hh"
+#include "../Utils/RecoilCorrector.hh"
 // helper class to handle efficiency tables
-#include "../Utils/CEffUser1D.hh"
 #include "../Utils/CEffUser2D.hh"
 
 #include "../Utils/AppEffSF.cc"
@@ -114,7 +112,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     // const Double_t mu_MASS = 0.1057;
     const Double_t ELE_MASS = 0.000511;
 
-    TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
+    //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
+    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/results/Zee/";
     AppEffSF effs(effDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
@@ -144,7 +143,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     //   Load the Recoil Correction Files
     // ------------------------------------------------------------------------------------------------------------------------------------------
     // ===================== Recoil correction files ============================
-    const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
+    //const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
+    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
 
     // New Recoil Correctors for everything
     RecoilCorrector* rcMainWp = new RecoilCorrector("", "");
@@ -249,9 +249,9 @@ void eleNtupleMod(const TString outputDir, // output directory
     Float_t pfCombIso;
     Float_t lepError; //, lep2error;
 
-    intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
-    intree->SetBranchAddress("genVPhi", &genVPhi); // GEN W boson phi (signal MC)
-    intree->SetBranchAddress("genVy", &genVy); // GEN W boson phi (signal MC)
+    //intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
+    //intree->SetBranchAddress("genVPhi", &genVPhi); // GEN W boson phi (signal MC)
+    //intree->SetBranchAddress("genVy", &genVy); // GEN W boson phi (signal MC)
     intree->SetBranchAddress("genLepPt", &genLepPt); // GEN lepton pT (signal MC)
     intree->SetBranchAddress("genLepPhi", &genLepPhi); // GEN lepton phi (signal MC)
     intree->SetBranchAddress("prefireWeight", &prefireWeight); // event weight per 1/fb (MC)
@@ -404,6 +404,9 @@ void eleNtupleMod(const TString outputDir, // output directory
             }
 
             if (isRecoil) {
+                genVPt = genV->Pt();
+                genVPhi = genV->Phi();
+                genVy = genV->Rapidity();
                 if (q > 0) {
                     if (doKeys) {
                         rcKeysWp->CorrectInvCdf(metVars[keys], metVarsPhi[keys], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kTRUE, kFALSE);
@@ -489,5 +492,4 @@ void eleNtupleMod(const TString outputDir, // output directory
 
     delete intree;
     delete infile;
-    return;
 } // end of function

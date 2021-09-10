@@ -10,7 +10,7 @@
 # output ntuple directory
 NTUPDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_NEWPROD_TEST
 NTUPDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Selection/test
-NSEC=100
+NSEC=1
 ITH=0
 
 # root -l -q selectZmm.C+\(\"zmm_13.conf\",\"${NTUPDIR}/Zmumu\",0,0,1,${NSEC},${ITH}\)
@@ -28,10 +28,10 @@ root -l -q -b selectWm.C+\(\"wm_13_test.conf\",\"${NTUPDIR}/Wmunu\",0,0,1,${NSEC
 # ##############################################################################
 # ##                    5 TeV
 # ##############################################################################
-NTUPDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_5TeV_NEWPROD
+#NTUPDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_5TeV_NEWPROD
 
-NSEC=3
-ITH=2
+#NSEC=3
+#ITH=2
 
 # root -l -q selectZmm.C+\(\"zmm_5.conf\",\"${NTUPDIR}/Zmumu\",0,0,0,${NSEC},${ITH}\)
 # root -l -q -b selectWm.C+\(\"wm_5.conf\",\"${NTUPDIR}/Wmunu\",0,0,0,${NSEC},${ITH}\)

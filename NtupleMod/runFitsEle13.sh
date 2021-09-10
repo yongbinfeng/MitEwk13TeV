@@ -6,7 +6,7 @@ OUTPUTDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_1
 # S="5TeV"
 S="13TeV"
 
-EFFDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/Systematics
+EFFDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/
 FSIT=${EFFDIR}/SysUnc_MuSITEff.root
 FSTA=${EFFDIR}/SysUnc_MuStaEff.root
 FGSF=${EFFDIR}/SysUnc_EleGSFSelEff.root
@@ -36,7 +36,7 @@ NTUP=ntuples_${ITH}_${NSEC}
 INPUTDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_preapproval/AntiWenu
 OUTPUTDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_preapproval_PP/AntiWenu
 
-root -l -q -b eleNtupleMod.C+\(\"${OUTPUTDIR}/${NTUP}\",\"${INPUTDIR}/${NTUP}\",\"${S}\",\"data_select.root\",\"${FGSF}\"\);
+#root -l -q -b eleNtupleMod.C+\(\"${OUTPUTDIR}/${NTUP}\",\"${INPUTDIR}/${NTUP}\",\"${S}\",\"data_select.root\",\"${FGSF}\"\);
 # root -l -q -b eleNtupleMod.C+\(\"${OUTPUTDIR}/${NTUP}\",\"${INPUTDIR}/${NTUP}\",\"${S}\",\"we_select.root\",\"${FGSF}\"\);
 # root -l -q -b eleNtupleMod.C+\(\"${OUTPUTDIR}/${NTUP}\",\"${INPUTDIR}/${NTUP}\",\"${S}\",\"we0_select.root\",\"${FGSF}\"\);
 # root -l -q -b eleNtupleMod.C+\(\"${OUTPUTDIR}/${NTUP}\",\"${INPUTDIR}/${NTUP}\",\"${S}\",\"we1_select.root\",\"${FGSF}\"\);

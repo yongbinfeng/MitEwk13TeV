@@ -24,17 +24,11 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-//#include "../Utils/CPlot.hh" // helper class for plots
-#include "../Utils/LeptonCorr.hh" // Scale and resolution corrections
-//#include "../Utils/MitStyleRemix.hh" // style settings for drawing
-#include "../Utils/MyTools.hh" // various helper functions
-//#include "../Utils/RecoilCorrector_asym2.hh"
-#include "../Utils/RecoilCorrector.hh"
-//#include "../Utils/WModels.hh" // definitions of PDFs for fitting
-#include "TRandom.h"
-// helper class to handle efficiency tables
-#include "../Utils/CEffUser1D.hh"
 #include "../Utils/CEffUser2D.hh"
+#include "../Utils/LeptonCorr.hh" // Scale and resolution corrections
+#include "../Utils/MyTools.hh" // various helper functions
+#include "../Utils/RecoilCorrector.hh"
+#include "TRandom.h"
 
 //helper class to handle rochester corrections
 #include "../RochesterCorr/RoccoR.cc"
@@ -246,7 +240,6 @@ void muonNtupleMod(const TString outputDir, // output directory
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
-    //CPlot::sOutDir = outputDir;
 
     //RoccoR rc("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
     RoccoR rc("../RochesterCorr/RoccoR2017.txt");
@@ -571,10 +564,6 @@ void muonNtupleMod(const TString outputDir, // output directory
     outFile->Write();
     std::cout << "wrote outfile" << std::endl;
 
-    std::cout << "start deleting" << std::endl;
     delete intree;
-    std::cout << "deleted intree " << std::endl;
     delete infile;
-    std::cout << "deleted infile " << std::endl;
-    return;
 } // end of function

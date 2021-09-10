@@ -79,7 +79,7 @@ void selectWe(const TString conf = "we.conf", // input file
     const Int_t LEPTON_ID = 11;
 
     // load trigger menu
-    const baconhep::TTrigger triggerMenu("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/BaconAna/DataFormats/data/HLT_50nsGRun");
+    const baconhep::TTrigger triggerMenu("../../BaconAna/DataFormats/data/HLT_50nsGRun");
 
     const TString prefireFileName = "../Utils/All2017Gand2017HPrefiringMaps.root";
     PrefiringEfficiency pfire(prefireFileName.Data(), (is13TeV ? "2017H" : "2017G"));
@@ -412,23 +412,24 @@ void selectWe(const TString conf = "we.conf", // input file
                         TLorentzVector* gvec = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector* glep1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector* glep2 = new TLorentzVector(0, 0, 0, 0);
-                        toolbox::fillGen(genPartArr, BOSON_ID, gvec, glep1, glep2, &glepq1, &glepq2, 1);
-                        if (snamev[isam].Contains("zxx")) { // DY only
-                            toolbox::fillGen(genPartArr, 23, gvec, glep1, glep2, &glepq1, &glepq2, 1);
-                        }
+                        TLorentzVector* glepB1 = new TLorentzVector(0, 0, 0, 0);
+                        TLorentzVector* glepB2 = new TLorentzVector(0, 0, 0, 0);
+                        if ((snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0)) // DY only
+                            toolbox::fillGenBorn(genPartArr, 23, gvec, glepB1, glepB2, glep1, glep2);
+                        else
+                            toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
 
                         TLorentzVector tvec = *glep1 + *glep2;
                         genV = new TLorentzVector(0, 0, 0, 0);
                         genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
                         if (gvec && glep1) {
-                            genLep = new TLorentzVector(0, 0, 0, 0);
-                            if (toolbox::flavor(genPartArr, BOSON_ID) * glepq1 < 0) {
-                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
-                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
-                            }
-                            if (toolbox::flavor(genPartArr, BOSON_ID) * glepq2 < 0) {
+                            if (toolbox::flavor(genPartArr, BOSON_ID) < 0) { //means it's a W+ and charged lepton is anti-particle
                                 genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
                                 genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                            }
+                            if (toolbox::flavor(genPartArr, BOSON_ID) > 0) { //means it's a W- and charged lepton is particle
+                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
                             }
                         }
 
@@ -459,7 +460,7 @@ void selectWe(const TString conf = "we.conf", // input file
                     delete genV;
                     delete genLep;
                     delete genNu;
-                    genV = 0, genLep = 0, lep = 0, genNu = 0, sc = 0;
+                    genV = 0, genLep = 0, lep = 0, lep_raw = 0, genNu = 0, sc = 0;
                     prefirePhoton = 1;
                     prefirePhotUp = 1;
                     prefirePhotDown = 1;

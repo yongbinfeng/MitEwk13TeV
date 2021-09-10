@@ -45,4 +45,6 @@ To make the analysis-level ntuples, first need to run the selections, then run t
 ## ToDos
 - Figure out how to run condor jobs
 - Fix the muon-jet cleaning for ecal prefiring
+- Fix the electron isolation calculation
+- Fix the lepton energy scale / rochester correction uncertainty
 - Implement the muon prefiring

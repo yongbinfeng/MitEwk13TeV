@@ -208,6 +208,8 @@ void toolbox::fillGenBorn(TClonesArray* genPartArr, Int_t vid, TLorentzVector* v
     Int_t iv = -1, iv1 = -1, iv2 = -1;
     for (Int_t i = 0; i < genPartArr->GetEntries(); i++) {
         const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
+        if (fabs(genloop->pdgId) == 22)
+            continue;
         //if(fabs(genloop->pdgId)!=22)
         // std::cout << i << " " << genloop->pdgId << " " << genloop->status << " " << genloop->parent << " " <<dynamic_cast<baconhep::TGenParticle *>(genPartArr->At(genloop->parent>0 ? genloop->parent : 1))->pdgId << " " << genloop->pt << " " << genloop->mass << std::endl;
         // else if(fabs(genloop->pdgId)==22 && fabs(dynamic_cast<baconhep::TGenParticle *>(genPartArr->At(genloop->parent>0 ? genloop->parent : 1))->pdgId)==11)
@@ -218,18 +220,22 @@ void toolbox::fillGenBorn(TClonesArray* genPartArr, Int_t vid, TLorentzVector* v
             iv = i;
         } else if ((genloop->pdgId == 11 || genloop->pdgId == 13 || genloop->pdgId == 12 || genloop->pdgId == 14) && genloop->parent == iv) {
             lep1->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
         } else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == -12 || genloop->pdgId == -14) && genloop->parent == iv) {
 
             lep2->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
         } else if ((genloop->pdgId == 11 || genloop->pdgId == 13 || genloop->pdgId == -12 || genloop->pdgId == -14) && iv == -1 && genloop->status == 44) //status < 50 for pythia8 means particles produced by initial state showers
         {
             lep1->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
         } else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == 12 || genloop->pdgId == 14) && iv == -1 && genloop->status == 44) //status < 50 for pythia8 means particles produced by initial state showers
         {
             lep2->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
         } else if (iv1 != -1 && genloop->parent == iv1) {
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);

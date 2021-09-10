@@ -66,7 +66,7 @@ void selectWm(const TString conf = "wm.conf", // input file
     const Double_t PT_CUT = 20;
     const Double_t ETA_CUT = 2.4;
     const Double_t MUON_MASS = 0.105658369;
-    const Double_t ELE_MASS = 0.000511;
+    const Double_t ELE_MASS = 0.00051;
 
     const Double_t VETO_PT = 10;
     const Double_t VETO_ETA = 2.4;
@@ -553,10 +553,12 @@ void selectWm(const TString conf = "wm.conf", // input file
                         TLorentzVector* gvec = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector* glep1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector* glep2 = new TLorentzVector(0, 0, 0, 0);
-                        toolbox::fillGen(genPartArr, BOSON_ID, gvec, glep1, glep2, &glepq1, &glepq2, 1);
-                        if ((snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0)) { // DY only
-                            toolbox::fillGen(genPartArr, 23, gvec, glep1, glep2, &glepq1, &glepq2, 1);
-                        }
+                        TLorentzVector* glepB1 = new TLorentzVector(0, 0, 0, 0);
+                        TLorentzVector* glepB2 = new TLorentzVector(0, 0, 0, 0);
+                        if ((snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0)) // DY only
+                            toolbox::fillGenBorn(genPartArr, 23, gvec, glepB1, glepB2, glep1, glep2);
+                        else
+                            toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
 
                         TLorentzVector tvec = *glep1 + *glep2;
                         genV = new TLorentzVector(0, 0, 0, 0);
@@ -567,14 +569,13 @@ void selectWm(const TString conf = "wm.conf", // input file
                         genVMass = tvec.M();
 
                         if (gvec && glep1) {
-                            genLep = new TLorentzVector(0, 0, 0, 0);
-                            if (toolbox::flavor(genPartArr, BOSON_ID) * glepq1 < 0) {
-                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
-                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
-                            }
-                            if (toolbox::flavor(genPartArr, BOSON_ID) * glepq2 < 0) {
+                            if (toolbox::flavor(genPartArr, BOSON_ID) < 0) { //means it's a W+ and charged lepton is anti-particle
                                 genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
                                 genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                            }
+                            if (toolbox::flavor(genPartArr, BOSON_ID) > 0) { //means it's a W- and charged lepton is particle
+                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
                             }
                             genLepPt = genLep->Pt();
                             genLepPhi = genLep->Phi();
