@@ -24,12 +24,10 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-#include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/RecoilCorrector.hh"
-// helper class to handle efficiency tables
-#include "../Utils/CEffUser2D.hh"
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/RecoilCorrector.hh"
 
-#include "../Utils/AppEffSF.cc"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
 
 #endif
 
@@ -38,11 +36,10 @@
 void eleNtupleMod(const TString outputDir, // output directory
     const TString inputDir, // input directory
     const TString sqrts, // 13 or 5 TeV string specifier
-    const TString fileName, // both the input and output final file name i.e. data_select.root
-    const TString SysFileGSFSel // constains the uncertainty info for eleGSF+ID efficiency
+    const TString fileName // both the input and output final file name i.e. data_select.root
     )
 {
-    gBenchmark->Start("fitWm");
+    gBenchmark->Start("fitWe");
 
     //--------------------------------------------------------------------------------------------------------------
     // Settings
@@ -90,8 +87,12 @@ void eleNtupleMod(const TString outputDir, // output directory
         tagpt,
         effstat,
         pfireu,
-        pfired };
-    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired" };
+        pfired,
+        pfireecalu,
+        pfireecald,
+        pfiremuu,
+        pfiremud };
+    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud" };
     int nWeight = sizeof(vWeight) / sizeof(vWeight[0]);
 
     u1_name = "u1";
@@ -117,6 +118,7 @@ void eleNtupleMod(const TString outputDir, // output directory
     AppEffSF effs(effDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
+    TString SysFileGSFSel = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
@@ -242,6 +244,7 @@ void eleNtupleMod(const TString outputDir, // output directory
     Float_t genVPt, genVPhi, genVy;
     Float_t genLepPt, genLepPhi;
     Float_t scale1fb, scale1fbUp, scale1fbDown, prefireWeight, prefireUp, prefireDown;
+    Float_t prefireEcal, prefireEcalUp, prefireEcalDown, prefireMuon, prefireMuonUp, prefireMuonDown;
     Float_t met, metPhi, sumEt, mt, u1, u2;
     Int_t q;
     TLorentzVector *lep = 0, *genV = 0, *genLep = 0;
@@ -257,6 +260,12 @@ void eleNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("prefireWeight", &prefireWeight); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireUp", &prefireUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireDown", &prefireDown); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcal", &prefireEcal); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcalUp", &prefireEcalUp); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcalDown", &prefireEcalDown); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuon", &prefireMuon); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuonUp", &prefireMuonUp); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuonDown", &prefireMuonDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbUp", &scale1fbUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
@@ -295,13 +304,13 @@ void eleNtupleMod(const TString outputDir, // output directory
         evtWeight.push_back(0);
 
     outFile->cd();
-    outTree->Branch("relIso", &relIso, "relIso/d"); // scaled isolation variable that needs calculation
-    outTree->Branch("mtCorr", &mtCorr, "mtCorr/d"); // corrected MET with keys corrections
-    outTree->Branch("effSFweight", &effSFweight, "effSFweight/d"); // scale factors weight
-    outTree->Branch("lep_raw", "TLorentzVector", &lep_raw); // uncorrected lepton vector
-    outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight); // event weight vector
-    outTree->Branch("metVars", "vector<Double_t>", &metVars); // uncorrected lepton vector
-    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi); // uncorrected lepton vector
+    outTree->Branch("relIso", &relIso, "relIso/d", 99); // scaled isolation variable that needs calculation
+    outTree->Branch("mtCorr", &mtCorr, "mtCorr/d", 99); // corrected MET with keys corrections
+    outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight, 99); // event weight vector
+    outTree->Branch("effSFweight", &effSFweight, "effSFweight/d", 99); // scale factors weight
+    outTree->Branch("lep_raw", "TLorentzVector", &lep_raw, 99); // uncorrected lepton vector
+    outTree->Branch("metVars", "vector<Double_t>", &metVars, 99); // uncorrected lepton vector
+    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi, 99); // uncorrected lepton vector
 
     // Double_t mt=-999;
 
@@ -372,6 +381,10 @@ void eleNtupleMod(const TString outputDir, // output directory
             evtWeight[tagpt] = corrTag * scale1fb * prefireWeight;
             evtWeight[pfireu] = corr * scale1fb * prefireUp;
             evtWeight[pfired] = corr * scale1fb * prefireDown;
+            evtWeight[pfireecalu] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalUp / prefireEcal) : 0.;
+            evtWeight[pfireecald] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalDown / prefireEcal) : 0.;
+            evtWeight[pfiremuu] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonUp / prefireMuon) : 0.;
+            evtWeight[pfiremud] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonDown / prefireMuon) : 0.;
             evtWeight[effstat] = (corr + sqrt(var)) * scale1fb * prefireWeight; // not used
 
             TLorentzVector lepD, lepU;
@@ -492,4 +505,5 @@ void eleNtupleMod(const TString outputDir, // output directory
 
     delete intree;
     delete infile;
+    gBenchmark->Show("fitWe");
 } // end of function

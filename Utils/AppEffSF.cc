@@ -21,7 +21,6 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 // helper class to handle efficiency tables
-#include "../Utils/CEffUser1D.hh"
 #include "../Utils/CEffUser2D.hh"
 
 struct basicEff {

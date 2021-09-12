@@ -24,15 +24,14 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-#include "../Utils/CEffUser2D.hh"
-#include "../Utils/LeptonCorr.hh" // Scale and resolution corrections
-#include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/RecoilCorrector.hh"
+#include "MitEwk13TeV/Utils/LeptonCorr.hh" // Scale and resolution corrections
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/RecoilCorrector.hh"
 #include "TRandom.h"
 
 //helper class to handle rochester corrections
-#include "../RochesterCorr/RoccoR.cc"
-#include "../Utils/AppEffSF.cc"
+#include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
 
 #endif
 
@@ -41,9 +40,7 @@
 void muonNtupleMod(const TString outputDir, // output directory
     const TString inputDir, // input directory
     const TString sqrts, // 13 or 5 TeV string specifier
-    const TString fileName, // both the input and output final file name i.e. data_select.root
-    const TString sysFileSIT, // constains the uncertainty info for selection/id/trk efficiency
-    const TString sysFileSta // contains the alternate shape info for standalone efficiencies
+    const TString fileName // both the input and output final file name i.e. data_select.root
     )
 {
     std::cout << "start running new " << std::endl;
@@ -97,8 +94,12 @@ void muonNtupleMod(const TString outputDir, // output directory
         tagpt,
         effstat,
         pfireu,
-        pfired };
-    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired" };
+        pfired,
+        pfireecalu,
+        pfireecald,
+        pfiremuu,
+        pfiremud };
+    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud" };
     int nWeight = sizeof(vWeight) / sizeof(vWeight[0]);
 
     if (doPF) {
@@ -131,12 +132,15 @@ void muonNtupleMod(const TString outputDir, // output directory
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
 
+    TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuSITEff.root";
+    TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuStaEff.root";
+
     effs.loadUncSel(sysFileSIT);
     effs.loadUncSta(sysFileSta);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
     Bool_t isData = (fileName.CompareTo("data_select.root") == 0);
-    std::cout << fileName.CompareTo("data_select.root", TString::kIgnoreCase) << std::endl;
+    std::cout << "isData ? " << (fileName.CompareTo("data_select.root", TString::kIgnoreCase) == 0) << std::endl;
 
     Bool_t isRecoil = (fileName.CompareTo("wm_select.raw.root") == 0 || fileName.CompareTo("wm0_select.raw.root") == 0 || fileName.CompareTo("wm1_select.raw.root") == 0 || fileName.CompareTo("wm2_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("wm_select.root") == 0 || fileName.CompareTo("wm0_select.root") == 0 || fileName.CompareTo("wm1_select.root") == 0 || fileName.CompareTo("wm2_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
 
@@ -242,7 +246,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     gSystem->mkdir(outputDir, kTRUE);
 
     //RoccoR rc("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
-    RoccoR rc("../RochesterCorr/RoccoR2017.txt");
+    RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
 
     TFile* infile = 0;
     TTree* intree = 0;
@@ -259,6 +263,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     Float_t genVPt, genVPhi, genVy;
     Float_t genLepPt, genLepPhi;
     Float_t scale1fb, scale1fbUp, scale1fbDown, prefireWeight, prefireUp, prefireDown;
+    Float_t prefireEcal, prefireEcalUp, prefireEcalDown, prefireMuon, prefireMuonUp, prefireMuonDown;
     Float_t met, metPhi, sumEt, mt, u1, u2;
     Int_t q;
     UInt_t nTkLayers;
@@ -273,6 +278,12 @@ void muonNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("prefireWeight", &prefireWeight); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireUp", &prefireUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireDown", &prefireDown); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcal", &prefireEcal); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcalUp", &prefireEcalUp); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireEcalDown", &prefireEcalDown); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuon", &prefireMuon); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuonUp", &prefireMuonUp); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("prefireMuonDown", &prefireMuonDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbUp", &scale1fbUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
@@ -311,13 +322,13 @@ void muonNtupleMod(const TString outputDir, // output directory
 
     TLorentzVector* lep_raw = 0;
     outFile->cd();
-    outTree->Branch("relIso", &relIso, "relIso/d"); // scaled isolation variable that needs calculation
-    outTree->Branch("mtCorr", &mtCorr, "mtCorr/d"); // corrected MET with keys corrections
-    outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight); // event weight vector
-    outTree->Branch("effSFweight", &effSFweight, "effSFweight/d"); // scale factors weight
-    outTree->Branch("lep_raw", "TLorentzVector", &lep_raw); // uncorrected lepton vector
-    outTree->Branch("metVars", "vector<Double_t>", &metVars); // uncorrected lepton vector
-    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi); // uncorrected lepton vector
+    outTree->Branch("relIso", &relIso, "relIso/d", 99); // scaled isolation variable that needs calculation
+    outTree->Branch("mtCorr", &mtCorr, "mtCorr/d", 99); // corrected MET with keys corrections
+    outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight, 99); // event weight vector
+    outTree->Branch("effSFweight", &effSFweight, "effSFweight/d", 99); // scale factors weight
+    outTree->Branch("lep_raw", "TLorentzVector", &lep_raw, 99); // uncorrected lepton vector
+    outTree->Branch("metVars", "vector<Double_t>", &metVars, 99); // uncorrected lepton vector
+    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi, 99); // uncorrected lepton vector
 
     //
     // loop over events
@@ -434,6 +445,10 @@ void muonNtupleMod(const TString outputDir, // output directory
             evtWeight[effstat] = var * scale1fb * prefireWeight * scale1fb * prefireWeight;
             evtWeight[pfireu] = corr * scale1fb * prefireUp;
             evtWeight[pfired] = corr * scale1fb * prefireDown;
+            evtWeight[pfireecalu] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalUp / prefireEcal) : 0.;
+            evtWeight[pfireecald] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalDown / prefireEcal) : 0.;
+            evtWeight[pfiremuu] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonUp / prefireMuon) : 0.;
+            evtWeight[pfiremud] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonDown / prefireMuon) : 0.;
 
             double rand = gRandom->Uniform(1);
             double mcSF1 = 1;
@@ -566,4 +581,6 @@ void muonNtupleMod(const TString outputDir, // output directory
 
     delete intree;
     delete infile;
+
+    gBenchmark->Show("fitWm");
 } // end of function
