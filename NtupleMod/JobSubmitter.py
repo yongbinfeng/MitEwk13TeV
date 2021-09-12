@@ -26,7 +26,7 @@ def GenerateExecutable(macro, indir, outdir, fname, logsuffix):
         cmd = "root -l -q "
         cmd += macro
         cmd += '++O\(\\"' + outdir + '\\",\\"' + indir
-        cmd += '\\",\\"13\\",\\"' + fname + '.root\\"\)'
+        cmd += '\\",\\"13TeV\\",\\"' + fname + '.root\\"\)'
         bashscript.write(cmd)
 
     # change it to executable
