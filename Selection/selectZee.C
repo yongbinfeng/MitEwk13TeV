@@ -37,12 +37,12 @@
 #include "BaconAna/Utils/interface/RunLumiRangeMap.hh"
 
 // Utilities belonging to this package
-#include "../EleScale/EnergyScaleCorrection.h" //EGMSmear
-#include "../Utils/CSample.hh" // helper class to handle samples
-#include "../Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
-#include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
-#include "ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/EleScale/EnergyScaleCorrection.h" //EGMSmear
+#include "MitEwk13TeV/Selection/ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
 
 #include <TRandom3.h>
 #endif
@@ -56,7 +56,8 @@ void selectZee(const TString conf = "zee.conf", // input file
     const Bool_t doPU = 0,
     const Bool_t is13TeV = 1,
     const Int_t NSEC = 1,
-    const Int_t ITH = 0)
+    const Int_t ITH = 0,
+    const Int_t ISample = -1)
 {
     gBenchmark->Start("selectZee");
     cout << "Currently doing selecting samples with sqrt(s) = " << (is13TeV ? "13 TeV" : "5 TeV") << std::endl;
@@ -80,18 +81,19 @@ void selectZee(const TString conf = "zee.conf", // input file
     const Int_t LEPTON_ID = 11;
 
     // load trigger menu
-    const baconhep::TTrigger triggerMenu("../../BaconAna/DataFormats/data/HLT_50nsGRun");
+    const baconhep::TTrigger triggerMenu("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/BaconAna/DataFormats/data/HLT_50nsGRun");
 
     // Set up electron energy scale/smear
-    const TString corrFiles = "../EleScale/Run2017_LowPU_v2";
+    const TString corrFiles = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
     EnergyScaleCorrection ec(corrFiles.Data(), EnergyScaleCorrection::ECALELF);
 
     // Set up Prefiring Efficiencies
-    const TString prefireFileName = "../Utils/All2017Gand2017HPrefiringMaps.root";
-    PrefiringEfficiency pfire(prefireFileName.Data(), (is13TeV ? "2017H" : "2017G"));
+    const TString prefireEcalFileName = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
+    const TString prefireMuonFileName = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
+    PrefiringEfficiency pfire(prefireEcalFileName.Data(), (is13TeV ? "2017H" : "2017G"), prefireMuonFileName.Data());
 
     // load pileup reweighting file
-    TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
+    TFile* f_rw = TFile::Open("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Tools/puWeights_76x.root", "read");
 
     // for systematics we need 3
     TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
@@ -139,9 +141,13 @@ void selectZee(const TString conf = "zee.conf", // input file
     UInt_t npv, npu;
     TLorentzVector* genV = 0;
     Float_t scale1fb, scale1fbUp, scale1fbDown;
-    Float_t prefireWeight = 1, prefireUp = 1, prefireDown = 1;
+    // these are naming conventions
+    // actually the prefireWeight here should be the non-prefirable probability
+    Float_t prefireEcal = 1, prefireEcalUp = 1, prefireEcalDown = 1;
     Float_t prefirePhoton = 1, prefirePhotUp = 1, prefirePhotDown = 1;
     Float_t prefireJet = 1, prefireJetUp = 1, prefireJetDown = 1;
+    Float_t prefireMuon = 1, prefireMuonUp = 1, prefireMuonDown = 1, prefireMuonStatUp = 1, prefireMuonStatDown = 1, prefireMuonSystUp = 1, prefireMuonSystDown = 1;
+    Float_t prefireWeight = 1, prefireUp = 1, prefireDown = 1;
     Float_t met, metPhi, u1, u2;
     Float_t puppiMet, puppiMetPhi, puppiU1, puppiU2;
     Int_t q1, q2;
@@ -160,6 +166,7 @@ void selectZee(const TString conf = "zee.conf", // input file
     baconhep::TEventInfo* info = new baconhep::TEventInfo();
     baconhep::TGenEventInfo* gen = new baconhep::TGenEventInfo();
     TClonesArray* genPartArr = new TClonesArray("baconhep::TGenParticle");
+    TClonesArray* muonArr = new TClonesArray("baconhep::TMuon");
     TClonesArray* electronArr = new TClonesArray("baconhep::TElectron");
     TClonesArray* scArr = new TClonesArray("baconhep::TPhoton");
     TClonesArray* vertexArr = new TClonesArray("baconhep::TVertex");
@@ -172,14 +179,19 @@ void selectZee(const TString conf = "zee.conf", // input file
     // loop over samples
     //
     for (UInt_t isam = 0; isam < samplev.size(); isam++) {
-
+        if ((ISample >= 0) && ((int)isam != ISample))
+            // only run the ISample in the config
+            continue;
+        std::cout << "start running for isamp" << isam << std::endl;
         // Assume data sample is first sample in .conf file
         // If sample is empty (i.e. contains no ntuple files), skip to next sample
-        Bool_t isData = kFALSE;
-        if (isam == 0 && !hasData)
-            continue;
-        else if (isam == 0)
-            isData = kTRUE;
+        Bool_t isData = false;
+        //if (isam == 0 && !hasData)
+        //    continue;
+        //else if (isam == 0)
+        //    isData = kTRUE;
+        if (snamev[isam].CompareTo("data", TString::kIgnoreCase) == 0)
+            isData = true;
 
         Bool_t isSignal = (snamev[isam].Contains("zee"));
         Bool_t isWboson = (snamev[isam].Contains("wx"));
@@ -205,18 +217,28 @@ void selectZee(const TString conf = "zee.conf", // input file
         outTree->Branch("npv", &npv, "npv/i"); // number of primary vertices
         outTree->Branch("npu", &npu, "npu/i"); // number of in-time PU events (MC)
         outTree->Branch("genV", "TLorentzVector", &genV); // GEN boson 4-vector
-        outTree->Branch("prefireWeight", &prefireWeight, "prefireWeight/F");
-        outTree->Branch("prefireUp", &prefireUp, "prefireUp/F");
-        outTree->Branch("prefireDown", &prefireDown, "prefireDown/F");
+        outTree->Branch("scale1fb", &scale1fb, "scale1fb/F"); // event weight per 1/fb (MC)
+        outTree->Branch("scale1fbUp", &scale1fbUp, "scale1fbUp/F"); // event weight per 1/fb (MC)
+        outTree->Branch("scale1fbDown", &scale1fbDown, "scale1fbDown/F"); // event weight per 1/fb (MC)
+        outTree->Branch("prefireEcal", &prefireEcal, "prefireEcal/F");
+        outTree->Branch("prefireEcalUp", &prefireEcalUp, "prefireEcalUp/F");
+        outTree->Branch("prefireEcalDown", &prefireEcalDown, "prefireEcalDown/F");
         outTree->Branch("prefirePhoton", &prefirePhoton, "prefirePhoton/F");
         outTree->Branch("prefirePhotUp", &prefirePhotUp, "prefirePhotUp/F");
         outTree->Branch("prefirePhotDown", &prefirePhotDown, "prefirePhotDown/F");
         outTree->Branch("prefireJet", &prefireJet, "prefireJet/F");
         outTree->Branch("prefireJetUp", &prefireJetUp, "prefireJetUp/F");
         outTree->Branch("prefireJetDown", &prefireJetDown, "prefireJetDown/F");
-        outTree->Branch("scale1fb", &scale1fb, "scale1fb/F"); // event weight per 1/fb (MC)
-        outTree->Branch("scale1fbUp", &scale1fbUp, "scale1fbUp/F"); // event weight per 1/fb (MC)
-        outTree->Branch("scale1fbDown", &scale1fbDown, "scale1fbDown/F"); // event weight per 1/fb (MC)
+        outTree->Branch("prefireMuon", &prefireMuon, "prefireMuon/F");
+        outTree->Branch("prefireMuonUp", &prefireMuonUp, "prefireMuonUp/F");
+        outTree->Branch("prefireMuonDown", &prefireMuonDown, "prefireMuonDown/F");
+        outTree->Branch("prefireMuonStatUp", &prefireMuonStatUp, "prefireMuonStatUp/F");
+        outTree->Branch("prefireMuonStatDown", &prefireMuonStatDown, "prefireMuonStatDown/F");
+        outTree->Branch("prefireMuonSystUp", &prefireMuonSystUp, "prefireMuonSystUp/F");
+        outTree->Branch("prefireMuonSystDown", &prefireMuonSystDown, "prefireMuonSystDown/F");
+        outTree->Branch("prefireWeight", &prefireWeight, "prefireWeight/F");
+        outTree->Branch("prefireUp", &prefireUp, "prefireUp/F");
+        outTree->Branch("prefireDown", &prefireDown, "prefireDown/F");
         outTree->Branch("met", &met, "met/F"); // MET
         outTree->Branch("metPhi", &metPhi, "metPhi/F"); // phi(MET)
         outTree->Branch("u1", &u1, "u1/F"); // parallel component of recoil
@@ -643,10 +665,14 @@ void selectZee(const TString conf = "zee.conf", // input file
 
                 // do the prefiring weights
                 if (!isData) {
-                    pfire.setObjects(scArr, jetArr);
+                    pfire.setObjects(scArr, jetArr, muonArr);
                     pfire.computePhotonsOnly(prefirePhoton, prefirePhotUp, prefirePhotDown);
                     pfire.computeJetsOnly(prefireJet, prefireJetUp, prefireJetDown);
-                    pfire.computeFullPrefire(prefireWeight, prefireUp, prefireDown);
+                    pfire.computeEcalsOnly(prefireEcal, prefireEcalUp, prefireEcalDown);
+                    pfire.computeMuonsOnly(prefireMuon, prefireMuonUp, prefireMuonDown, prefireMuonStatUp, prefireMuonStatDown, prefireMuonSystUp, prefireMuonSystDown);
+                    prefireWeight = prefireEcal * prefireMuon;
+                    prefireUp = prefireEcalUp * prefireMuonUp;
+                    prefireDown = prefireEcalDown * prefireMuonDown;
                 }
 
                 //******** We have a Z candidate! HURRAY! ********
@@ -726,12 +752,23 @@ void selectZee(const TString conf = "zee.conf", // input file
                 delete genlep1;
                 delete genlep2;
                 genV = 0, dilep = 0, lep1 = 0, lep2 = 0, sc1 = 0, sc2 = 0, lep1_raw = 0, lep2_raw = 0, genlep1 = 0, genlep2 = 0;
+                // reset everything to 1
                 prefirePhoton = 1;
                 prefirePhotUp = 1;
                 prefirePhotDown = 1;
                 prefireJet = 1;
                 prefireJetUp = 1;
                 prefireJetDown = 1;
+                prefireEcal = 1;
+                prefireEcalUp = 1;
+                prefireEcalDown = 1;
+                prefireMuon = 1;
+                prefireMuonUp = 1;
+                prefireMuonDown = 1;
+                prefireMuonStatUp = 1;
+                prefireMuonStatDown = 1;
+                prefireMuonSystUp = 1;
+                prefireMuonSystDown = 1;
                 prefireWeight = 1;
                 prefireUp = 1;
                 prefireDown = 1;

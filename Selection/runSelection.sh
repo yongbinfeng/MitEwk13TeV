@@ -8,13 +8,12 @@
 ##                    13 TeV
 ##############################################################################
 # output ntuple directory
-NTUPDIR=/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/LowPU2017ID_13TeV_NEWPROD_TEST
-NTUPDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Selection/test
+NTUPDIR=/eos/user/y/yofeng/LowPU/Selection
 NSEC=1
 ITH=0
 
-# root -l -q selectZmm.C+\(\"zmm_13.conf\",\"${NTUPDIR}/Zmumu\",0,0,1,${NSEC},${ITH}\)
-root -l -q -b selectWm.C+\(\"wm_13_test.conf\",\"${NTUPDIR}/Wmunu\",0,0,1,${NSEC},${ITH}\)
+root -l -q selectZmm.C+\(\"zmm_13.conf\",\"${NTUPDIR}/Zmumu\",0,0,1,${NSEC},${ITH}\)
+#root -l -q -b selectWm.C+\(\"wm_13_test.conf\",\"${NTUPDIR}/Wmunu\",0,0,1,${NSEC},${ITH}\)
 # root -l -q -b selectAntiWm.C+\(\"wm_13.conf\",\"${NTUPDIR}/AntiWmunu\",0,0,1,${NSEC},${ITH}\)
 
 # root -l -q selectZee.C+\(\"zee_13.conf\",\"${NTUPDIR}/Zee\",1,0,0,1,${NSEC},${ITH}\)

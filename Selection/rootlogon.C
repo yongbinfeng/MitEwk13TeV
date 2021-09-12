@@ -14,15 +14,16 @@
 
         gSystem->Load("$CMSSW_BASE/lib/$SCRAM_ARCH/libBaconAnaDataFormats.so");
 
-        gROOT->Macro("$CMSSW_BASE/src/BaconAna/macros/setRootEnv.C++");
+        //gROOT->Macro("$CMSSW_BASE/src/BaconAna/macros/setRootEnv.C++");
         // gSystem->SetMakeSharedLib(cmd);
         //#endif
     }
 
-    gROOT->Macro("../Utils/CPlot.cc++");
-    gROOT->Macro("../Utils/MitStyleRemix.cc++");
-    gROOT->Macro("../EleScale/EnergyScaleCorrection.cc++");
-    gROOT->Macro("../Utils/CCorrUser2D.cc+");
+    //gROOT->Macro("../Utils/CPlot.cc++");
+    //gROOT->Macro("../Utils/MitStyleRemix.cc++");
+    gSystem->Load("$CMSSW_BASE/src/MitEwk13TeV/EleScale/EnergyScaleCorrection_cc.so");
+    //gROOT->Macro("../EleScale/EnergyScaleCorrection.cc+");
+    //gROOT->Macro("../Utils/CCorrUser2D.cc+");
 
     // {
     // //TString path = gSystem->GetIncludePath();
