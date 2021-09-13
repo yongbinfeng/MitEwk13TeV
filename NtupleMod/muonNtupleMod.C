@@ -40,7 +40,9 @@
 void muonNtupleMod(const TString outputDir, // output directory
     const TString inputDir, // input directory
     const TString sqrts, // 13 or 5 TeV string specifier
-    const TString fileName // both the input and output final file name i.e. data_select.root
+    const TString fileName, // both the input and output final file name i.e. data_select.root
+    const Int_t NSEC = 1,
+    const Int_t ITH = 0
     )
 {
     std::cout << "start running new " << std::endl;
@@ -299,11 +301,33 @@ void muonNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("nTkLayers", &nTkLayers); // lepton 4-vector
     intree->SetBranchAddress("genMuonPt", &genMuonPt); // lepton 4-vector
 
+    Long64_t nevents = intree->GetEntries();
+    Long64_t IBEGIN = 0;
+    Long64_t IEND = nevents;
+
+    if (NSEC!=1) {
+        cout << "n sections " << NSEC << " ith part " << ITH << endl;
+        Long64_t nevents_per_job = nevents / NSEC;
+        Long64_t remainder = nevents % NSEC;
+        IBEGIN = ITH * nevents_per_job;
+        IEND = (ITH + 1) * nevents_per_job;
+        if (ITH == NSEC - 1) {
+            // for the last section, add the remaining into these;
+            IEND = nevents;
+        }
+        cout << "start, end events: " << IBEGIN << " " << IEND << endl;
+    }
+
     //
     // Set up output file
     //
     TString outfilename = outputDir + TString("/") + fileName;
-    TFile* outFile = new TFile(outfilename, "RECREATE");
+    if (NSEC!=1) {
+        // file broken into different sections;
+        outfilename.Remove(outfilename.Length()-5, 5);
+        outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH) + TString(".root");
+    }
+    TFile* outFile = TFile::Open(outfilename, "RECREATE");
     TH1::AddDirectory(kFALSE);
     // Actually just need to clone the tree:
     TTree* outTree = intree->CloneTree(0);
@@ -333,8 +357,9 @@ void muonNtupleMod(const TString outputDir, // output directory
     //
     // loop over events
     //
-    std::cout << "Number of Events = " << intree->GetEntries() << std::endl;
-    for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
+    std::cout << "Number of Events = " << intree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
+    //for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
+    for (Long64_t ientry = IBEGIN; ientry < IEND; ientry++) {
         intree->GetEntry(ientry);
         if (ientry % 10000 == 0)
             cout << "Event " << ientry << ". " << (double)ientry / (double)intree->GetEntries() * 100 << " % done with this file." << endl;

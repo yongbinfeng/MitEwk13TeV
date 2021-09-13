@@ -3,10 +3,13 @@ script to generate and submit condor jobs
 """
 import os
 import time
+from collections import OrderedDict
 
-def GenerateExecutable(macro, indir, outdir, fname, logsuffix):
+def GenerateExecutable(macro, indir, outdir, fname, logsuffix, nsec = 1, ith = 0):
+    logsuffix += "_" + str(fname) + "_" + str(nsec) + "_" + str(ith)
+
     pwd = os.environ['PWD'];
-    jobname = pwd + "/log/run_" + logsuffix + "_" + str(fname)
+    jobname = pwd + "/log_test/run_" + logsuffix
     with open(jobname + ".sh", "w") as bashscript:
         bashscript.write("#!/bin/bash\n")
         bashscript.write("\n")
@@ -26,7 +29,12 @@ def GenerateExecutable(macro, indir, outdir, fname, logsuffix):
         cmd = "root -l -q "
         cmd += macro
         cmd += '++O\(\\"' + outdir + '\\",\\"' + indir
-        cmd += '\\",\\"13TeV\\",\\"' + fname + '.root\\"\)'
+        cmd += '\\",\\"13TeV\\",\\"' + fname + '.root\\"'
+
+        if nsec != 1:
+            cmd += ',' + str(nsec) + ',' + str(ith) 
+
+        cmd += '\)'
         bashscript.write(cmd)
 
     # change it to executable
@@ -39,7 +47,7 @@ Output     = {jobname}.out
 Error      = {jobname}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-+JobFlavour = "tomorrow"
++JobFlavour = "longlunch"
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 
@@ -48,7 +56,7 @@ queue 1\n
         outfile.close()
 
     os.system("condor_submit " + jobname + ".condor")
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 
 if __name__ == "__main__":
@@ -60,11 +68,23 @@ if __name__ == "__main__":
             "zxx_select.raw.root",
             "ww_select.raw.root", "wz_select.raw.root", "zz_select.raw.root",
             "top1_select.raw.root", "top2_select.raw.root", "top3_select.raw.root"]
+
+    njobs = OrderedDict()
+    for fname in fnames:
+        njobs[fname] = 3
+    njobs['data_select.root'] = 10
+    njobs['wm0_select.raw.root'] = 100
+    njobs['wm1_select.raw.root'] = 50
+    njobs['wm2_select.raw.root'] = 10
+    njobs['wx0_select.raw.root'] = 20
+    njobs['wx1_select.raw.root'] = 10
+    njobs['zxx_select.raw.root'] = 10
     indir = "/eos/user/y/yofeng/LowPU/Selection/Wmunu/ntuples_0_1/"
-    outdir = "/eos/user/y/yofeng/LowPU/NTupleMod/Wmunu/ntuples_0_1/"
+    outdir = "/eos/user/y/yofeng/LowPU/NTupleModTest/Wmunu/ntuples_0_1/"
     logsuffix = "muonNtupleMod_wm_13"
     for fname in fnames:
-        GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix)
+        for ijob in range(njobs[fname]):
+            GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob)
 
     ## W -> enu
     macro = "eleNtupleMod.C"
@@ -74,8 +94,19 @@ if __name__ == "__main__":
             "zxx_select.root",
             "ww_select.root", "wz_select.root", "zz_select.root",
             "top1_select.root", "top2_select.root", "top3_select.root"]
+    njobs = OrderedDict()
+    for fname in fnames:
+        njobs[fname] = 3
+    njobs['data_select.root'] = 10
+    njobs['we0_select.root'] = 100
+    njobs['we1_select.root'] = 50
+    njobs['we2_select.root'] = 10
+    njobs['wx0_select.root'] = 20
+    njobs['wx1_select.root'] = 10
+    njobs['zxx_select.root'] = 10
     indir = "/eos/user/y/yofeng/LowPU/Selection/Wenu/ntuples_0_1/"
-    outdir = "/eos/user/y/yofeng/LowPU/NTupleMod/Wenu/ntuples_0_1/"
+    outdir = "/eos/user/y/yofeng/LowPU/NTupleModTest/Wenu/ntuples_0_1/"
     logsuffix = "eleNtupleMod_we_13"
     for fname in fnames:
-        GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix)
+        for ijob in range(njobs[fname]):
+            GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob)
