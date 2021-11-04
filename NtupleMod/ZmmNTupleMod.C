@@ -22,6 +22,8 @@
 
 #include "MitEwk13TeV/Utils/LeptonCorr.hh" // Scale and resolution corrections
 #include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/RecoilCorrector.hh"
+#include "MitEwk13TeV/Utils/METXYCorrector.hh"
 
 #include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
 #include "MitEwk13TeV/Utils/AppEffSF.cc"
@@ -49,6 +51,15 @@ void ZmmNTupleMod(
     gBenchmark->Start("plotZmm");
     gStyle->SetTitleOffset(1.100, "Y");
 
+    // Control the types of uncertainties
+    enum { 
+        no,
+        cent,
+        cxy
+        };
+    const string vMET[] = { "no", "cent", "cxy"};
+    int nMET = sizeof(vMET) / sizeof(vMET[0]);
+
     enum { main,
         mc,
         fsr,
@@ -60,8 +71,10 @@ void ZmmNTupleMod(
         pfireecalu,
         pfireecald,
         pfiremuu,
-        pfiremud };
-    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud" };
+        pfiremud,
+        effstat_lepPos,
+        effstat_lepNeg};
+    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud", "effstat_lepPos", "effstat_lepNeg"};
     int nWeight = sizeof(vWeight) / sizeof(vWeight[0]);
 
     //--------------------------------------------------------------------------------------------------------------
@@ -122,6 +135,19 @@ void ZmmNTupleMod(
     effs.loadUncSel(sysFileSIT);
     effs.loadUncSta(sysFileSta);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
+    
+    Bool_t isRecoil = (fileName.CompareTo("zmm_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zmm_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+
+    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+
+    RecoilCorrector* rcMainZ = new RecoilCorrector("", "");
+    rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
+
+    METXYCorrector* metcorXY = new METXYCorrector("", "");
+    metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -151,14 +177,17 @@ void ZmmNTupleMod(
     Float_t scale1fb;
     Float_t prefireWeight, prefireUp, prefireDown;
     Float_t prefireEcal, prefireEcalUp, prefireEcalDown, prefireMuon, prefireMuonUp, prefireMuonDown;
+    Float_t met, metPhi, u1, u2;
     Int_t q1, q2;
     UInt_t nTkLayers1, nTkLayers2;
     TLorentzVector *lep1 = 0, *lep2 = 0;
     TLorentzVector *genlep1 = 0, *genlep2 = 0;
+    TLorentzVector *genV = 0;
     Float_t genMuonPt1, genMuonPt2;
 
     Double_t nDib = 0, nWx = 0, nZxx = 0;
     Double_t nDibUnc = 0, nWxUnc = 0, nZxxUnc = 0;
+    UInt_t npv;
 
     // Loading the Rochster Corrections
     RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
@@ -184,6 +213,10 @@ void ZmmNTupleMod(
     intree->SetBranchAddress("prefireMuonUp", &prefireMuonUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireMuonDown", &prefireMuonDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("met", &met); // MET
+    intree->SetBranchAddress("metPhi", &metPhi); // phi(MET)
+    intree->SetBranchAddress("u1", &u1); // u1
+    intree->SetBranchAddress("u2", &u2); // u2
     intree->SetBranchAddress("q1", &q1); // charge of tag lepton
     intree->SetBranchAddress("q2", &q2); // charge of probe lepton
     intree->SetBranchAddress("lep1", &lep1); // tag lepton 4-vector
@@ -192,8 +225,10 @@ void ZmmNTupleMod(
     intree->SetBranchAddress("genlep2", &genlep2); // probe lepton 4-vector
     intree->SetBranchAddress("genMuonPt1", &genMuonPt1); // probe lepton 4-vector
     intree->SetBranchAddress("genMuonPt2", &genMuonPt2); // probe lepton 4-vector
+    intree->SetBranchAddress("genV", &genV); // lepton 4-vector
     intree->SetBranchAddress("nTkLayers1", &nTkLayers1);
     intree->SetBranchAddress("nTkLayers2", &nTkLayers2);
+    intree->SetBranchAddress("npv", &npv);
 
     TH1D* hGenWeights;
     hGenWeights = (TH1D*)infile->Get("hGenWeights");
@@ -230,7 +265,14 @@ void ZmmNTupleMod(
     TTree* outTree = intree->CloneTree(0);
     Double_t mass = 0;
     Double_t effSFweight = 1;
+    Double_t pU1 = 0, pU2 = 0, pU1_postXY = 0, pU2_postXY = 0;
     vector<Double_t> evtWeight;
+    vector<Double_t> metVars, metVarsPhi;
+
+    for (int i = 0; i < nMET; i++) {
+        metVars.push_back(0);
+        metVarsPhi.push_back(0);
+    }
 
     for (int i = 0; i < nWeight; i++)
         evtWeight.push_back(0);
@@ -239,6 +281,12 @@ void ZmmNTupleMod(
     outTree->Branch("mass", &mass, "mass/d", 99); // invariant mass of the two leptons 
     outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight, 99); // event weight vector
     outTree->Branch("effSFweight", &effSFweight, "effSFweight/d", 99); // scale factors weight
+    outTree->Branch("metVars", "vector<Double_t>", &metVars, 99); // metVars
+    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi, 99); // metVars in phi
+    outTree->Branch("pU1", &pU1, "pU1/d", 99); // u1 after recoil correction
+    outTree->Branch("pU2", &pU2, "pU2/d", 99); // u2 after recoil correction
+    outTree->Branch("pU1_postXY", &pU1_postXY, "pU1_postXY/d", 99); // u1 after recoil and metxy correction
+    outTree->Branch("pU2_postXY", &pU2_postXY, "pU2_postXY/d", 99); // u2 after recoil and metxy correction
 
     //
     // loop over events
@@ -282,6 +330,22 @@ void ZmmNTupleMod(
             Int_t q2 = q2;
 
             mass = (mu1 + mu2).M();
+
+            // skip the impactos of lepton energy scale correction on MET as they are minor
+            metVars[no] = met;
+            metVarsPhi[no] = metPhi;
+
+            // for data, no correction on recoil
+            metVars[cent] = met;
+            metVarsPhi[cent] = metPhi;
+            pU1 = u1;
+            pU2 = u2;
+
+            // correct MET XY for data
+            metVars[cxy] = met;
+            metVarsPhi[cxy] = metPhi;
+            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
+            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1_postXY, pU2_postXY);
 
         } else {
 
@@ -350,12 +414,26 @@ void ZmmNTupleMod(
             var += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0);
             var += effs.statUncHLTDilep(&mu1, q1, &mu2, q2);
 
+            double var_lep1 = 0.;
+            var_lep1 += effs.statUncSta(&mu1, q1, hErr, hErr, 1.0);
+            var_lep1 += effs.statUncSel(&mu1, q1, hErr, hErr, 1.0);
+            //var_lep1 += effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0);
+
+            double var_lep2 = 0.;
+            var_lep2 += effs.statUncSta(&mu2, q2, hErr, hErr, 1.0);
+            var_lep2 += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0);
+            //var_lep2 += effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0);
+            //
+            //std::cout << "stational stat unc " << effs.statUncSta(&mu1, q1, hErr, hErr, 1.0) << " and " << effs.statUncSta(&mu2, q2, hErr, hErr, 1.0) << std::endl;
+            //std::cout << "selection stat unc " << effs.statUncSel(&mu1, q1, hErr, hErr, 1.0) << " and " << effs.statUncSel(&mu2, q2, hErr, hErr, 1.0) << std::endl;
+            //std::cout << "hlt stat unc " << effs.statUncHLTDilep(&mu1, q1, &mu2, q2) << " lep1 " << effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0) << " lep2 " << effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0) << std::endl;
+
             evtWeight[main] = corr * scale1fb * prefireWeight;
             evtWeight[fsr] = corrFSR * scale1fb * prefireWeight;
             evtWeight[mc] = corrMC * scale1fb * prefireWeight;
             evtWeight[bkg] = corrBkg * scale1fb * prefireWeight;
             evtWeight[tagpt] = corrTag * scale1fb * prefireWeight;
-            evtWeight[effstat] = var * scale1fb * prefireWeight * scale1fb * prefireWeight;
+            evtWeight[effstat] = (corr + sqrt(abs(var))) * scale1fb * prefireWeight;
             evtWeight[pfireu] = corr * scale1fb * prefireUp;
             evtWeight[pfired] = corr * scale1fb * prefireDown;
             evtWeight[pfireecalu] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalUp / prefireEcal) : 0.;
@@ -363,7 +441,32 @@ void ZmmNTupleMod(
             evtWeight[pfiremuu] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonUp / prefireMuon) : 0.;
             evtWeight[pfiremud] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonDown / prefireMuon) : 0.;
 
+            double corr_lep1 = (corr + sqrt(abs(var_lep1))) * scale1fb * prefireWeight;
+            double corr_lep2 = (corr + sqrt(abs(var_lep2))) * scale1fb * prefireWeight;
+            evtWeight[effstat_lepPos] = (q1 > 0) ? corr_lep1 : corr_lep2;
+            evtWeight[effstat_lepNeg] = (q1 < 0) ? corr_lep1 : corr_lep2; 
+
             mass = (mu1 + mu2).M();
+
+            // recoil corrections
+            metVars[no] = met;
+            metVarsPhi[no] = metPhi;
+            metVars[cent] = met;
+            metVarsPhi[cent] = metPhi;
+
+            // to save the corrected U1 and U2
+            pU1 = u1;
+            pU2 = u2;
+            if (isRecoil) {
+                rcMainZ->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genV->Pt(), genV->Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
+                //std::cout << "PU1 " << pU1 << " pU2 " << pU2 << std::endl;
+            }
+
+            // XY correction on MC
+            metVars[cxy] =  metVars[cent];
+            metVarsPhi[cxy] = metVarsPhi[cent];
+            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
+            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree

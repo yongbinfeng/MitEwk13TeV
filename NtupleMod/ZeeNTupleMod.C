@@ -27,6 +27,8 @@
 #include "MitEwk13TeV/Utils/LeptonCorr.hh" // Scale and resolution corrections
 #include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
 #include "MitEwk13TeV/EleScale/EnergyScaleCorrection.h"
+#include "MitEwk13TeV/Utils/RecoilCorrector.hh"
+#include "MitEwk13TeV/Utils/METXYCorrector.hh"
 
 #include "MitEwk13TeV/Utils/AppEffSF.cc"
 
@@ -47,6 +49,15 @@ void ZeeNTupleMod(
 {
     std::cout << "---------------- STARTING ZEE ------------------------" << std::endl;
     gBenchmark->Start("plotZee");
+
+    // Control the types of uncertainties
+    enum {
+        no,
+        cent,
+        cxy
+        };
+    const string vMET[] = { "no", "cent", "cxy"};
+    int nMET = sizeof(vMET) / sizeof(vMET[0]);
 
     enum { main,
         mc,
@@ -81,17 +92,30 @@ void ZeeNTupleMod(
     int filetype = -1;
     if (fileName.CompareTo("data_select.root") == 0) {
         filetype = eData;
-    } else if (fileName.CompareTo("zee_select.raw.root") == 0) {
+    } else if (fileName.CompareTo("zee_select.root") == 0) {
         filetype = eZee;
-    } else if ((fileName.CompareTo("top_select.raw.root") == 0) || (fileName.CompareTo("top1_select.raw.root") == 0) || (fileName.CompareTo("top2_select.raw.root") == 0) || (fileName.CompareTo("top3_select.raw.root") == 0)) {
+    } else if ((fileName.CompareTo("top_select.root") == 0) || (fileName.CompareTo("top1_select.root") == 0) || (fileName.CompareTo("top2_select.root") == 0) || (fileName.CompareTo("top3_select.root") == 0)) {
         filetype = eTop;
-    } else if ((fileName.CompareTo("zz_select.raw.root") == 0) || (fileName.CompareTo("zz_select.raw.root") == 0) || (fileName.CompareTo("wz_select.raw.root") == 0)) {
+    } else if ((fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("wz_select.root") == 0)) {
         filetype = eDib;
-    } else if (fileName.CompareTo("zxx_select.raw.root") == 0) {
+    } else if (fileName.CompareTo("zxx_select.root") == 0) {
         filetype = eZxx;
-    } else if ((fileName.CompareTo("wx_select.raw.root") == 0) || (fileName.CompareTo("wx0_select.raw.root") == 0) || (fileName.CompareTo("wx1_select.raw.root") == 0) || (fileName.CompareTo("wx2_select.raw.root") == 0)) {
+    } else if ((fileName.CompareTo("wx_select.root") == 0) || (fileName.CompareTo("wx0_select.root") == 0) || (fileName.CompareTo("wx1_select.root") == 0) || (fileName.CompareTo("wx2_select.root") == 0)) {
         filetype = eWx;
     }
+
+    Bool_t isRecoil = (fileName.CompareTo("zee_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zee_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+
+    // apply the muon channel information for electrons
+    // the assumption is electron channel is similar to muon channel
+    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+    RecoilCorrector* rcMainZ = new RecoilCorrector("", "");
+    rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
+
+    METXYCorrector* metcorXY = new METXYCorrector("", "");
+    metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 
     //
     // Fit options
@@ -148,11 +172,13 @@ void ZeeNTupleMod(
     Float_t scale1fb, scale1fbUp, scale1fbDown, genVMass;
     Float_t prefireWeight, prefireUp = 1, prefireDown = 1;
     Float_t prefireEcal, prefireEcalUp, prefireEcalDown, prefireMuon, prefireMuonUp, prefireMuonDown;
+    Float_t met, metPhi, u1, u2;
     Float_t lep1error, lep2error;
     Int_t q1, q2;
     TLorentzVector *lep1 = 0, *lep2 = 0;
     TLorentzVector *lep1_raw = 0, *lep2_raw = 0;
     TLorentzVector *dilep = 0, *dilepSC = 0;
+    TLorentzVector *genV = 0;
     TLorentzVector *sc1 = 0, *sc2 = 0;
 
     Float_t r91 = 0;
@@ -190,7 +216,12 @@ void ZeeNTupleMod(
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbUp", &scale1fbUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("met", &met); // MET
+    intree->SetBranchAddress("metPhi", &metPhi); // phi(MET)
+    intree->SetBranchAddress("u1", &u1); // u1
+    intree->SetBranchAddress("u2", &u2); // u2
     intree->SetBranchAddress("genVMass", &genVMass); // event weight per 1/fb (MC)
+    intree->SetBranchAddress("genV", &genV); // lepton 4-vector
     intree->SetBranchAddress("q1", &q1); // charge of tag lepton
     intree->SetBranchAddress("q2", &q2); // charge of probe lepton
     intree->SetBranchAddress("lep1_raw", &lep1); // tag lepton 4-vector
@@ -242,7 +273,14 @@ void ZeeNTupleMod(
     TTree* outTree = intree->CloneTree(0);
     Double_t mass = 0;
     Double_t effSFweight = 1;
+    Double_t pU1 = 0, pU2 = 0, pU1_postXY = 0, pU2_postXY = 0;
     vector<Double_t> evtWeight;
+    vector<Double_t> metVars, metVarsPhi;
+
+    for (int i = 0; i < nMET; i++) {
+        metVars.push_back(0);
+        metVarsPhi.push_back(0);
+    }
 
     for (int i = 0; i < nWeight; i++)
         evtWeight.push_back(0);
@@ -251,6 +289,12 @@ void ZeeNTupleMod(
     outTree->Branch("mass", &mass, "mass/d", 99); // invariant mass of the two leptons
     outTree->Branch("evtWeight", "vector<Double_t>", &evtWeight, 99); // event weight vector
     outTree->Branch("effSFweight", &effSFweight, "effSFweight/d", 99); // scale factors weight
+    outTree->Branch("metVars", "vector<Double_t>", &metVars, 99); // metVars
+    outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi, 99); // metVars in phi
+    outTree->Branch("pU1", &pU1, "pU1/d", 99); // u1 after recoil correction
+    outTree->Branch("pU2", &pU2, "pU2/d", 99); // u2 after recoil correction
+    outTree->Branch("pU1_postXY", &pU1_postXY, "pU1_postXY/d", 99); // u1 after recoil and metxy correction
+    outTree->Branch("pU2_postXY", &pU2_postXY, "pU2_postXY/d", 99); // u2 after recoil and metxy correction
 
     //
     // loop over events
@@ -325,6 +369,22 @@ void ZeeNTupleMod(
 
             mass = (l1 + l2).M();
             // mass=dilepSC->M();
+            
+            // skip the impactos of lepton energy scale correction on MET as they are minor
+            metVars[no] = met;
+            metVarsPhi[no] = metPhi;
+
+            // for data, no correction on recoil
+            metVars[cent] = met;
+            metVarsPhi[cent] = metPhi;
+            pU1 = u1;
+            pU2 = u2;
+
+            // correct MET XY for data
+            metVars[cxy] = met;
+            metVarsPhi[cxy] = metPhi;
+            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
+            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1_postXY, pU2_postXY);
         } else {
             Double_t lp1 = lep1->Pt();
             Double_t lp2 = lep2->Pt();
@@ -395,6 +455,26 @@ void ZeeNTupleMod(
 
             // corr=1;
             mass = (l1 + l2).M();
+
+            // recoil corrections
+            metVars[no] = met;
+            metVarsPhi[no] = metPhi;
+            metVars[cent] = met;
+            metVarsPhi[cent] = metPhi;
+
+            // to save the corrected U1 and U2
+            pU1 = u1;
+            pU2 = u2;
+            if (isRecoil) {
+                rcMainZ->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genV->Pt(), genV->Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
+                //std::cout << "PU1 " << pU1 << " pU2 " << pU2 << std::endl;
+            }
+
+            // XY correction on MC
+            metVars[cxy] =  metVars[cent];
+            metVarsPhi[cxy] = metVarsPhi[cent];
+            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
+            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree
