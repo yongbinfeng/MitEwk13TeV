@@ -51,7 +51,7 @@ Output     = {jobname}.out
 Error      = {jobname}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-+JobFlavour = "workday"
++JobFlavour = "tomorrow"
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 
@@ -103,8 +103,8 @@ if __name__ == "__main__":
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Zmumu"
     logsuffix = "selectZmm_zmm_5"
     #for ijob in range(12):
-    for ijob in range(1):
-        GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
+    #for ijob in range(1):
+    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
 
     ## W -> munu
     macro = "selectWm.C"
@@ -121,8 +121,8 @@ if __name__ == "__main__":
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Zee"
     logsuffix = "selectZee_zee_5"
     #for ijob in range(12):
-    for ijob in range(1):
-        GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
+    #for ijob in range(1):
+    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
 
     # W -> enu
     macro = "selectWe.C"
@@ -130,5 +130,5 @@ if __name__ == "__main__":
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wenu"
     logsuffix = "selectWe_we_5"
     #for ijob in range(14):
-    for ijob in range(1):
-        GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
+    #for ijob in range(1):
+    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)

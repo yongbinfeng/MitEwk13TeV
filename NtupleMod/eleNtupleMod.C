@@ -56,8 +56,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     int nNV = 10;
     bool doPF = true;
 
-    std::string u1_name;
-    std::string u2_name;
+    //std::string u1_name;
+    //std::string u2_name;
     std::string met_name;
     std::string metPhi_name;
     //   std::string recoilType;
@@ -95,12 +95,14 @@ void eleNtupleMod(const TString outputDir, // output directory
         pfireecalu,
         pfireecald,
         pfiremuu,
-        pfiremud };
-    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud" };
+        pfiremud,
+        effstat_lepPos,
+        effstat_lepNeg};
+    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud", "effstat_lepPos", "effstat_lepNeg"};
     int nWeight = sizeof(vWeight) / sizeof(vWeight[0]);
 
-    u1_name = "u1";
-    u2_name = "u2";
+    //u1_name = "u1";
+    //u2_name = "u2";
     met_name = "met";
     metPhi_name = "metPhi";
 
@@ -118,10 +120,13 @@ void eleNtupleMod(const TString outputDir, // output directory
     const Double_t ELE_MASS = 0.000511;
 
     //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/results/Zee/";
+    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" +sqrts + "/results/Zee/";
     AppEffSF effs(effDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
+    //
+    // Warning: this needs to be updated for 5TeV
+    //
     TString SysFileGSFSel = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
@@ -259,8 +264,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     //intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
     //intree->SetBranchAddress("genVPhi", &genVPhi); // GEN W boson phi (signal MC)
     //intree->SetBranchAddress("genVy", &genVy); // GEN W boson phi (signal MC)
-    intree->SetBranchAddress("genLepPt", &genLepPt); // GEN lepton pT (signal MC)
-    intree->SetBranchAddress("genLepPhi", &genLepPhi); // GEN lepton phi (signal MC)
+    //intree->SetBranchAddress("genLepPt", &genLepPt); // GEN lepton pT (signal MC)
+    //intree->SetBranchAddress("genLepPhi", &genLepPhi); // GEN lepton phi (signal MC)
     intree->SetBranchAddress("prefireWeight", &prefireWeight); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireUp", &prefireUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireDown", &prefireDown); // event weight per 1/fb (MC)
@@ -275,8 +280,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress(met_name.c_str(), &met); // MET
     intree->SetBranchAddress(metPhi_name.c_str(), &metPhi); // phi(MET)
-    intree->SetBranchAddress(u1_name.c_str(), &u1); // parallel component of recoil
-    intree->SetBranchAddress(u2_name.c_str(), &u2); // perpendicular component of recoil
+    //intree->SetBranchAddress(u1_name.c_str(), &u1); // parallel component of recoil
+    //intree->SetBranchAddress(u2_name.c_str(), &u2); // perpendicular component of recoil
     intree->SetBranchAddress("q", &q); // lepton charge
     intree->SetBranchAddress("lep", &lep); // lepton 4-vector
     intree->SetBranchAddress("lep_raw", &lep_raw); // lepton 4-vector (raw)
@@ -406,13 +411,15 @@ void eleNtupleMod(const TString outputDir, // output directory
             evtWeight[mc] = corrMC * scale1fb * prefireWeight;
             evtWeight[bkg] = corrBkg * scale1fb * prefireWeight;
             evtWeight[tagpt] = corrTag * scale1fb * prefireWeight;
+            evtWeight[effstat] = (corr + sqrt(fabs(var))) * scale1fb * prefireWeight; // not used
             evtWeight[pfireu] = corr * scale1fb * prefireUp;
             evtWeight[pfired] = corr * scale1fb * prefireDown;
             evtWeight[pfireecalu] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalUp / prefireEcal) : 0.;
             evtWeight[pfireecald] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalDown / prefireEcal) : 0.;
             evtWeight[pfiremuu] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonUp / prefireMuon) : 0.;
             evtWeight[pfiremud] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonDown / prefireMuon) : 0.;
-            evtWeight[effstat] = (corr + sqrt(var)) * scale1fb * prefireWeight; // not used
+            evtWeight[effstat_lepPos] = (q > 0) ? evtWeight[effstat] : evtWeight[main];
+            evtWeight[effstat_lepNeg] = (q < 0) ? evtWeight[effstat] : evtWeight[main];
 
             TLorentzVector lepD, lepU;
             lepU.SetPtEtaPhiM(lep->Pt() * (1 + lepError), lep->Eta(), lep->Phi(), ELE_MASS);

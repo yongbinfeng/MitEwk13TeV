@@ -99,7 +99,7 @@ void ZmmNTupleMod(
         filetype = eZmm;
     } else if ((fileName.CompareTo("top_select.raw.root") == 0) || (fileName.CompareTo("top1_select.raw.root") == 0) || (fileName.CompareTo("top2_select.raw.root") == 0) || (fileName.CompareTo("top3_select.raw.root") == 0)) {
         filetype = eTop;
-    } else if ((fileName.CompareTo("zz_select.raw.root") == 0) || (fileName.CompareTo("zz_select.raw.root") == 0) || (fileName.CompareTo("wz_select.raw.root") == 0)) {
+    } else if ((fileName.CompareTo("zz_select.raw.root") == 0) || (fileName.CompareTo("ww_select.raw.root") == 0) || (fileName.CompareTo("wz_select.raw.root") == 0)) {
         filetype = eDib;
     } else if (fileName.CompareTo("zxx_select.raw.root") == 0) {
         filetype = eZxx;
@@ -123,12 +123,15 @@ void ZmmNTupleMod(
     // constructor-> construct and intialize the main file path
     // add
     //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/results/Zmm/";
+    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zmm/";
     AppEffSF effs(baseDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
 
+    //
+    // Warning: this needs to be updated for 5TeV
+    //
     string sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/";
     string sysFileSIT = sysDir + "SysUnc_MuSITEff.root";
     string sysFileSta = sysDir + "SysUnc_MuStaEff.root";
@@ -136,7 +139,7 @@ void ZmmNTupleMod(
     effs.loadUncSta(sysFileSta);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
     
-    Bool_t isRecoil = (fileName.CompareTo("zmm_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zmm_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+    Bool_t isRecoil = (fileName.CompareTo("zmm_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zmm_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
 
     const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
 
@@ -145,6 +148,9 @@ void ZmmNTupleMod(
     rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
+    //
+    // Warning: this might need to be updated for 5TeV
+    //
     METXYCorrector* metcorXY = new METXYCorrector("", "");
     metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 

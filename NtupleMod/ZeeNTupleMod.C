@@ -96,7 +96,7 @@ void ZeeNTupleMod(
         filetype = eZee;
     } else if ((fileName.CompareTo("top_select.root") == 0) || (fileName.CompareTo("top1_select.root") == 0) || (fileName.CompareTo("top2_select.root") == 0) || (fileName.CompareTo("top3_select.root") == 0)) {
         filetype = eTop;
-    } else if ((fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("wz_select.root") == 0)) {
+    } else if ((fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("ww_select.root") == 0) || (fileName.CompareTo("wz_select.root") == 0)) {
         filetype = eDib;
     } else if (fileName.CompareTo("zxx_select.root") == 0) {
         filetype = eZxx;
@@ -104,7 +104,7 @@ void ZeeNTupleMod(
         filetype = eWx;
     }
 
-    Bool_t isRecoil = (fileName.CompareTo("zee_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zee_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+    Bool_t isRecoil = (fileName.CompareTo("zee_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zee_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
 
     // apply the muon channel information for electrons
     // the assumption is electron channel is similar to muon channel
@@ -114,6 +114,9 @@ void ZeeNTupleMod(
     rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
+    //
+    // warning: this might need to be updated
+    //
     METXYCorrector* metcorXY = new METXYCorrector("", "");
     metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 
@@ -137,13 +140,17 @@ void ZeeNTupleMod(
     // efficiency files
 
     //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/results/Zee/";
+    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zee/";
     AppEffSF effs(baseDir);
     // effs.loadHLT("EleHLTEff_aMCxPythia","Combined","Combined");
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
     // effs.loadSel("EleGSFSelEff_aMCxPythia","Positive","Negative");
     //string sysDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/Systematics/";
+    
+    //
+    // Warning: this would need to be updated for 5TeV
+    //
     string sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/";
     string SysFileGSFSel = sysDir + "SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
