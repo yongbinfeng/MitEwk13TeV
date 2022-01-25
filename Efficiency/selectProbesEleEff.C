@@ -32,7 +32,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     const Int_t effType, // type of efficiency to compute
     const Bool_t doGenMatch = kFALSE, // match to generator leptons
     const Bool_t doWeighted = kFALSE, // store events with weights
-    const UInt_t desiredrunNum = 0 // select a specific run (0 for all runs)
+    const UInt_t desiredrunNum = 0, // select a specific run (0 for all runs). YB: not sure why we need this
+    const Double_t TAG_PT_CUT = 25 // tag Pt cut, by default 25GeV
     )
 {
     gBenchmark->Start("selectProbesEleEff");
@@ -41,7 +42,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     // Settings
     //==============================================================================================================
 
-    const Double_t TAG_PT_CUT = 25;
+    //const Double_t TAG_PT_CUT = 25;
+    cout << "Tag Pt cut " << TAG_PT_CUT << endl;
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -84,11 +86,10 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     TH1D* h_mll_pythia[muEtaNB][muPtNB];
     TH1D* h_mll_photos[muEtaNB][muPtNB];
 
-    TString rwDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/probes/";
+    TString rwDir = "/afs/cern.ch/work/y/yofeng/public/WpT/data/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/probes/";
     // Set up to load both the photos and pythia extra weighting
     TFile* inAMCNLO = new TFile(rwDir + TString("GenReweightMassHist/EleGSF/zee-amc-pyth-mll.root"), "OPEN");
     TFile* inPhotos = new TFile(rwDir + TString("GenReweightMassHist/EleGSF/zee-pow-phot-mll.root"), "OPEN");
-    // TH1D * = (TH1F*)f.Get(“h1”);
     TFile* inPythia = new TFile(rwDir + TString("GenReweightMassHist/EleGSF/zee-pow-pyth-mll.root"), "OPEN");
 
     for (int iEtaBin = 0; iEtaBin < muEtaNB; iEtaBin++) {
@@ -143,9 +144,10 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     UInt_t category;
     //UInt_t  npv, npu;
     Float_t scale1fb;
-    Float_t genWeight, PUWeight, prefireWeight = 1;
-    Float_t met, metPhi, sumEt, u1, u2;
-    Float_t genVPt, genVPhi, genVy, genVMass;
+    //Float_t genWeight, PUWeight, prefireWeight = 1;
+    //Float_t met, metPhi, sumEt, u1, u2;
+    //Float_t genVPt, genVPhi, genVy, genVMass;
+    TLorentzVector* genV = 0;
     Int_t q1, q2;
     Int_t glepq1, glepq2;
     TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *genlep1 = 0, *genlep2 = 0;
@@ -167,15 +169,15 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     intree->SetBranchAddress("category", &category); // dilepton category
     intree->SetBranchAddress("npv", &npv); // number of primary vertices
     intree->SetBranchAddress("npu", &npu); // number of in-time PU events (MC)
-    intree->SetBranchAddress("genWeight", &genWeight);
-    intree->SetBranchAddress("PUWeight", &PUWeight);
+    //intree->SetBranchAddress("genWeight", &genWeight);
+    //intree->SetBranchAddress("PUWeight", &PUWeight);
     // intree->SetBranchAddress("prefireWeight",   &prefireWeight);
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
-    intree->SetBranchAddress("met", &met); // MET
-    intree->SetBranchAddress("metPhi", &metPhi); // phi(MET)
-    intree->SetBranchAddress("sumEt", &sumEt); // Sum ET
-    intree->SetBranchAddress("u1", &u1); // parallel component of recoil
-    intree->SetBranchAddress("u2", &u2); // perpendicular component of recoil
+    //intree->SetBranchAddress("met", &met); // MET
+    //intree->SetBranchAddress("metPhi", &metPhi); // phi(MET)
+    //intree->SetBranchAddress("sumEt", &sumEt); // Sum ET
+    //intree->SetBranchAddress("u1", &u1); // parallel component of recoil
+    //intree->SetBranchAddress("u2", &u2); // perpendicular component of recoil
     intree->SetBranchAddress("q1", &q1); // charge of tag lepton
     intree->SetBranchAddress("q2", &q2); // charge of probe lepton
     intree->SetBranchAddress("glepq1", &glepq1); // charge of probe lepton
@@ -187,10 +189,11 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     intree->SetBranchAddress("genlep2", &genlep2); // probe lepton 4-vector
     intree->SetBranchAddress("sc1", &sc1); // tag Supercluster 4-vector
     intree->SetBranchAddress("sc2", &sc2); // probe Supercluster 4-vector
-    intree->SetBranchAddress("genVPt", &genVPt); // generator dilepton pT
-    intree->SetBranchAddress("genVPhi", &genVPhi); // generator dilepton pT
-    intree->SetBranchAddress("genVy", &genVy); // generator dilepton pT
-    intree->SetBranchAddress("genVMass", &genVMass); // generator dilepton pT
+    //intree->SetBranchAddress("genVPt", &genVPt); // generator dilepton pT
+    //intree->SetBranchAddress("genVPhi", &genVPhi); // generator dilepton pT
+    //intree->SetBranchAddress("genVy", &genVy); // generator dilepton pT
+    //intree->SetBranchAddress("genVMass", &genVMass); // generator dilepton pT
+    intree->SetBranchAddress("genV", &genV); // GEN boson 4-vector
 
     /*
   	  genVPt   = tvec.Pt();
@@ -365,7 +368,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
         }
         weightPowPhot = 1;
         weightPowPyth = 1;
-        nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+        //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+        nProbes += doWeighted ? (scale1fb >=0 ? 1 : -1) : 1;
         if (doWeighted) {
             Float_t geneta = -99.;
             Float_t genpt = -999.;
@@ -389,6 +393,7 @@ void selectProbesEleEff(const TString infilename, // input ntuple
                     // std::cout << "pt bin = " << iPtBin << std::endl;
                     for (int iMassBin = 1; iMassBin < h_mll_photos[iEtaBin][iPtBin]->GetNbinsX() + 1; iMassBin++) {
                         // std::cout << "stupid Mass iterator " << h_mll_photos[iEtaBin][iPtBin]->GetBinLowEdge(iMassBin) << std::endl;
+                        float genVMass = genV->M();
                         if (genVMass < h_mll_photos[iEtaBin][iPtBin]->GetBinLowEdge(iMassBin) || genVMass > h_mll_photos[iEtaBin][iPtBin]->GetBinLowEdge(iMassBin + 1))
                             continue;
                         // std::cout << "mass bin = " << iMassBin << std::endl;
@@ -411,7 +416,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
         pt = (effType == eGsfSelEff && !pass) ? sc2->Pt() : lep2->Pt();
         eta = (effType == eGsfSelEff && !pass) ? sc2->Eta() : lep2->Eta();
         phi = (effType == eGsfSelEff && !pass) ? sc2->Phi() : lep2->Phi();
-        weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+        //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+        weight = doWeighted ? (scale1fb >= 0 ? 1 : -1) : 1;
         q = q2;
         npv = npv;
         npu = npu;
@@ -425,13 +431,15 @@ void selectProbesEleEff(const TString infilename, // input ntuple
             if (lep2->Pt() < TAG_PT_CUT)
                 continue;
 
-            nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            nProbes += doWeighted ? (scale1fb >= 0 ? 1 : -1) : 1;
 
             mass = dilep->M();
             pt = lep1->Pt();
             eta = lep1->Eta();
             phi = (effType == eGsfEff) ? sc1->Phi() : lep1->Phi();
-            weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            weight = doWeighted ? (scale1fb >=0 ? 1 : -1) : 1;
             q = q1;
             npv = npv;
             npu = npu;
