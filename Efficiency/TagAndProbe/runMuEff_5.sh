@@ -9,41 +9,37 @@
 
 
 POSTFIX=
-v=
-NTUPLEDIR_5=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_5TeV/probes 
-OUTPUTDIR_5=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_5TeV/results
-
-LUMI5=291.1
+NTUPLEDIR_5=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/5TeV/probes
+OUTPUTDIR_5=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/5TeV/results
+LUMI5=298.0
 
 
-# POSTFIX_CB=_CBxBW_v1
 #
 # Muon efficiencies
-#############################################
-## 5 TeV ###################################
-#############################################
+#
+
 # trigger efficiency
 ### --------------------------- HLT Eff MC
-# root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuHLTEff_aMCxPythia/Positive\",\"png\",0,0,1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
-# root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuHLTEff_aMCxPythia/Negative\",\"png\",0,0,-1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuHLTEff_aMCxPythia/Positive\",\"png\",0,0,1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuHLTEff_aMCxPythia/Negative\",\"png\",0,0,-1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
 
 ### ---------------------------  HLT EFF Data
-# root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/Data/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuHLTEff_aMCxPythia/Positive\",\"png\",0,0,1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
-# root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/Data/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuHLTEff_aMCxPythia/Negative\",\"png\",0,0,-1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/Data/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuHLTEff_aMCxPythia/Positive\",\"png\",0,0,1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_hlt.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/Data/MuHLTEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuHLTEff_aMCxPythia/Negative\",\"png\",0,0,-1,\"Muon\",\"trigger\",0.7,1.03,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuHLTEff/probes.root\"\)
 
 ### --------------------------- SIT Eff MC
-# root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuSITEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuSITEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\"\)
 
 ### --------------------------- SIT Eff MC TagPT cut
 # root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff_tagPt/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuSITEff_aMCxPythia_tagPt/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff_tagPt/probes.root\"\)
 
 
 ### --------------------------- SIT Eff Data
-# root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_5}/Zmm/Data/MuSITEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuSITEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_5}/Zmm/Data/MuSITEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuSITEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuSITEff/probes.root\"\)
 
 ### --------------------------- Standalone Eff MC
 #mc
-# root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuStaEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuStaEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\"\)
 
 ### --------------------------- Standalone Eff MC TagPT cut
 # root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff_tagPt/probes.root\",\"${OUTPUTDIR_5}/Zmm/MC/MuStaEff_aMCxPythia_tagPt/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff_tagPt/probes.root\"\)
@@ -51,6 +47,9 @@ LUMI5=291.1
 ### --------------------------- Standalone Eff Data
 # # # amc@nlo x pythia
 # root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,6,2,6,\"${NTUPLEDIR_5}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuStaEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\"\)
+# change muon standalone bkg function to exponential function as well
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,2,1,\"${NTUPLEDIR_5}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuStaEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\"\)
+
 
 ### --------------------------- Standalone Eff Data, BKG only version
 # root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,6,2,6,\"${NTUPLEDIR_5}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_5}/Zmm/Data/MuStaEff_aMCxPythia${POSTFIX}_BKG_v2/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zmm/MC/MuStaEff/probes.root\"\)

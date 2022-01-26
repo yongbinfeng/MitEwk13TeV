@@ -16,10 +16,12 @@
 //  3: double exponential model
 //  4: linear*exp model
 //  5: quadratic*exp model
+//  6: quadratic function
+//  7: power low function
 //
 //________________________________________________________________________________________________
 
-#if !defined(__CINT__) || defined(__MAKECINT__)
+//#if !defined(__CINT__) || defined(__MAKECINT__)
 #include <TBenchmark.h> // class to track macro running statistics
 #include <TCanvas.h> // class for drawing
 #include <TEfficiency.h> // class to handle efficiency calculations
@@ -50,7 +52,7 @@
 
 #include "ZBackgrounds.hh"
 #include "ZSignals.hh"
-#endif
+//#endif
 
 // RooFit headers
 #include "RooAddPdf.h"
@@ -488,7 +490,12 @@ void plotEff(const TString conf, // input binning file
     TH2D* hErrhEtaPhi = (TH2D*)hEffEtaPhi->Clone("hErrhEtaPhi");
 
     char lumitext[100]; // lumi label
-    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
+    int sqrts = 13;
+    if (lumi > 250.0 && lumi < 350.0) {
+        // this is hacky but should work
+        sqrts = 5;
+    }
+    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = %d TeV", lumi, sqrts);
     std::cout << "do some fits" << std::endl;
     if (sigModPass == 0 && sigModFail == 0) { // probe counting
 
@@ -771,19 +778,24 @@ void plotEff(const TString conf, // input binning file
     outfile->Close();
     delete outfile;
 
+    cout << "makeHTML " << endl;
+
     makeHTML(outputDir);
-    makeHTML(outputDir, "pt", ptNbins);
-    makeHTML(outputDir, "eta", etaNbins);
-    makeHTML(outputDir, "phi", phiNbins);
-    makeHTML(outputDir, "npv", npvNbins);
+    //makeHTML(outputDir, "pt", ptNbins);
+    //makeHTML(outputDir, "eta", etaNbins);
+    //makeHTML(outputDir, "phi", phiNbins);
+    //makeHTML(outputDir, "npv", npvNbins);
     makeHTML(outputDir, "etapt", etaNbins * ptNbins);
-    makeHTML(outputDir, "etaphi", etaNbins * phiNbins);
+    //makeHTML(outputDir, "etaphi", etaNbins * phiNbins);
+
+    cout << "makeHTML done " << endl;
 
     ofstream txtfile;
     char txtfname[100];
     sprintf(txtfname, "%s/summary.txt", outputDir.Data());
     txtfile.open(txtfname);
     assert(txtfile.is_open());
+
 
     // To make an eta-phi efficiency table using LaTex
     ofstream latexfile;
@@ -792,13 +804,19 @@ void plotEff(const TString conf, // input binning file
     latexfile.open(latexfname);
     assert(latexfile.is_open());
 
+    cout << "fine here " << endl;
+
     CEffUser2D effetapt;
     CEffUser2D effetaphi;
+
+    cout << "fine with CEffUser2D" << endl;
 
     CEffUser1D effpt;
     CEffUser1D effeta;
     CEffUser1D effphi;
     CEffUser1D effnpv;
+
+    cout << "fine with CEffUser1D" << endl;
 
     if (hEffEtaPt->GetEntries() > 0) {
         effetapt.loadEff(hEffEtaPt, hErrlEtaPt, hErrhEtaPt);
@@ -868,6 +886,7 @@ void plotEff(const TString conf, // input binning file
     }
     txtfile.close();
 
+    cout << "fine here !" << endl;
     cout << endl;
     cout << "  <> Output saved in " << outputDir << "/" << endl;
     cout << endl;
@@ -881,7 +900,7 @@ void plotEff(const TString conf, // input binning file
 void makeHTML(const TString outDir)
 {
     ofstream htmlfile;
-    char htmlfname[100];
+    char htmlfname[500];
     sprintf(htmlfname, "%s/plots.html", outDir.Data());
     htmlfile.open(htmlfname);
     htmlfile << "<!DOCTYPE html" << endl;
@@ -950,7 +969,7 @@ void makeHTML(const TString outDir)
 void makeHTML(const TString outDir, const TString name, const Int_t n)
 {
     ofstream htmlfile;
-    char htmlfname[100];
+    char htmlfname[500];
     sprintf(htmlfname, "%s/%s.html", outDir.Data(), name.Data());
     htmlfile.open(htmlfname);
     htmlfile << "<!DOCTYPE html" << endl;
@@ -1258,7 +1277,7 @@ void generateHistTemplates(const TString infilename,
     if (weightPowPhot > 10 || weightPowPhot < 0)
         weightPowPhot = 1;
     // if(isnan(nan)) std::cout << "blah nanananana" << std::endl;
-    std::cout << "hello" << std::endl;
+    //std::cout << "hello" << std::endl;
     for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
         intree->GetEntry(ientry);
 
@@ -1673,7 +1692,13 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     sprintf(effstr, "#varepsilon = %.4f_{ -%.4f}^{ +%.4f}", resEff, resErrl, resErrh);
 
     char lumitext[100]; // lumi label
-    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
+   
+    int sqrts = 13;
+    if (lumi > 250.0 && lumi < 350.0) {
+        // this is hacky but should work
+        sqrts = 5;
+    }
+    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = %d TeV", lumi, sqrts);
 
     //
     // Plot passing probes
@@ -2090,7 +2115,7 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
             sprintf(binlabelx, "%.1f < |#eta| < %.1f", xbinLo, xbinHi);
         else
             sprintf(binlabelx, "%.1f < #eta < %.1f", xbinLo, xbinHi);
-        sprintf(binlabely, "%i GeV/c < p_{T} < %i GeV/c", Int_t(ybinLo), Int_t(ybinHi));
+        sprintf(binlabely, "%.1f GeV/c < p_{T} < %.1f GeV/c", ybinLo, ybinHi);
 
     } else if (name.CompareTo("etaphi") == 0) {
         if (doAbsEta)
@@ -2118,7 +2143,12 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     modelFail->plotOn(mframeFail, Range("R1,R2"), NormRange("R1,R2"));
     std::cout << "blah3 " << std::endl;
     char lumitext[100]; // lumi label
-    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
+    int sqrts = 13;
+    if (lumi > 250.0 && lumi < 350.0) {
+        // this is hacky but should work
+        sqrts = 5;
+    }
+    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = %d TeV", lumi, sqrts);
 
     //
     // Plot failing probes
@@ -2448,7 +2478,7 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         // bkgFail = new CQuadratic(m,kFALSE,ibin,-70.0,20.0,13.0,5.0,-0.1,10.0); // bin0 minlo 2,6
         std::cout << "setting bins..." << std::endl;
         nflfail += 3;
-    } else if (yaxislabel.CompareTo("stand-alone") == 0 && bkgfail == 6 && charge == 0) {
+    } else if (yaxislabel.CompareTo("stand-alone") == 0 && bkgfail == 9 && charge == 0) {
         std::cout << "open" << std::endl;
         char templatename[200];
         sprintf(templatename, "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_5TeV/results/Zmm/Data/MuStaEff_aMCxPythia_BKG_v2/Combined/plots/etapt_%d.root", ibin);
@@ -2489,7 +2519,7 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         std::cout << "a2" << std::endl;
 
         bkgFail = new CQuadratic(m, kFALSE, ibin, pc0, pcerrh0, pc1, pcerrh1, pc2, pcerrh1);
-    } else if (yaxislabel.CompareTo("stand-alone") == 0 && bkgfail == 7 && charge == 0) {
+    } else if (yaxislabel.CompareTo("stand-alone") == 0 && bkgfail == 9 && charge == 0) {
         std::cout << "open" << std::endl;
         char templatename[200];
         sprintf(templatename, "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/results/Zmm/Data/MuStaEff_POWBKG_BKG/Combined/plots/etapt_%d.root", ibin);
@@ -2692,7 +2722,7 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
             sprintf(binlabelx, "%.1f < |#eta| < %.1f", xbinLo, xbinHi);
         else
             sprintf(binlabelx, "%.1f < #eta < %.1f", xbinLo, xbinHi);
-        sprintf(binlabely, "%i GeV/c < p_{T} < %i GeV/c", Int_t(ybinLo), Int_t(ybinHi));
+        sprintf(binlabely, "%.1f GeV/c < p_{T} < %.1f GeV/c", ybinLo, ybinHi);
 
     } else if (name.CompareTo("etaphi") == 0) {
         if (doAbsEta)
@@ -2718,7 +2748,12 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     modelFail->plotOn(mframeFail);
 
     char lumitext[100]; // lumi label
-    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
+    int sqrts = 13;
+    if (lumi > 250.0 && lumi < 350.0) {
+        // this is hacky but should work
+        sqrts = 5;
+    }
+    sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = %d TeV", lumi, sqrts);
 
     //
     // Plot passing probes
