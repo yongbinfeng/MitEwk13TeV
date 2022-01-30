@@ -1,8 +1,6 @@
 #! /bin/bash
 
-INPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/LowPU2017ID_5TeV
 INPUTDIR=/eos/home-y/yofeng/LowPU_5TeV/Selection/
-OUTPUTDIR=/afs/cern.ch/work/s/sabrandt/public/FilesSM2017GH/Efficiency/LowPU2017ID_5TeV/probes
 OUTPUTDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/5TeV/probes
 #
 # Select probes for muon efficiencies
