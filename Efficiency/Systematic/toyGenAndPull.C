@@ -127,8 +127,11 @@ void toyGenAndPull(const TString tmpDir, // toy sig template
     // modelPass = new RooAddPdf("modelPass","Model for PASS sample", RooArgList(*sigPass, *bkgPass), RooArgList(NsigPass,NbkgPass));
     // modelFail = new RooAddPdf("modelFail","Model for FAIL sample", RooArgList(*sigFail, *bkgFail), RooArgList(NsigFail,NbkgFail));
 
-    RooAbsPdf* modelFail = wfit->pdf("modelFail");
-    RooAbsPdf* modelPass = wfit->pdf("modelPass");
+    //RooAbsPdf* modelFail = wfit->pdf("modelFail");
+    //RooAbsPdf* modelPass = wfit->pdf("modelPass");
+    // generator model from tmp dir
+    RooAbsPdf* modelFail = wtmp->pdf("modelFail");
+    RooAbsPdf* modelPass = wtmp->pdf("modelPass");
     // std::cout << "aaaaaaaaaaaaaa" << std::endl;
     RooSimultaneous templatePdf("templatePdf", "templatePdf", sample);
     templatePdf.addPdf(*modelPass, "Pass");
@@ -159,6 +162,7 @@ void toyGenAndPull(const TString tmpDir, // toy sig template
     double meanInit = wfit->var("eff")->getVal();
     std::cout << "err lo " << fabs(wfit->var("eff")->getErrorLo()) << "  err hi " << fabs(wfit->var("eff")->getErrorHi()) << std::endl;
 
+    // fit model from wfit
     RooSimultaneous fitPdf("fitPdf", "fitPdf", sample);
     fitPdf.addPdf(*fitmodelPass, "Pass");
     fitPdf.addPdf(*fitmodelFail, "Fail");

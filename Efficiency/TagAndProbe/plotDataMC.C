@@ -14,8 +14,8 @@
 #include <sstream>
 #include <vector> // STL vector class
 
-#include "CPlot.hh" // helper class for plots
-#include "MitStyleRemix.hh" // style settings for drawing
+#include "../../Utils/CPlot.hh" // helper class for plots
+#include "../../Utils/MitStyleRemix.hh" // style settings for drawing
 #endif
 
 void plotDataMC(const TString outdir = "Data/extra",

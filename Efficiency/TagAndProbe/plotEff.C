@@ -7,6 +7,8 @@
 //  2: MC template convolved with Gaussian
 //  3: Phil's Crystal Ball based "Voigtian" shape
 //  4: Unbinned MC data convolved with Gaussian
+//  5: MC template convolved with Gaussian, weighted with Powheg + Pythia (MC Systematic)
+//  6: MC template convolved with Gaussian, weighted with Powheg + Photos (FSR Systematic)
 //
 // Background Model
 //------------------
@@ -573,7 +575,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
-            plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ");
+            plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
@@ -582,7 +584,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotErrlEtaPt("errletapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
-            plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ");
+            plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
@@ -591,7 +593,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotErrhEtaPt("errhetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
-            plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ");
+            plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
             plotErrhEtaPt.Draw(c, kTRUE, format);
         }
 
@@ -692,7 +694,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
-            plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ");
+            plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
@@ -703,7 +705,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotErrlEtaPt("errletapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
-            plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ");
+            plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
@@ -714,7 +716,7 @@ void plotEff(const TString conf, // input binning file
             CPlot plotErrhEtaPt("errhetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
-            plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ");
+            plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
             plotErrhEtaPt.Draw(c, kTRUE, format);
         }
 
@@ -910,18 +912,18 @@ void makeHTML(const TString outDir)
     htmlfile << "<body bgcolor=\"EEEEEE\">" << endl;
 
     htmlfile << "<table border=\"0\" cellspacing=\"5\" width=\"100%\">" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effpt.png\"><img src=\"plots/effpt.png\" alt=\"plots/effpt.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effeta.png\"><img src=\"plots/effeta.png\" alt=\"plots/effeta.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effeta2.png\"><img src=\"plots/effeta2.png\" alt=\"plots/effeta2.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effphi.png\"><img src=\"plots/effphi.png\" alt=\"plots/effphi.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "</tr>" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"pt.html\">pT bins</a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"eta.html\">&eta; bins</a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"phi.html\">&phi; bins</a></td>" << endl;
-    htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effpt.png\"><img src=\"plots/effpt.png\" alt=\"plots/effpt.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effeta.png\"><img src=\"plots/effeta.png\" alt=\"plots/effeta.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effeta2.png\"><img src=\"plots/effeta2.png\" alt=\"plots/effeta2.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effphi.png\"><img src=\"plots/effphi.png\" alt=\"plots/effphi.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"pt.html\">pT bins</a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"eta.html\">&eta; bins</a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"phi.html\">&phi; bins</a></td>" << endl;
+    //htmlfile << "</tr>" << endl;
     htmlfile << "<tr>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetapt.png\"><img src=\"plots/effetapt.png\" alt=\"plots/effetapt.png\" width=\"100%\"></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletapt.png\"><img src=\"plots/errletapt.png\" alt=\"plots/errletapt.png\" width=\"100%\"></a></td>" << endl;
@@ -934,30 +936,30 @@ void makeHTML(const TString outDir)
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "</tr>" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetaphi.png\"><img src=\"plots/effetaphi.png\" alt=\"plots/effetaphi.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletaphi.png\"><img src=\"plots/errletaphi.png\" alt=\"plots/errletaphi.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errhetaphi.png\"><img src=\"plots/errhetaphi.png\" alt=\"plots/errhetaphi.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "</tr>" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"etaphi.html\">&eta;-&phi; bins</a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "</tr>" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effnpv.png\"><img src=\"plots/effnpv.png\" alt=\"plots/effnpv.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "</tr>" << endl;
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"npv.html\">N_PV bins</a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
-    htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetaphi.png\"><img src=\"plots/effetaphi.png\" alt=\"plots/effetaphi.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletaphi.png\"><img src=\"plots/errletaphi.png\" alt=\"plots/errletaphi.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errhetaphi.png\"><img src=\"plots/errhetaphi.png\" alt=\"plots/errhetaphi.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"etaphi.html\">&eta;-&phi; bins</a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effnpv.png\"><img src=\"plots/effnpv.png\" alt=\"plots/effnpv.png\" width=\"100%\"></a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "</tr>" << endl;
+    //htmlfile << "<tr>" << endl;
+    //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"npv.html\">N_PV bins</a></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "</tr>" << endl;
     htmlfile << "</table>" << endl;
     htmlfile << "<hr />" << endl;
 
@@ -1396,8 +1398,8 @@ void generateDataTemplates(const TString infilename,
     const vector<Double_t>& ptEdgesv, const vector<Double_t>& etaEdgesv, const vector<Double_t>& phiEdgesv, const vector<Double_t>& npvEdgesv,
     const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge)
 {
-    cout << "Creating data templates... ";
-    cout.flush();
+    std::cout << "Creating data templates... ";
+    //cout.flush();
 
     char tname[50];
 
@@ -2594,7 +2596,6 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         NbkgFail.setVal(0.5 * NbkgFailMax);
     }
     std::cout << NbkgFail.getVal() << std::endl;
-    std::cout << NbkgFail.getVal() << std::endl;
     std::cout << "-----------------" << std::endl;
 
     RooFormulaVar NsigPass("NsigPass", "eff*Nsig", RooArgList(eff, Nsig));
@@ -2621,7 +2622,7 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
 
         modelFail = new RooAddPdf("modelFail", "Model for FAIL sample", RooArgList(*(sigFail->model), *(bkgFail->model)), RooArgList(NsigFail, NbkgFail));
     }
-    std::cout << "here" << std::endl;
+    //std::cout << "here" << std::endl;
 
     // eff.setVal(1.0);
     // eff.setConstant(kTRUE);

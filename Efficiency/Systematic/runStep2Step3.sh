@@ -13,13 +13,14 @@ POSTFIX=$7
 POSTFIX_alt=$8
 v=
 
-WORKDIR="/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV"
-# FILEDIR="/afs/cern.ch/work/s/sabrandt/public/LowPU_13TeV_Efficiency_v1/results"
+WORKDIR="/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV"
 # FILEDIR="/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/Efficiency/testReweights_v2_2/results"
-FILEDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency${v}/LowPU2017ID_13TeV/results
+#FILEDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency${v}/LowPU2017ID_13TeV/results
+#FILEDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency${v}/lowpu_5TeV/results
+FILEDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/13TeV/results
 
-CMSSW_BASE="/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/"
-TOP="/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/"
+CMSSW_BASE="/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/"
+TOP="/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/"
 # TOP="$PWD"
 # echo ${ClusterID}
 echo "running job w Cluster ID ${ClusterID}, binnum ${binnum}, NTOYS ${NTOYS}, FOLDER ${FOLDER}, EFFTYPE ${EFFTYPE}, Charge ${CHARGE}"
@@ -62,7 +63,7 @@ mkdir -p ${OUTPUTDIR}
 root -l -b << EOF
 gSystem->Load("${WORKDIR}/Utils/RooCMSShape_cc.so")
 gSystem->Load("${WORKDIR}/Efficiency/Systematic/toyGenAndPull_C.so")
-toyGenAndPull("${DIR1}","${DIR2}","${BINVAR}_${binnum}","${OUTPUTDIR}","pull_${binnum}",${binnum},${binnum},${NTOYS})
+toyGenAndPull("${DIR2}","${DIR1}","${BINVAR}_${binnum}","${OUTPUTDIR}","pull_${binnum}",${binnum},${binnum},${NTOYS})
 .q
 EOF
 # root -l -b << EOF
