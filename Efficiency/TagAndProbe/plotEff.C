@@ -561,6 +561,7 @@ void plotEff(const TString conf, // input binning file
         }
 
         gStyle->SetPalette(1);
+        gStyle->SetPaintTextFormat(".3f");
         c->SetRightMargin(0.15);
         c->SetLeftMargin(0.15);
 
@@ -570,30 +571,27 @@ void plotEff(const TString conf, // input binning file
         if (opts[4]) {
             makeEffHist2D(hEffEtaPt, hErrlEtaPt, hErrhEtaPt, passTreeEtaPtv, failTreeEtaPtv, method, "etapt", massLo, massHi, format, doAbsEta, lumi);
             hEffEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptNbins > 2)
-                hEffEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
             plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
+            plotEffEtaPt.SetLogy(1);
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptNbins > 2)
-                hErrlEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotErrlEtaPt("errletapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
             plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
+            plotErrlEtaPt.SetLogy(1);
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptNbins > 2)
-                hErrhEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotErrhEtaPt("errhetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
             plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
+            plotErrhEtaPt.SetLogy(1);
             plotErrhEtaPt.Draw(c, kTRUE, format);
         }
 
@@ -676,6 +674,7 @@ void plotEff(const TString conf, // input binning file
         }
 
         gStyle->SetPalette(1);
+        gStyle->SetPaintTextFormat(".3f");
         c->SetRightMargin(0.15);
         c->SetLeftMargin(0.15);
 
@@ -687,35 +686,26 @@ void plotEff(const TString conf, // input binning file
             makeEffHist2D(hEffEtaPt, hErrlEtaPt, hErrhEtaPt, passTreeEtaPtv, failTreeEtaPtv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etapt", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge);
             std::cout << "asf" << std::endl;
             hEffEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptBinEdgesv.size() < 3)
-                hEffEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 1]);
-            else
-                hEffEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
             plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
+            plotEffEtaPt.SetLogy(1);
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptBinEdgesv.size() < 3)
-                hErrlEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 1]);
-            else
-                hErrlEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotErrlEtaPt("errletapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
             plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
+            plotErrlEtaPt.SetLogy(1);
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
-            if (ptBinEdgesv.size() < 3)
-                hErrhEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 1]);
-            else
-                hErrhEtaPt->GetYaxis()->SetRangeUser(ptBinEdgesv[0], ptBinEdgesv[ptNbins - 2]);
             CPlot plotErrhEtaPt("errhetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
+            plotErrhEtaPt.SetLogy(1);
             plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
             plotErrhEtaPt.Draw(c, kTRUE, format);
         }
@@ -1916,7 +1906,7 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         // }
         // }
         sigFail = new CMCTemplateConvGaussian(m, h, kFALSE, ibin); //,((CMCTemplateConvGaussian*)sigPass)->sigma);
-        nflfail += 2;
+        nflfail += 1;
     } else if (sigfail == 3) {
         sigFail = new CVoigtianCBShape(m, kFALSE);
         nflfail += 4;
@@ -2452,7 +2442,15 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         // }
         // }
         sigFail = new CMCTemplateConvGaussian(m, h, kFALSE, ibin); //,((CMCTemplateConvGaussian*)sigPass)->sigma);
-        nflfail += 2;
+        nflfail += 1;
+    } else if (sigfail == 7) {
+        // using the passing probe MC template as the template for failing probe
+        char hname[50];
+        sprintf(hname, "pass%s_%i", name.Data(), ibin);
+        TH1D* h = (TH1D*)histfile->Get(hname);
+        assert(h);
+        sigFail = new CMCTemplateConvGaussian(m, h, kFALSE, ibin);
+        nflpass += 1;
     } else if (sigfail == 3) {
         sigFail = new CVoigtianCBShape(m, kFALSE);
         nflfail += 4;
