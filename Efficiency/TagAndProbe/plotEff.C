@@ -95,7 +95,7 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
 void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& passv, const vector<TTree*>& failv,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
-    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge);
+    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge, const vector<TH2D*>& hPars, const vector<TH2D*>& hParSigs);
 
 // Generate MC-based signal templates
 void generateHistTemplates(const TString infilename,
@@ -120,7 +120,7 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const TString format, const Bool_t doAbsEta, TCanvas* cpass, TCanvas* cfail, const double lumi, const TString yaxislabel, const int charge);
 
 // Perform fit
-void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
+RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
     TTree* passTree, TTree* failTree,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
@@ -491,6 +491,17 @@ void plotEff(const TString conf, // input binning file
     TH2D* hErrlEtaPhi = (TH2D*)hEffEtaPhi->Clone("hErrlEtaPhi");
     TH2D* hErrhEtaPhi = (TH2D*)hEffEtaPhi->Clone("hErrhEtaPhi");
 
+    // some 2D histograms saving the parameter changes
+    char hname[100];
+    vector<TH2D*> hParsEtaPt;
+    vector<TH2D*> hParSigsEtaPt;
+    for (unsigned i = 0; i < 10; ++i) {
+        sprintf(hname, "hParEtaPt_%d", i);
+        hParsEtaPt.push_back( new TH2D(hname, hname, etaNbins, etaEdges, ptNbins, ptEdges) );
+        sprintf(hname, "hParSigEtaPt_%d", i);
+        hParSigsEtaPt.push_back( new TH2D(hname, hname, etaNbins, etaEdges, ptNbins, ptEdges) );
+    }
+
     char lumitext[100]; // lumi label
     int sqrts = 13;
     if (lumi > 250.0 && lumi < 350.0) {
@@ -683,7 +694,7 @@ void plotEff(const TString conf, // input binning file
         //
         if (opts[4]) {
             std::cout << "making efficiency maps" << std::endl;
-            makeEffHist2D(hEffEtaPt, hErrlEtaPt, hErrhEtaPt, passTreeEtaPtv, failTreeEtaPtv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etapt", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge);
+            makeEffHist2D(hEffEtaPt, hErrlEtaPt, hErrhEtaPt, passTreeEtaPtv, failTreeEtaPtv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etapt", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge, hParsEtaPt, hParSigsEtaPt);
             std::cout << "asf" << std::endl;
             hEffEtaPt->SetTitleOffset(1.2, "Y");
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
@@ -708,13 +719,81 @@ void plotEff(const TString conf, // input binning file
             plotErrhEtaPt.SetLogy(1);
             plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
             plotErrhEtaPt.Draw(c, kTRUE, format);
+            
+            // plot the parameter changes
+            hParsEtaPt[0]->SetTitleOffset(1.2, "Y");
+            CPlot plotParEtaPt0("paretapt0", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParEtaPt0.SetXTitle("probe |#eta|");
+            plotParEtaPt0.SetLogy(1);
+            plotParEtaPt0.AddHist2D(hParsEtaPt[0], "COLZ,text");
+            plotParEtaPt0.Draw(c, kTRUE, format);
+
+            hParsEtaPt[1]->SetTitleOffset(1.2, "Y");
+            CPlot plotParEtaPt1("paretapt1", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParEtaPt1.SetXTitle("probe |#eta|");
+            plotParEtaPt1.SetLogy(1);
+            plotParEtaPt1.AddHist2D(hParsEtaPt[1], "COLZ,text");
+            plotParEtaPt1.Draw(c, kTRUE, format);
+
+            hParsEtaPt[2]->SetTitleOffset(1.2, "Y");
+            CPlot plotParEtaPt2("paretapt2", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParEtaPt2.SetXTitle("probe |#eta|");
+            plotParEtaPt2.SetLogy(1);
+            plotParEtaPt2.AddHist2D(hParsEtaPt[2], "COLZ,text");
+            plotParEtaPt2.Draw(c, kTRUE, format);
+
+            hParsEtaPt[3]->SetTitleOffset(1.2, "Y");
+            CPlot plotParEtaPt3("paretapt3", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParEtaPt3.SetXTitle("probe |#eta|");
+            plotParEtaPt3.SetLogy(1);
+            plotParEtaPt3.AddHist2D(hParsEtaPt[3], "COLZ,text");
+            plotParEtaPt3.Draw(c, kTRUE, format);
+
+            // plot the parameter significance change
+            hParSigsEtaPt[0]->SetTitleOffset(1.2, "Y");
+            CPlot plotParSigEtaPt0("parsigetapt0", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParSigEtaPt0.SetXTitle("probe |#eta|");
+            plotParSigEtaPt0.SetLogy(1);
+            plotParSigEtaPt0.AddHist2D(hParSigsEtaPt[0], "COLZ,text");
+            plotParSigEtaPt0.Draw(c, kTRUE, format);
+
+            hParSigsEtaPt[1]->SetTitleOffset(1.2, "Y");
+            CPlot plotParSigEtaPt1("parsigetapt1", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParSigEtaPt1.SetXTitle("probe |#eta|");
+            plotParSigEtaPt1.SetLogy(1);
+            plotParSigEtaPt1.AddHist2D(hParSigsEtaPt[1], "COLZ,text");
+            plotParSigEtaPt1.Draw(c, kTRUE, format);
+
+            hParSigsEtaPt[2]->SetTitleOffset(1.2, "Y");
+            CPlot plotParSigEtaPt2("parsigetapt2", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParSigEtaPt2.SetXTitle("probe |#eta|");
+            plotParSigEtaPt2.SetLogy(1);
+            plotParSigEtaPt2.AddHist2D(hParSigsEtaPt[2], "COLZ,text");
+            plotParSigEtaPt2.Draw(c, kTRUE, format);
+
+            hParSigsEtaPt[3]->SetTitleOffset(1.2, "Y");
+            CPlot plotParSigEtaPt3("parsigetapt3", "", "probe #eta", "probe p_{T} [GeV/c]");
+            if (doAbsEta)
+                plotParSigEtaPt3.SetXTitle("probe |#eta|");
+            plotParSigEtaPt3.SetLogy(1);
+            plotParSigEtaPt3.AddHist2D(hParSigsEtaPt[3], "COLZ,text");
+            plotParSigEtaPt3.Draw(c, kTRUE, format);
         }
 
         //
         // eta-phi efficiency maps
         //
         if (opts[5]) {
-            makeEffHist2D(hEffEtaPhi, hErrlEtaPhi, hErrhEtaPhi, passTreeEtaPhiv, failTreeEtaPhiv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etaphi", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge);
+            // the hParsEtaPt in the last parameter needs to be updated if we 
+            // are really going to use opts[5] (bin in eta and phi)
+            makeEffHist2D(hEffEtaPhi, hErrlEtaPhi, hErrhEtaPhi, passTreeEtaPhiv, failTreeEtaPhiv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etaphi", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge, hParsEtaPt, hParSigsEtaPt);
             hEffEtaPhi->SetTitleOffset(1.2, "Y");
             CPlot plotEffEtaPhi("effetaphi", "", "probe #eta", "probe #phi");
             if (doAbsEta)
@@ -926,6 +1005,20 @@ void makeHTML(const TString outDir)
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "</tr>" << endl;
+    
+    htmlfile << "<tr>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/paretapt0.png\"><img src=\"plots/paretapt0.png\" alt=\"plots/paretapt0.png\" width=\"100%\"><figcaption>par_meanPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/paretapt1.png\"><img src=\"plots/paretapt1.png\" alt=\"plots/paretapt1.png\" width=\"100%\"><figcaption>par_sigmaPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/paretapt2.png\"><img src=\"plots/paretapt2.png\" alt=\"plots/paretapt2.png\" width=\"100%\"><figcaption>par_meanFail</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/paretapt3.png\"><img src=\"plots/paretapt3.png\" alt=\"plots/paretapt3.png\" width=\"100%\"><figcaption>par_sigmaFail</figcaption></a></td>" << endl;
+    htmlfile << "</tr>" << endl;
+
+    htmlfile << "<tr>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt0.png\"><img src=\"plots/parsigetapt0.png\" alt=\"plots/parsigetapt0.png\" width=\"100%\"><figcaption>parsig_meanPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt1.png\"><img src=\"plots/parsigetapt1.png\" alt=\"plots/parsigetapt1.png\" width=\"100%\"><figcaption>parsig_sigmaPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt2.png\"><img src=\"plots/parsigetapt2.png\" alt=\"plots/parsigetapt2.png\" width=\"100%\"><figcaption>parsig_meanFail</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt3.png\"><img src=\"plots/parsigetapt3.png\" alt=\"plots/parsigetapt3.png\" width=\"100%\"><figcaption>parsig_sigmaFail</figcaption></a></td>" << endl;
+    htmlfile << "</tr>" << endl;
     //htmlfile << "<tr>" << endl;
     //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetaphi.png\"><img src=\"plots/effetaphi.png\" alt=\"plots/effetaphi.png\" width=\"100%\"></a></td>" << endl;
     //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletaphi.png\"><img src=\"plots/errletaphi.png\" alt=\"plots/errletaphi.png\" width=\"100%\"></a></td>" << endl;
@@ -1111,7 +1204,7 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
 void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& passv, const vector<TTree*>& failv,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
-    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge)
+    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge, const vector<TH2D*>& hpars, const vector<TH2D*>& hparsigs)
 {
 
     TCanvas* cpass = MakeCanvas("cpass", "cpass", 720, 540);
@@ -1127,13 +1220,14 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
             sprintf(rname, "%s/fitres%s_%i.txt", CPlot::sOutDir.Data(), name.Data(), ibin);
             rfile.open(rname);
 
+            RooWorkspace* w = NULL;
             Double_t eff, errl, errh;
             if (rfile.is_open()) {
                 parseFitResults(rfile, eff, errl, errh);
                 rfile.close();
 
             } else {
-                performFit(eff, errl, errh, ibin,
+                w = performFit(eff, errl, errh, ibin,
                     hEff->GetXaxis()->GetBinLowEdge(ix + 1), hEff->GetXaxis()->GetBinLowEdge(ix + 2),
                     hEff->GetYaxis()->GetBinLowEdge(iy + 1), hEff->GetYaxis()->GetBinLowEdge(iy + 2),
                     passv[ibin], failv[ibin],
@@ -1148,11 +1242,39 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
                 // sigpass, bkgpass, sigfail, bkgfail,
                 // name, massLo, massHi, fitMassLo, fitMassHi,
                 // format, doAbsEta, cpass, cfail, lumi, yaxislabel, charge);
+                std::cout << "printing out the workspace information " << std::endl;
+                w->Print();
+                std::cout << "done printing" << std::endl;
             }
 
             hEff->SetBinContent(hEff->GetBin(ix + 1, iy + 1), eff);
             hErrl->SetBinContent(hErrl->GetBin(ix + 1, iy + 1), errl);
             hErrh->SetBinContent(hErrh->GetBin(ix + 1, iy + 1), errh);
+
+            // save the fit paraemeters
+            if (w) {
+                RooArgSet vars = w->allVars();
+                auto *iter = vars.createIterator();
+                unsigned npars = 0;
+                RooRealVar* var = (RooRealVar*)iter->Next();
+                while (var && npars < 10) {
+                    if (std::string(var->GetName()).find("meanPass") == 0) {
+                        //std::cout << "var name " << var->GetName() << " val " << var->getVal() << std::endl;
+                        hpars[0]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
+                        hparsigs[0]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                    } else if (std::string(var->GetName()).find("sigmaPass") == 0) {
+                        hpars[1]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
+                        hparsigs[1]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                    } else if (std::string(var->GetName()).find("meanFail") == 0) {
+                        hpars[2]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
+                        hparsigs[2]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                    } else if (std::string(var->GetName()).find("sigmaFail") == 0) {
+                        hpars[3]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
+                        hparsigs[3]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                    }
+                    var = (RooRealVar*)iter->Next();
+               }
+            }
         }
     }
     delete cpass;
@@ -2288,7 +2410,7 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
 }
 
 //--------------------------------------------------------------------------------------------------
-void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
+RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
     TTree* passTree, TTree* failTree,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
@@ -2933,6 +3055,8 @@ void performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     delete histfile;
     delete datfile;
     delete sigmaFail;
+
+    return w;
 }
 
 //--------------------------------------------------------------------------------------------------
