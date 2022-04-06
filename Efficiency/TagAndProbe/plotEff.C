@@ -68,10 +68,11 @@
 #include "RooRealVar.h"
 #include "RooSimultaneous.h"
 #include "RooWorkspace.h"
+#include "RooHist.h"
 
 // bin size constants
 #define BIN_SIZE_PASS 1
-#define BIN_SIZE_FAIL 1
+#define BIN_SIZE_FAIL 1.5
 
 //=== FUNCTION DECLARATIONS ======================================================================================
 
@@ -110,14 +111,14 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
     TTree* passTree, TTree* failTree, const Int_t method,
     const TString name, const Double_t massLo, const Double_t massHi, const TString format, const Bool_t doAbsEta,
-    TCanvas* cpass, TCanvas* cfail, const double lumi);
+    const double lumi);
 
 void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
     TTree* passTree, TTree* failTree,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
-    const TString format, const Bool_t doAbsEta, TCanvas* cpass, TCanvas* cfail, const double lumi, const TString yaxislabel, const int charge);
+    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge);
 
 // Perform fit
 RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
@@ -125,13 +126,18 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     TTree* passTree, TTree* failTree,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
-    const TString format, const Bool_t doAbsEta, TCanvas* cpass, TCanvas* cfail, const double lumi, const TString yaxislabel, const int charge);
+    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge);
 
 // Print correlations
 void printCorrelations(ostream& os, RooFitResult* res);
 
 // Parse fit results file
 void parseFitResults(ifstream& ifs, double& eff, double& errl, double& errh);
+
+// convert TH2D histograms into TH1 and plot
+// for better visualization
+void plot2DAs1D(TH2D* heffs, const TString name, const TString axisname = "eta", float ymin = 0.0, float ymax = 1.0, bool projx = 1);
+
 
 //=== MAIN MACRO =================================================================================================
 
@@ -398,7 +404,6 @@ void plotEff(const TString conf, // input binning file
     eventTree->SetBranchAddress("evtNum", &evtNum);
     eventTree->SetBranchAddress("weightPowPyth", &weightPowPyth);
     eventTree->SetBranchAddress("weightPowPhot", &weightPowPhot);
-    std::cout << "data" << std::endl;
     for (UInt_t ientry = 0; ientry < eventTree->GetEntries(); ientry++) {
         eventTree->GetEntry(ientry);
         if ((q)*charge < 0)
@@ -474,7 +479,6 @@ void plotEff(const TString conf, // input binning file
     }
     delete infile;
     infile = 0, eventTree = 0;
-    std::cout << "done data" << std::endl;
     //
     // Compute efficiencies and make plots
     //
@@ -484,10 +488,10 @@ void plotEff(const TString conf, // input binning file
     TGraphAsymmErrors* grEffEta = 0;
     TGraphAsymmErrors* grEffPhi = 0;
     TGraphAsymmErrors* grEffNPV = 0;
-    TH2D* hEffEtaPt = new TH2D("hEffEtaPt", "", etaNbins, etaEdges, ptNbins, ptEdges);
+    TH2D* hEffEtaPt = new TH2D("hEffEtaPt", "", etaNbins, etaEdges, ptNbins, ptEdges); hEffEtaPt->Sumw2();
     TH2D* hErrlEtaPt = (TH2D*)hEffEtaPt->Clone("hErrlEtaPt");
     TH2D* hErrhEtaPt = (TH2D*)hEffEtaPt->Clone("hErrhEtaPt");
-    TH2D* hEffEtaPhi = new TH2D("hEffEtaPhi", "", etaNbins, etaEdges, phiNbins, phiEdges);
+    TH2D* hEffEtaPhi = new TH2D("hEffEtaPhi", "", etaNbins, etaEdges, phiNbins, phiEdges); hEffEtaPhi->Sumw2();
     TH2D* hErrlEtaPhi = (TH2D*)hEffEtaPhi->Clone("hErrlEtaPhi");
     TH2D* hErrhEtaPhi = (TH2D*)hEffEtaPhi->Clone("hErrhEtaPhi");
 
@@ -509,9 +513,7 @@ void plotEff(const TString conf, // input binning file
         sqrts = 5;
     }
     sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = %d TeV", lumi, sqrts);
-    std::cout << "do some fits" << std::endl;
     if (sigModPass == 0 && sigModFail == 0) { // probe counting
-
         // efficiency in pT
         if (opts[0]) {
             grEffPt = makeEffGraph(ptBinEdgesv, passTreePtv, failTreePtv, method, "pt", massLo, massHi, format, doAbsEta, lumi);
@@ -586,7 +588,7 @@ void plotEff(const TString conf, // input binning file
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
             plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
-            plotEffEtaPt.SetLogy(1);
+            //plotEffEtaPt.SetLogy(1);
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
@@ -594,7 +596,7 @@ void plotEff(const TString conf, // input binning file
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
             plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
-            plotErrlEtaPt.SetLogy(1);
+            //plotErrlEtaPt.SetLogy(1);
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
@@ -602,8 +604,10 @@ void plotEff(const TString conf, // input binning file
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
             plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
-            plotErrhEtaPt.SetLogy(1);
+            //plotErrhEtaPt.SetLogy(1);
             plotErrhEtaPt.Draw(c, kTRUE, format);
+
+            plot2DAs1D(hEffEtaPt, "eff_etas", "#eta", 0.7, 1.1);
         }
 
         //
@@ -693,15 +697,13 @@ void plotEff(const TString conf, // input binning file
         // eta-pT efficiency maps
         //
         if (opts[4]) {
-            std::cout << "making efficiency maps" << std::endl;
             makeEffHist2D(hEffEtaPt, hErrlEtaPt, hErrhEtaPt, passTreeEtaPtv, failTreeEtaPtv, sigModPass, bkgModPass, sigModFail, bkgModFail, "etapt", massLo, massHi, fitMassLo, fitMassHi, format, doAbsEta, lumi, yaxislabel, charge, hParsEtaPt, hParSigsEtaPt);
-            std::cout << "asf" << std::endl;
             hEffEtaPt->SetTitleOffset(1.2, "Y");
             CPlot plotEffEtaPt("effetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotEffEtaPt.SetXTitle("probe |#eta|");
             plotEffEtaPt.AddHist2D(hEffEtaPt, "COLZ,text");
-            plotEffEtaPt.SetLogy(1);
+            //plotEffEtaPt.SetLogy(1);
             plotEffEtaPt.Draw(c, kTRUE, format);
 
             hErrlEtaPt->SetTitleOffset(1.2, "Y");
@@ -709,82 +711,55 @@ void plotEff(const TString conf, // input binning file
             if (doAbsEta)
                 plotErrlEtaPt.SetXTitle("probe |#eta|");
             plotErrlEtaPt.AddHist2D(hErrlEtaPt, "COLZ,text");
-            plotErrlEtaPt.SetLogy(1);
+            //plotErrlEtaPt.SetLogy(1);
             plotErrlEtaPt.Draw(c, kTRUE, format);
 
             hErrhEtaPt->SetTitleOffset(1.2, "Y");
             CPlot plotErrhEtaPt("errhetapt", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotErrhEtaPt.SetXTitle("probe |#eta|");
-            plotErrhEtaPt.SetLogy(1);
+            //plotErrhEtaPt.SetLogy(1);
             plotErrhEtaPt.AddHist2D(hErrhEtaPt, "COLZ,text");
             plotErrhEtaPt.Draw(c, kTRUE, format);
+            // Draw the efficiencies as a function of eta
+            plot2DAs1D(hEffEtaPt, "eff_etas", "#eta", 0.7, 1.1);
             
             // plot the parameter changes
             hParsEtaPt[0]->SetTitleOffset(1.2, "Y");
             CPlot plotParEtaPt0("paretapt0", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotParEtaPt0.SetXTitle("probe |#eta|");
-            plotParEtaPt0.SetLogy(1);
+            //plotParEtaPt0.SetLogy(1);
             plotParEtaPt0.AddHist2D(hParsEtaPt[0], "COLZ,text");
             plotParEtaPt0.Draw(c, kTRUE, format);
+            plot2DAs1D(hParsEtaPt[0], "par0_etas", "#eta", -1.0, 1.0);
 
             hParsEtaPt[1]->SetTitleOffset(1.2, "Y");
             CPlot plotParEtaPt1("paretapt1", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotParEtaPt1.SetXTitle("probe |#eta|");
-            plotParEtaPt1.SetLogy(1);
+            //plotParEtaPt1.SetLogy(1);
             plotParEtaPt1.AddHist2D(hParsEtaPt[1], "COLZ,text");
             plotParEtaPt1.Draw(c, kTRUE, format);
+            plot2DAs1D(hParsEtaPt[1], "par1_etas", "#eta", -1.0, 2.0);
 
             hParsEtaPt[2]->SetTitleOffset(1.2, "Y");
             CPlot plotParEtaPt2("paretapt2", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotParEtaPt2.SetXTitle("probe |#eta|");
-            plotParEtaPt2.SetLogy(1);
+            //plotParEtaPt2.SetLogy(1);
             plotParEtaPt2.AddHist2D(hParsEtaPt[2], "COLZ,text");
             plotParEtaPt2.Draw(c, kTRUE, format);
+            plot2DAs1D(hParsEtaPt[2], "par2_etas", "#eta", -1.0, 3.0);
 
             hParsEtaPt[3]->SetTitleOffset(1.2, "Y");
             CPlot plotParEtaPt3("paretapt3", "", "probe #eta", "probe p_{T} [GeV/c]");
             if (doAbsEta)
                 plotParEtaPt3.SetXTitle("probe |#eta|");
-            plotParEtaPt3.SetLogy(1);
+            //plotParEtaPt3.SetLogy(1);
             plotParEtaPt3.AddHist2D(hParsEtaPt[3], "COLZ,text");
             plotParEtaPt3.Draw(c, kTRUE, format);
-
-            // plot the parameter significance change
-            hParSigsEtaPt[0]->SetTitleOffset(1.2, "Y");
-            CPlot plotParSigEtaPt0("parsigetapt0", "", "probe #eta", "probe p_{T} [GeV/c]");
-            if (doAbsEta)
-                plotParSigEtaPt0.SetXTitle("probe |#eta|");
-            plotParSigEtaPt0.SetLogy(1);
-            plotParSigEtaPt0.AddHist2D(hParSigsEtaPt[0], "COLZ,text");
-            plotParSigEtaPt0.Draw(c, kTRUE, format);
-
-            hParSigsEtaPt[1]->SetTitleOffset(1.2, "Y");
-            CPlot plotParSigEtaPt1("parsigetapt1", "", "probe #eta", "probe p_{T} [GeV/c]");
-            if (doAbsEta)
-                plotParSigEtaPt1.SetXTitle("probe |#eta|");
-            plotParSigEtaPt1.SetLogy(1);
-            plotParSigEtaPt1.AddHist2D(hParSigsEtaPt[1], "COLZ,text");
-            plotParSigEtaPt1.Draw(c, kTRUE, format);
-
-            hParSigsEtaPt[2]->SetTitleOffset(1.2, "Y");
-            CPlot plotParSigEtaPt2("parsigetapt2", "", "probe #eta", "probe p_{T} [GeV/c]");
-            if (doAbsEta)
-                plotParSigEtaPt2.SetXTitle("probe |#eta|");
-            plotParSigEtaPt2.SetLogy(1);
-            plotParSigEtaPt2.AddHist2D(hParSigsEtaPt[2], "COLZ,text");
-            plotParSigEtaPt2.Draw(c, kTRUE, format);
-
-            hParSigsEtaPt[3]->SetTitleOffset(1.2, "Y");
-            CPlot plotParSigEtaPt3("parsigetapt3", "", "probe #eta", "probe p_{T} [GeV/c]");
-            if (doAbsEta)
-                plotParSigEtaPt3.SetXTitle("probe |#eta|");
-            plotParSigEtaPt3.SetLogy(1);
-            plotParSigEtaPt3.AddHist2D(hParSigsEtaPt[3], "COLZ,text");
-            plotParSigEtaPt3.Draw(c, kTRUE, format);
+            plot2DAs1D(hParsEtaPt[3], "par3_etas", "#eta", -1.0, 3.0);
         }
 
         //
@@ -849,8 +824,6 @@ void plotEff(const TString conf, // input binning file
     outfile->Close();
     delete outfile;
 
-    cout << "makeHTML " << endl;
-
     makeHTML(outputDir);
     //makeHTML(outputDir, "pt", ptNbins);
     //makeHTML(outputDir, "eta", etaNbins);
@@ -858,8 +831,6 @@ void plotEff(const TString conf, // input binning file
     //makeHTML(outputDir, "npv", npvNbins);
     makeHTML(outputDir, "etapt", etaNbins * ptNbins);
     //makeHTML(outputDir, "etaphi", etaNbins * phiNbins);
-
-    cout << "makeHTML done " << endl;
 
     ofstream txtfile;
     char txtfname[100];
@@ -875,19 +846,14 @@ void plotEff(const TString conf, // input binning file
     latexfile.open(latexfname);
     assert(latexfile.is_open());
 
-    cout << "fine here " << endl;
-
     CEffUser2D effetapt;
     CEffUser2D effetaphi;
-
-    cout << "fine with CEffUser2D" << endl;
 
     CEffUser1D effpt;
     CEffUser1D effeta;
     CEffUser1D effphi;
     CEffUser1D effnpv;
 
-    cout << "fine with CEffUser1D" << endl;
 
     if (hEffEtaPt->GetEntries() > 0) {
         effetapt.loadEff(hEffEtaPt, hErrlEtaPt, hErrhEtaPt);
@@ -957,7 +923,6 @@ void plotEff(const TString conf, // input binning file
     }
     txtfile.close();
 
-    cout << "fine here !" << endl;
     cout << endl;
     cout << "  <> Output saved in " << outputDir << "/" << endl;
     cout << endl;
@@ -997,13 +962,21 @@ void makeHTML(const TString outDir)
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetapt.png\"><img src=\"plots/effetapt.png\" alt=\"plots/effetapt.png\" width=\"100%\"></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletapt.png\"><img src=\"plots/errletapt.png\" alt=\"plots/errletapt.png\" width=\"100%\"></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errhetapt.png\"><img src=\"plots/errhetapt.png\" alt=\"plots/errhetapt.png\" width=\"100%\"></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"></td>" << endl;
+    //htmlfile << "<td width=\"25%\"></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/eff_etas.png\"><img src=\"plots/eff_etas.png\" alt=\"plots/eff_etas.png\" width=\"100%\"></a></td>" << endl;
     htmlfile << "</tr>" << endl;
     htmlfile << "<tr>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"etapt.html\">&eta;-pT bins</a></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
+    htmlfile << "</tr>" << endl;
+
+    htmlfile << "<tr>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/par0_etas.png\"><img src=\"plots/par0_etas.png\" alt=\"plots/par0_etas.png\" width=\"100%\"><figcaption>par_meanPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/par1_etas.png\"><img src=\"plots/par1_etas.png\" alt=\"plots/par1_etas.png\" width=\"100%\"><figcaption>par_sigmaPass</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/par2_etas.png\"><img src=\"plots/par2_etas.png\" alt=\"plots/par2_etas.png\" width=\"100%\"><figcaption>par_meanFail</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/par3_etas.png\"><img src=\"plots/par3_etas.png\" alt=\"plots/par3_etas.png\" width=\"100%\"><figcaption>par_sigmaFail</figcaption></a></td>" << endl;
     htmlfile << "</tr>" << endl;
     
     htmlfile << "<tr>" << endl;
@@ -1013,12 +986,6 @@ void makeHTML(const TString outDir)
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/paretapt3.png\"><img src=\"plots/paretapt3.png\" alt=\"plots/paretapt3.png\" width=\"100%\"><figcaption>par_sigmaFail</figcaption></a></td>" << endl;
     htmlfile << "</tr>" << endl;
 
-    htmlfile << "<tr>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt0.png\"><img src=\"plots/parsigetapt0.png\" alt=\"plots/parsigetapt0.png\" width=\"100%\"><figcaption>parsig_meanPass</figcaption></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt1.png\"><img src=\"plots/parsigetapt1.png\" alt=\"plots/parsigetapt1.png\" width=\"100%\"><figcaption>parsig_sigmaPass</figcaption></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt2.png\"><img src=\"plots/parsigetapt2.png\" alt=\"plots/parsigetapt2.png\" width=\"100%\"><figcaption>parsig_meanFail</figcaption></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/parsigetapt3.png\"><img src=\"plots/parsigetapt3.png\" alt=\"plots/parsigetapt3.png\" width=\"100%\"><figcaption>parsig_sigmaFail</figcaption></a></td>" << endl;
-    htmlfile << "</tr>" << endl;
     //htmlfile << "<tr>" << endl;
     //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/effetaphi.png\"><img src=\"plots/effetaphi.png\" alt=\"plots/effetaphi.png\" width=\"100%\"></a></td>" << endl;
     //htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"plots/errletaphi.png\"><img src=\"plots/errletaphi.png\" alt=\"plots/errletaphi.png\" width=\"100%\"></a></td>" << endl;
@@ -1107,14 +1074,12 @@ TGraphAsymmErrors* makeEffGraph(const vector<Double_t>& edgesv, const vector<TTr
         performCount(eff, errl, errh, ibin, edgesv[ibin], edgesv[ibin + 1], 0, 0,
             passv[ibin], failv[ibin], method,
             name, massLo, massHi, format, doAbsEta,
-            cpass, cfail, lumi);
+            lumi);
 
         yval[ibin] = eff;
         yerrl[ibin] = errl;
         yerrh[ibin] = errh;
     }
-    delete cpass;
-    delete cfail;
 
     return new TGraphAsymmErrors(n, xval, yval, xerr, xerr, yerrl, yerrh);
 }
@@ -1127,11 +1092,6 @@ TGraphAsymmErrors* makeEffGraph(const vector<Double_t>& edgesv, const vector<TTr
     const UInt_t n = edgesv.size() - 1;
     Double_t xval[n], xerr[n];
     Double_t yval[n], yerrl[n], yerrh[n];
-
-    TCanvas* cpass = MakeCanvas("cpass", "cpass", 720, 540);
-    cpass->SetWindowPosition(cpass->GetWindowTopX() + cpass->GetBorderSize() + 800, 0);
-    TCanvas* cfail = MakeCanvas("cfail", "cfail", 720, 540);
-    cfail->SetWindowPosition(cfail->GetWindowTopX() + cfail->GetBorderSize() + 800, cpass->GetWindowTopX() + cfail->GetBorderSize() + 540);
 
     for (UInt_t ibin = 0; ibin < n; ibin++) {
         xval[ibin] = 0.5 * (edgesv[ibin + 1] + edgesv[ibin]);
@@ -1152,7 +1112,7 @@ TGraphAsymmErrors* makeEffGraph(const vector<Double_t>& edgesv, const vector<TTr
                 passv[ibin], failv[ibin],
                 sigpass, bkgpass, sigfail, bkgfail,
                 name, massLo, massHi, fitMassLo, fitMassHi,
-                format, doAbsEta, cpass, cfail, lumi, yaxislabel, charge);
+                format, doAbsEta, lumi, yaxislabel, charge);
 
             // performFitBkgOnly(eff, errl, errh, ibin, edgesv[ibin], edgesv[ibin+1], 0, 0,
             // passv[ibin], failv[ibin],
@@ -1165,9 +1125,6 @@ TGraphAsymmErrors* makeEffGraph(const vector<Double_t>& edgesv, const vector<TTr
         yerrl[ibin] = errl;
         yerrh[ibin] = errh;
     }
-    delete cpass;
-    delete cfail;
-
     return new TGraphAsymmErrors(n, xval, yval, xerr, xerr, yerrl, yerrh);
 }
 
@@ -1175,11 +1132,6 @@ TGraphAsymmErrors* makeEffGraph(const vector<Double_t>& edgesv, const vector<TTr
 void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& passv, const vector<TTree*>& failv, const Int_t method,
     const TString name, const Double_t massLo, const Double_t massHi, const TString format, const Bool_t doAbsEta, const double lumi)
 {
-    TCanvas* cpass = MakeCanvas("cpass", "cpass", 720, 540);
-    cpass->SetWindowPosition(cpass->GetWindowTopX() + cpass->GetBorderSize() + 800, 0);
-    TCanvas* cfail = MakeCanvas("cfail", "cfail", 720, 540);
-    cfail->SetWindowPosition(cfail->GetWindowTopX() + cfail->GetBorderSize() + 800, cpass->GetWindowTopX() + cfail->GetBorderSize() + 540);
-
     for (Int_t iy = 0; iy < hEff->GetNbinsY(); iy++) {
         for (Int_t ix = 0; ix < hEff->GetNbinsX(); ix++) {
             Int_t ibin = iy * (hEff->GetNbinsX()) + ix;
@@ -1190,15 +1142,14 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
                 hEff->GetYaxis()->GetBinLowEdge(iy + 1), hEff->GetYaxis()->GetBinLowEdge(iy + 2),
                 passv[ibin], failv[ibin], method,
                 name, massLo, massHi, format, doAbsEta,
-                cpass, cfail, lumi);
+                lumi);
 
             hEff->SetBinContent(hEff->GetBin(ix + 1, iy + 1), eff);
+            hEff->SetBinError(hEff->GetBin(ix + 1, iy + 1), (fabs(errh) + fabs(errl)) / 2.0);
             hErrl->SetBinContent(hErrl->GetBin(ix + 1, iy + 1), errl);
             hErrh->SetBinContent(hErrh->GetBin(ix + 1, iy + 1), errh);
         }
     }
-    delete cpass;
-    delete cfail;
 }
 
 void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& passv, const vector<TTree*>& failv,
@@ -1206,12 +1157,6 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
     const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge, const vector<TH2D*>& hpars, const vector<TH2D*>& hparsigs)
 {
-
-    TCanvas* cpass = MakeCanvas("cpass", "cpass", 720, 540);
-    cpass->SetWindowPosition(cpass->GetWindowTopX() + cpass->GetBorderSize() + 800, 0);
-    TCanvas* cfail = MakeCanvas("cfail", "cfail", 720, 540);
-    cfail->SetWindowPosition(cfail->GetWindowTopX() + cfail->GetBorderSize() + 800, cpass->GetWindowTopX() + cfail->GetBorderSize() + 540);
-
     for (Int_t iy = 0; iy < hEff->GetNbinsY(); iy++) {
         for (Int_t ix = 0; ix < hEff->GetNbinsX(); ix++) {
             Int_t ibin = iy * (hEff->GetNbinsX()) + ix;
@@ -1233,7 +1178,7 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
                     passv[ibin], failv[ibin],
                     sigpass, bkgpass, sigfail, bkgfail,
                     name, massLo, massHi, fitMassLo, fitMassHi,
-                    format, doAbsEta, cpass, cfail, lumi, yaxislabel, charge);
+                    format, doAbsEta, lumi, yaxislabel, charge);
 
                 // performFitBkgOnly(eff, errl, errh, ibin,
                 // hEff->GetXaxis()->GetBinLowEdge(ix+1), hEff->GetXaxis()->GetBinLowEdge(ix+2),
@@ -1242,12 +1187,14 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
                 // sigpass, bkgpass, sigfail, bkgfail,
                 // name, massLo, massHi, fitMassLo, fitMassHi,
                 // format, doAbsEta, cpass, cfail, lumi, yaxislabel, charge);
-                std::cout << "printing out the workspace information " << std::endl;
-                w->Print();
-                std::cout << "done printing" << std::endl;
+
+                //std::cout << "printing out the workspace information " << std::endl;
+                //w->Print();
+                //std::cout << "done printing" << std::endl;
             }
 
             hEff->SetBinContent(hEff->GetBin(ix + 1, iy + 1), eff);
+            hEff->SetBinError(hEff->GetBin(ix + 1, iy + 1), (fabs(errh) + fabs(errl)) / 2.0);
             hErrl->SetBinContent(hErrl->GetBin(ix + 1, iy + 1), errl);
             hErrh->SetBinContent(hErrh->GetBin(ix + 1, iy + 1), errh);
 
@@ -1258,27 +1205,32 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
                 unsigned npars = 0;
                 RooRealVar* var = (RooRealVar*)iter->Next();
                 while (var && npars < 10) {
+                    float val = var->getVal();
+                    float unc = (fabs(var->getErrorHi()) + fabs(var->getErrorLo())) / 2.0;
+                    int ibin = hEff->GetBin(ix + 1, iy + 1);
                     if (std::string(var->GetName()).find("meanPass") == 0) {
                         //std::cout << "var name " << var->GetName() << " val " << var->getVal() << std::endl;
-                        hpars[0]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
-                        hparsigs[0]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                        hpars[0]->SetBinContent(ibin, val);
+                        hpars[0]->SetBinError(ibin, unc);
+                        hparsigs[0]->SetBinContent(ibin, val / unc);
                     } else if (std::string(var->GetName()).find("sigmaPass") == 0) {
-                        hpars[1]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
-                        hparsigs[1]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                        hpars[1]->SetBinContent(ibin, val);
+                        hpars[1]->SetBinError(ibin, unc);
+                        hparsigs[1]->SetBinContent(ibin, val / unc);
                     } else if (std::string(var->GetName()).find("meanFail") == 0) {
-                        hpars[2]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
-                        hparsigs[2]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                        hpars[2]->SetBinContent(ibin, val);
+                        hpars[2]->SetBinError(ibin, unc);
+                        hparsigs[2]->SetBinContent(ibin, val / unc);
                     } else if (std::string(var->GetName()).find("sigmaFail") == 0) {
-                        hpars[3]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal());
-                        hparsigs[3]->SetBinContent(hEff->GetBin(ix + 1, iy + 1), var->getVal() / (var->getErrorHi() + fabs(var->getErrorLo())) * 2.0);
+                        hpars[3]->SetBinContent(ibin, val);
+                        hpars[3]->SetBinError(ibin, unc);
+                        hparsigs[3]->SetBinContent(ibin, val / unc);
                     }
                     var = (RooRealVar*)iter->Next();
                }
             }
         }
     }
-    delete cpass;
-    delete cfail;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1362,8 +1314,6 @@ void generateHistTemplates(const TString infilename,
         failNPV[ibin]->SetDirectory(0);
     }
 
-    std::cout << "blah" << std::endl;
-
     TFile infile(infilename);
     TTree* intree = (TTree*)infile.Get("Events");
 
@@ -1412,6 +1362,9 @@ void generateHistTemplates(const TString infilename,
         for (UInt_t ibin = 0; ibin < ptNbins; ibin++)
             if ((pt >= ptEdgesv[ibin]) && (pt < ptEdgesv[ibin + 1]))
                 ipt = ibin;
+            // include the pt overflow bin
+            else if (pt >= ptEdgesv[ptEdgesv.size() - 1])
+                ipt = ptNbins - 1;
         if (ipt < 0)
             continue;
 
@@ -1460,7 +1413,6 @@ void generateHistTemplates(const TString infilename,
         }
     }
     infile.Close();
-    std::cout << "blah2" << std::endl;
 
     TFile outfile("histTemplates.root", "RECREATE");
     for (UInt_t ibin = 0; ibin < ptNbins; ibin++) {
@@ -1636,6 +1588,9 @@ void generateDataTemplates(const TString infilename,
         for (UInt_t ibin = 0; ibin < ptNbins; ibin++)
             if ((pt >= ptEdgesv[ibin]) && (pt < ptEdgesv[ibin + 1]))
                 ipt = ibin;
+            // include the pt overflow bin
+            else if (pt >= ptEdgesv[ptEdgesv.size() - 1])
+                ipt = ptNbins - 1;
         if (ipt < 0)
             continue;
 
@@ -1733,8 +1688,13 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
     TTree* passTree, TTree* failTree, const Int_t method,
     const TString name, const Double_t massLo, const Double_t massHi, const TString format, const Bool_t doAbsEta,
-    TCanvas* cpass, TCanvas* cfail, const double lumi)
+    const double lumi)
 {
+    TCanvas* cpass = MakeCanvas("cpass", "cpass", 720, 540);
+    cpass->SetWindowPosition(cpass->GetWindowTopX() + cpass->GetBorderSize() + 800, 0);
+    TCanvas* cfail = MakeCanvas("cfail", "cfail", 720, 540);
+    cfail->SetWindowPosition(cfail->GetWindowTopX() + cfail->GetBorderSize() + 800, cpass->GetWindowTopX() + cfail->GetBorderSize() + 540);
+
     // skip ECAL gap region
     // if(xbinLo==1.4442 && xbinHi==1.566) return;
     // if(xbinLo==-1.566 && xbinHi==-1.4442) return;
@@ -1872,7 +1832,10 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
 
     delete hpass;
     delete hfail;
+    delete cpass;
+    delete cfail;
 }
+
 //--------------------------------------------------------------------------------------------------
 void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     const Int_t ibin, const Double_t xbinLo, const Double_t xbinHi, const Double_t ybinLo, const Double_t ybinHi,
@@ -2243,19 +2206,15 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     }
     sprintf(effstr, "#varepsilon = %.4f_{ -%.4f}^{ +%.4f}", eff.getVal(), fabs(eff.getErrorLo()), eff.getErrorHi());
 
-    std::cout << "blah1 " << std::endl;
-
     RooPlot* mframePass = m.frame(Bins(Int_t(fitMassHi - fitMassLo) / BIN_SIZE_PASS));
     dataPass->plotOn(mframePass, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
     if (bkgpass > 0)
         modelPass->plotOn(mframePass, Components(bkgpassname /*"backgroundPass"*/), LineStyle(kDashed), LineColor(kRed));
     modelPass->plotOn(mframePass);
-    std::cout << "blah2 " << std::endl;
     RooPlot* mframeFail = m.frame(Bins(Int_t(fitMassHi - fitMassLo) / BIN_SIZE_FAIL));
     dataFail->plotOn(mframeFail, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
     modelFail->plotOn(mframeFail, Components(bkgfailname /*"backgroundFail"*/), LineStyle(kDashed), LineColor(kRed), Range("FULL"), NormRange("FULL"));
     modelFail->plotOn(mframeFail, Range("R1,R2"), NormRange("R1,R2"));
-    std::cout << "blah3 " << std::endl;
     char lumitext[100]; // lumi label
     int sqrts = 13;
     if (lumi > 250.0 && lumi < 350.0) {
@@ -2268,37 +2227,30 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     // Plot failing probes
     //
     // double f = NsigFail.getVal(), d = NbkgFail.getVal();
-    std::cout << "blah3a1" << std::endl;
     sprintf(pname, "fail%s_%i", name.Data(), ibin);
     sprintf(yield, "%u Events", (Int_t)failTree->GetEntries());
     sprintf(ylabel, "Events / %.1f GeV/c^{2}", (Double_t)BIN_SIZE_FAIL);
     // sprintf(nsigstr,"N_{sig} = %.1f #pm %.1f",NsigFail.getVal(),NsigFail.getPropagatedError(*fitResult));
-    std::cout << "blah3a2" << std::endl;
     // sprintf(nbkgstr,"N_{bkg} = %.1f #pm %.1f",NbkgFail.getVal(),NbkgFail.getPropagatedError(*fitResult));
     sprintf(chi2str, "#chi^{2}/DOF = %.3f", mframePass->chiSquare(nflfail));
     CPlot plotFail(pname, mframeFail, "Failing probes", "tag-probe mass [GeV/c^{2}]", ylabel);
-    std::cout << "blah3a3" << std::endl;
     plotFail.AddTextBox(binlabelx, 0.21, 0.75, 0.51, 0.80, 0, kBlack, -1);
-    std::cout << "blah3b" << std::endl;
     if ((name.CompareTo("etapt") == 0) || (name.CompareTo("etaphi") == 0)) {
         plotFail.AddTextBox(binlabely, 0.21, 0.70, 0.51, 0.75, 0, kBlack, -1);
         plotFail.AddTextBox(yield, 0.21, 0.66, 0.51, 0.70, 0, kBlack, -1);
     } else {
         plotFail.AddTextBox(yield, 0.21, 0.81, 0.51, 0.85, 0, kBlack, -1);
     }
-    std::cout << "blah3c" << std::endl;
     plotFail.AddTextBox(effstr, 0.70, 0.85, 0.94, 0.90, 0, kBlack, -1);
     // plotFail.AddTextBox(0.70,0.68,0.94,0.83,0,kBlack,-1,2,nsigstr,nbkgstr);
     plotFail.AddTextBox(chi2str, 0.70, 0.62, 0.94, 0.67, 0, kBlack, -1);
     plotFail.AddTextBox("CMS Preliminary", 0.19, 0.83, 0.54, 0.89, 0);
     plotFail.AddTextBox(lumitext, 0.62, 0.92, 0.94, 0.99, 0, kBlack, -1);
-    std::cout << "blah3d" << std::endl;
     if (yaxislabel.CompareTo("supercluster") == 0 && xbinLo == 0.0 && xbinHi == 1.4442 && ybinLo == 25 && ybinHi == 100)
         plotFail.SetYRange(0, 200);
     else if (yaxislabel.CompareTo("supercluster") == 0 && xbinLo == 1.566 && xbinHi == 2.5 && ybinLo == 25 && ybinHi == 100)
         plotFail.SetYRange(0, 100);
     plotFail.Draw(cfail, kTRUE, format);
-    std::cout << "blah4" << std::endl;
     //
     // Write fit results
     //
@@ -2306,15 +2258,12 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     char txtfname[100];
     sprintf(txtfname, "%s/fitres%s_%i.txt", CPlot::sOutDir.Data(), name.Data(), ibin);
 
-    std::cout << "blah4a" << std::endl;
     txtfile.open(txtfname);
     assert(txtfile.is_open());
     fitResult->printStream(txtfile, RooPrintable::kValue, RooPrintable::kVerbose);
 
-    std::cout << "blah4b" << std::endl;
     txtfile << endl;
     // printCorrelations(txtfile, fitResult);
-    // std::cout << "blah4c" << std::endl;
     txtfile.close();
 
     char outFileName[100];
@@ -2335,7 +2284,6 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     Float_t phiLo, phiHi;
     Float_t npvLo, npvHi;
 
-    std::cout << "blah5" << std::endl;
     nEvents = NsigMax;
     nBkgFail = NbkgFailMax;
     nBkgPass = NbkgPassMax;
@@ -2383,7 +2331,6 @@ void performFitBkgOnly(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         npvHi = xbinHi;
     }
 
-    std::cout << "blah6" << std::endl;
     t->Fill();
     fw->Write();
     fw->Close();
@@ -2415,8 +2362,43 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     TTree* passTree, TTree* failTree,
     const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
     const TString name, const Double_t massLo, const Double_t massHi, const Double_t fitMassLo, const Double_t fitMassHi,
-    const TString format, const Bool_t doAbsEta, TCanvas* cpass, TCanvas* cfail, const double lumi, const TString yaxislabel, const int charge)
+    const TString format, const Bool_t doAbsEta, const double lumi, const TString yaxislabel, const int charge)
 {
+    TCanvas* cpass = MakeCanvas("cpass", "cpass", 800, 800);
+    TCanvas* cfail = MakeCanvas("cfail", "cfail", 800, 800);
+
+    cpass->Divide(1, 2, 0, 0);
+    cpass->cd(1)->SetPad(0, 0.3, 1.0, 1.0);
+    cpass->cd(1)->SetTopMargin(0.08);
+    cpass->cd(1)->SetBottomMargin(0.01);
+    cpass->cd(1)->SetLeftMargin(0.15);
+    cpass->cd(1)->SetRightMargin(0.07);
+    cpass->cd(1)->SetTickx(1);
+    cpass->cd(1)->SetTicky(1);
+    cpass->cd(2)->SetPad(0, 0, 1.0, 0.3);
+    cpass->cd(2)->SetTopMargin(0.05);
+    cpass->cd(2)->SetBottomMargin(0.35);
+    cpass->cd(2)->SetLeftMargin(0.15);
+    cpass->cd(2)->SetRightMargin(0.07);
+    cpass->cd(2)->SetTickx(1);
+    cpass->cd(2)->SetTicky(1);
+
+    cfail->Divide(1, 2, 0, 0);
+    cfail->cd(1)->SetPad(0, 0.3, 1.0, 1.0);
+    cfail->cd(1)->SetTopMargin(0.08);
+    cfail->cd(1)->SetBottomMargin(0.01);
+    cfail->cd(1)->SetLeftMargin(0.15);
+    cfail->cd(1)->SetRightMargin(0.07);
+    cfail->cd(1)->SetTickx(1);
+    cfail->cd(1)->SetTicky(1);
+    cfail->cd(2)->SetPad(0, 0, 1.0, 0.3);
+    cfail->cd(2)->SetTopMargin(0.05);
+    cfail->cd(2)->SetBottomMargin(0.35);
+    cfail->cd(2)->SetLeftMargin(0.15);
+    cfail->cd(2)->SetRightMargin(0.07);
+    cfail->cd(2)->SetTickx(1);
+    cfail->cd(2)->SetTicky(1);
+
     // // skip ECAL gap region
     // if(xbinLo==1.4442 && xbinHi==1.566) return;
     // if(xbinLo==-1.566 && xbinHi==-1.4442) return;
@@ -2617,9 +2599,7 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         // RooAbsPdf *bkgFail = w->pdf(templatename);
         // bkgFail->Print();
         // bkgFail->model = (RooGenericPdf*)w->pdf(templatename);
-        std::cout << "bleh" << std::endl;
         // (bkgFail->model)->Print();
-        std::cout << "blalblhab" << std::endl;
         // set the starting values and upper and lower limits to the fit value +- error
         char varname[100];
         sprintf(varname, "a0Fail_%d", ibin);
@@ -2656,9 +2636,7 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         // RooAbsPdf *bkgFail = w->pdf(templatename);
         // bkgFail->Print();
         // bkgFail->model = (RooGenericPdf*)w->pdf(templatename);
-        std::cout << "bleh" << std::endl;
         // (bkgFail->model)->Print();
-        std::cout << "blalblhab" << std::endl;
         // set the starting values and upper and lower limits to the fit value +- error
         char varname[100];
         sprintf(varname, "tFail_%d", ibin);
@@ -2697,7 +2675,6 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         nflfail += 1;
     }
 
-    std::cout << "hi " << std::endl;
     // Define free parameters
     Double_t NsigMax = doBinned ? histPass.Integral() + histFail.Integral() : passTree->GetEntries() + failTree->GetEntries();
     Double_t NbkgFailMax = doBinned ? histFail.Integral() : failTree->GetEntries();
@@ -2742,7 +2719,6 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
 
         modelFail = new RooAddPdf("modelFail", "Model for FAIL sample", RooArgList(*(sigFail->model), *(bkgFail->model)), RooArgList(NsigFail, NbkgFail));
     }
-    //std::cout << "here" << std::endl;
 
     // eff.setVal(1.0);
     // eff.setConstant(kTRUE);
@@ -2868,6 +2844,50 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     modelFail->plotOn(mframeFail, Components(bkgfailname /*"backgroundFail"*/), LineStyle(kDashed), LineColor(kRed));
     modelFail->plotOn(mframeFail);
 
+    RooHist* pullPass = mframePass->pullHist();
+    pullPass->SetTitle("");
+    pullPass->GetXaxis()->SetRangeUser(fitMassLo, fitMassHi);
+    pullPass->GetYaxis()->SetTitle("Pull");
+    pullPass->GetXaxis()->SetTitle("tag-probe mass [GeV/c^{2}]");
+    pullPass->GetYaxis()->SetRangeUser(-5., 5.);
+    pullPass->SetMarkerColor(kAzure);
+    pullPass->SetLineColor(kAzure);
+    pullPass->SetFillColor(kAzure);
+    //    pullPass->GetYaxis()->SetTitleFont(42);
+    //    pullPass->GetXaxis()->SetTitleFont(42);
+    pullPass->GetYaxis()->SetTitleSize(0.085);
+    pullPass->GetYaxis()->SetTitleOffset(1.600);
+    pullPass->GetYaxis()->SetLabelOffset(0.014);
+    pullPass->GetYaxis()->SetLabelSize(0.070);
+    pullPass->GetYaxis()->SetLabelFont(42);
+    pullPass->GetXaxis()->SetTitleSize(0.085);
+    pullPass->GetXaxis()->SetTitleOffset(1.300);
+    pullPass->GetXaxis()->SetLabelOffset(0.014);
+    pullPass->GetXaxis()->SetLabelSize(0.070);
+    pullPass->GetXaxis()->SetLabelFont(42);
+
+    RooHist* pullFail = mframeFail->pullHist();
+    pullFail->SetTitle("");
+    pullFail->GetXaxis()->SetRangeUser(fitMassLo, fitMassHi);
+    pullFail->GetYaxis()->SetTitle("Pull");
+    pullFail->GetXaxis()->SetTitle("tag-probe mass [GeV/c^{2}]");
+    pullFail->GetYaxis()->SetRangeUser(-5., 5.);
+    pullFail->SetMarkerColor(kAzure);
+    pullFail->SetLineColor(kAzure);
+    pullFail->SetFillColor(kAzure);
+    //    pullFail->GetYaxis()->SetTitleFont(42);
+    //    pullFail->GetXaxis()->SetTitleFont(42);
+    pullFail->GetYaxis()->SetTitleSize(0.085);
+    pullFail->GetYaxis()->SetTitleOffset(1.600);
+    pullFail->GetYaxis()->SetLabelOffset(0.014);
+    pullFail->GetYaxis()->SetLabelSize(0.070);
+    pullFail->GetYaxis()->SetLabelFont(42);
+    pullFail->GetXaxis()->SetTitleSize(0.085);
+    pullFail->GetXaxis()->SetTitleOffset(1.300);
+    pullFail->GetXaxis()->SetLabelOffset(0.014);
+    pullFail->GetXaxis()->SetLabelSize(0.070);
+    pullFail->GetXaxis()->SetLabelFont(42);
+
     char lumitext[100]; // lumi label
     int sqrts = 13;
     if (lumi > 250.0 && lumi < 350.0) {
@@ -2895,13 +2915,13 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     } else {
         plotPass.AddTextBox(yield, 0.21, 0.81, 0.51, 0.85, 0, kBlack, -1);
     }
-    plotPass.AddTextBox(effstr, 0.70, 0.85, 0.94, 0.90, 0, kBlack, -1);
+    plotPass.AddTextBox(effstr, 0.67, 0.85, 0.94, 0.90, 0, kBlack, -1);
     if (bkgpass > 0) {
-        plotPass.AddTextBox(0.70, 0.68, 0.94, 0.83, 0, kBlack, -1, 2, nsigstr, nbkgstr);
+        plotPass.AddTextBox(0.67, 0.68, 0.94, 0.83, 0, kBlack, -1, 2, nsigstr, nbkgstr);
         plotPass.AddTextBox(chi2str, 0.70, 0.62, 0.94, 0.67, 0, kBlack, 0);
     } else {
-        plotPass.AddTextBox(0.70, 0.73, 0.94, 0.83, 0, kBlack, -1, 1, nsigstr);
-        plotPass.AddTextBox(chi2str, 0.70, 0.62, 0.94, 0.67, 0, kBlack, 0);
+        plotPass.AddTextBox(0.67, 0.73, 0.94, 0.83, 0, kBlack, -1, 1, nsigstr);
+        plotPass.AddTextBox(chi2str, 0.67, 0.62, 0.94, 0.67, 0, kBlack, 0);
     }
     plotPass.AddTextBox("CMS Preliminary", 0.19, 0.83, 0.54, 0.89, 0);
     plotPass.AddTextBox(lumitext, 0.62, 0.92, 0.94, 0.99, 0, kBlack, -1);
@@ -2909,7 +2929,16 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
         plotPass.SetYRange(0, 2000);
     else if (yaxislabel.CompareTo("supercluster") == 0 && xbinLo == 1.566 && xbinHi == 2.5 && ybinLo == 25 && ybinHi == 100)
         plotPass.SetYRange(0, 350);
-    plotPass.Draw(cpass, kTRUE, format);
+    plotPass.Draw(cpass, kFALSE, format, 1);
+
+    cpass->cd(2);
+    pullPass->Draw("A3 L ");
+    TLine* lineZero = new TLine(fitMassLo, 0, fitMassHi, 0);
+    lineZero->SetLineWidth(3);
+    lineZero->SetLineColor(kBlack);
+    lineZero->SetLineStyle(3);
+    lineZero->Draw("same");
+    plotPass.Draw(cpass, kTRUE, "png", 1);
 
     //
     // Plot failing probes
@@ -2922,23 +2951,29 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     sprintf(nbkgstr, "N_{bkg} = %.1f #pm %.1f", NbkgFail.getVal(), NbkgFail.getPropagatedError(*fitResult));
     sprintf(chi2str, "#chi^{2}/DOF = %.3f", mframePass->chiSquare(nflfail));
     CPlot plotFail(pname, mframeFail, "Failing probes", "tag-probe mass [GeV/c^{2}]", ylabel);
-    plotFail.AddTextBox(binlabelx, 0.21, 0.75, 0.51, 0.80, 0, kBlack, -1);
+    plotFail.AddTextBox(binlabelx, 0.18, 0.75, 0.51, 0.80, 0, kBlack, -1);
     if ((name.CompareTo("etapt") == 0) || (name.CompareTo("etaphi") == 0)) {
-        plotFail.AddTextBox(binlabely, 0.21, 0.70, 0.51, 0.75, 0, kBlack, -1);
-        plotFail.AddTextBox(yield, 0.21, 0.66, 0.51, 0.70, 0, kBlack, -1);
+        plotFail.AddTextBox(binlabely, 0.18, 0.70, 0.51, 0.75, 0, kBlack, -1);
+        plotFail.AddTextBox(yield, 0.18, 0.66, 0.51, 0.70, 0, kBlack, -1);
     } else {
-        plotFail.AddTextBox(yield, 0.21, 0.81, 0.51, 0.85, 0, kBlack, -1);
+        plotFail.AddTextBox(yield, 0.18, 0.81, 0.51, 0.85, 0, kBlack, -1);
     }
-    plotFail.AddTextBox(effstr, 0.70, 0.85, 0.94, 0.90, 0, kBlack, -1);
-    plotFail.AddTextBox(0.70, 0.68, 0.94, 0.83, 0, kBlack, -1, 2, nsigstr, nbkgstr);
-    plotFail.AddTextBox(chi2str, 0.70, 0.62, 0.94, 0.67, 0, kBlack, -1);
-    plotFail.AddTextBox("CMS Preliminary", 0.19, 0.83, 0.54, 0.89, 0);
-    plotFail.AddTextBox(lumitext, 0.62, 0.92, 0.94, 0.99, 0, kBlack, -1);
+    plotFail.AddTextBox(effstr, 0.67, 0.85, 0.94, 0.90, 0, kBlack, -1);
+    plotFail.AddTextBox(0.67, 0.68, 0.94, 0.83, 0, kBlack, -1, 2, nsigstr, nbkgstr);
+    plotFail.AddTextBox(chi2str, 0.67, 0.62, 0.94, 0.67, 0, kBlack, -1);
+    plotFail.AddTextBox("CMS Preliminary", 0.16, 0.83, 0.54, 0.89, 0);
+    plotFail.AddTextBox(lumitext, 0.59, 0.92, 0.94, 0.99, 0, kBlack, -1);
     if (yaxislabel.CompareTo("supercluster") == 0 && xbinLo == 0.0 && xbinHi == 1.4442 && ybinLo == 25 && ybinHi == 100)
         plotFail.SetYRange(0, 200);
     else if (yaxislabel.CompareTo("supercluster") == 0 && xbinLo == 1.566 && xbinHi == 2.5 && ybinLo == 25 && ybinHi == 100)
         plotFail.SetYRange(0, 100);
-    plotFail.Draw(cfail, kTRUE, format);
+    plotFail.Draw(cfail, kFALSE, format, 1);
+
+    cfail->cd(2);
+    pullFail->Draw("A3 L ");
+    lineZero->Draw("same");
+    plotFail.Draw(cfail, kTRUE, format, 1);
+
 
     //
     // Write fit results
@@ -3056,6 +3091,9 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     delete datfile;
     delete sigmaFail;
 
+    delete cpass;
+    delete cfail;
+
     return w;
 }
 
@@ -3101,4 +3139,37 @@ void parseFitResults(ifstream& ifs, double& eff, double& errl, double& errh)
             }
         }
     }
+}
+
+void plot2DAs1D(TH2D* heffs, const TString name, const TString axisname, float ymin, float ymax, bool projx) 
+{
+    TH1D* hproj = NULL;
+    CPlot plotEff1D(name, "", axisname, "Efficiency");
+    char labelname[50];
+    char hname[50];
+    if (projx) {
+        // project into eta
+        for (int ibin = 1; ibin <= heffs->GetNbinsY(); ++ibin) {
+            sprintf(hname, "%s_ProjX_bin%d", heffs->GetName(), ibin);
+            hproj = heffs->ProjectionX(hname, ibin, ibin); 
+            sprintf(labelname, "%.1f < p_{T} < %.1f", heffs->GetYaxis()->GetBinLowEdge(ibin), heffs->GetYaxis()->GetBinLowEdge(ibin) + heffs->GetYaxis()->GetBinWidth(ibin));
+            plotEff1D.AddHist1D(hproj, labelname, "same", ibin);
+        }
+    } else {
+        // project into pt 
+        for (int ibin = 1; ibin <= heffs->GetNbinsX(); ++ibin) {
+            sprintf(hname, "%s_ProjY_bin%d", heffs->GetName(), ibin);
+            hproj = heffs->ProjectionY(hname, ibin, ibin);
+            sprintf(labelname, "%.1f < #eta < %.1f", heffs->GetXaxis()->GetBinLowEdge(ibin), heffs->GetXaxis()->GetBinLowEdge(ibin) + heffs->GetXaxis()->GetBinWidth(ibin));
+            plotEff1D.AddHist1D(hproj, labelname, "same", ibin);
+       }
+    }
+    char cname[50];
+    sprintf(cname, "c_%s", name.Data());
+    plotEff1D.SetYRange(ymin, ymax);
+    TCanvas* c = MakeCanvas(cname, "c", 800, 600);
+    plotEff1D.Draw(c, kTRUE, "png");
+
+    delete hproj;
+    delete c;
 }

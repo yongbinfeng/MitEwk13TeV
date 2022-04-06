@@ -152,23 +152,25 @@ CMCTemplateConvGaussian::CMCTemplateConvGaussian(RooRealVar& m, TH1D* hist, cons
 
     if (pass) {
         sprintf(vname, "mean%s", name);
-        mean = new RooRealVar(vname, vname, 0, -10, 10);
+        mean = new RooRealVar(vname, vname, 0.3, -2, 2);
+        //mean->setConstant(kTRUE);
         if (sigma0) {
             sigma = sigma0;
         } else {
             sprintf(vname, "sigma%s", name);
-            sigma = new RooRealVar(vname, vname, 2, 0, 5);
+            sigma = new RooRealVar(vname, vname, 1.0, 0, 2.0);
         }
         sprintf(vname, "gaus%s", name);
         gaus = new RooGaussian(vname, vname, m, *mean, *sigma);
     } else {
         sprintf(vname, "mean%s", name);
-        mean = new RooRealVar(vname, vname, 0, -10, 10);
+        mean = new RooRealVar(vname, vname, 1.0, -2, 2);
+        //mean->setConstant(kTRUE);
         if (sigma0) {
             sigma = sigma0;
         } else {
             sprintf(vname, "sigma%s", name);
-            sigma = new RooRealVar(vname, vname, 2, 0, 5);
+            sigma = new RooRealVar(vname, vname, 1.0, 0, 10.0);
         }
         sprintf(vname, "gaus%s", name);
         gaus = new RooGaussian(vname, vname, m, *mean, *sigma);
