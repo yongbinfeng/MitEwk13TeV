@@ -65,7 +65,7 @@ void selectZmm(const TString conf = "zmm.conf", // input file
 
     const Double_t MASS_LOW = 40;
     const Double_t MASS_HIGH = 200;
-    const Double_t PT_CUT = 25;
+    const Double_t PT_CUT = 20.0;
     const Double_t ETA_CUT = 2.4;
     const Double_t MUON_MASS = 0.105658369;
 
@@ -98,7 +98,8 @@ void selectZmm(const TString conf = "zmm.conf", // input file
         eMuMu1HLT,
         eMuMuNoSel,
         eMuSta,
-        eMuTrk }; // event category enum
+        eMuTrk,
+        eMuReco }; // event category enum
 
     vector<TString> snamev; // sample name (for output files)
     vector<CSample*> samplev; // data/MC samples
@@ -574,6 +575,8 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                         icat = eMuSta;
                     } else if (probe->nTkLayers >= 6 && probe->nPixHits >= 1) {
                         icat = eMuTrk;
+                    } else {
+                        icat = eMuReco;
                     }
                 }
 
