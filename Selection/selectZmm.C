@@ -367,8 +367,6 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                     cout << "Processing event " << ientry << ". " << (int)(100 * (ientry / (double)eventTree->GetEntries())) << " percent done with this file." << endl;
                 }
 
-                // cout << "begin " << endl;
-
                 Double_t weight = xsec;
                 Double_t weightUp = xsec;
                 Double_t weightDown = xsec;
@@ -387,23 +385,19 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                     hGenWeights->Fill(0.0, 1.0);
                 }
 
-                // cout << "filled weights, start cuts " << endl;
                 // cout << "hello" << endl;
                 // veto z -> xx decays for signal and z -> mm for bacground samples (needed for inclusive DYToLL sample)
                 if (isWrongFlavor && hasGen && fabs(toolbox::flavor(genPartArr, BOSON_ID)) == LEPTON_ID)
                     continue;
                 else if (isSignal && hasGen && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
                     continue;
-                // cout << "test a" << endl;
                 // check for certified lumi (if applicable)
                 baconhep::RunLumiRangeMap::RunLumiPairType rl(info->runNum, info->lumiSec);
                 if (hasJSON && !rlrm.hasRunLumi(rl))
                     continue;
-                // cout << "test b" << endl;
                 // trigger requirement
                 if (!isMuonTrigger(triggerMenu, info->triggerBits, isData, is13TeV))
                     continue;
-                // cout << "test c" << endl;
                 // good vertex requirement
                 if (!(info->hasGoodPV))
                     continue;
@@ -429,21 +423,16 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                     // cout << "first in mu loop..." << i1 << " of " << muonArr->GetEntriesFast() - 1 << endl;
                     const baconhep::TMuon* tag = (baconhep::TMuon*)((*muonArr)[i1]);
                     // cout << "in muon loop..." << i1 << " of " << muonArr->GetEntriesFast() - 1 << endl;
-                    // apply scale and resolution corrections to MC
                     Double_t tagpt_corr = tag->pt;
                     if (doScaleCorr && !snamev[isam].Contains("data")) {
                         tagpt_corr = gRandom->Gaus(tag->pt * getMuScaleCorr(tag->eta, 0), getMuResCorr(tag->eta, 0));
                     }
-                    // cout << "test e1" << endl;
                     if (tagpt_corr < PT_CUT)
                         continue; // lepton pT cut
-                    // cout << "test e2" << endl;
                     if (fabs(tag->eta) > ETA_CUT)
                         continue; // lepton |eta| cut
-                    // cout << "test e3" << endl;
                     if (!passMuonID(tag))
                         continue; // lepton selection
-                    // cout << "test f" << endl;
 
                     double Mu_Pt = 0;
                     if (doScaleCorr)
@@ -464,7 +453,6 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                         continue;
                     tagPt = Mu_Pt;
                     itag = i1;
-                    // cout << "test g" << endl;
 
                     // apply scale and resolution corrections to MC
                     if (doScaleCorr && !snamev[isam].Contains("data")) {
@@ -617,9 +605,9 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                     //if (gvec->M() < MASS_LOW || gvec->M() > MASS_HIGH)
                     //    continue;
 
-                    Bool_t match1 = (((glep1) && toolbox::deltaR(vTag.Eta(), vTag.Phi(), glep1->Eta(), glep1->Phi()) < 0.5) || ((glep2) && toolbox::deltaR(vTag.Eta(), vTag.Phi(), glep2->Eta(), glep2->Phi()) < 0.5));
+                    Bool_t match1 = (((glep1) && toolbox::deltaR(vTag.Eta(), vTag.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vTag.Eta(), vTag.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
 
-                    Bool_t match2 = (((glep1) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep1->Eta(), glep1->Phi()) < 0.5) || ((glep2) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep2->Eta(), glep2->Phi()) < 0.5));
+                    Bool_t match2 = (((glep1) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
 
                     TLorentzVector tvec = *glep1 + *glep2;
                     genV = new TLorentzVector(0, 0, 0, 0);
