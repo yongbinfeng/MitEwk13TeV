@@ -33,7 +33,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     const Bool_t doGenMatch = kFALSE, // match to generator leptons
     const Bool_t doWeighted = kFALSE, // store events with weights
     const UInt_t desiredrunNum = 0, // select a specific run (0 for all runs). YB: not sure why we need this
-    const Double_t TAG_PT_CUT = 25 // tag Pt cut, by default 25GeV
+    const Double_t TAG_PT_CUT = 25, // tag Pt cut, by default 25GeV
+    const Double_t TAG_PT_MAXCUT = 10000000.0 // cut on the maximum tag Pt, by default infinite
     )
 {
     gBenchmark->Start("selectProbesEleEff");
@@ -117,11 +118,12 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     TTree* outTree = new TTree("Events", "Events");
     //EffData data;
     //outTree->Branch("Events",&data.mass,"mass/F:pt:eta:phi:weight:q/I:npv/i:npu:pass:runNum:lumiSec:evtNum");
-    Float_t mass, pt, eta, phi;
+    Float_t mass, zpt, pt, eta, phi;
     Double_t weight, weightPowPhot, weightPowPyth;
     Int_t q;
     UInt_t npv, npu, passes, runNum, lumiSec, evtNum;
     outTree->Branch("mass", &mass, "mass/F");
+    outTree->Branch("zpt",  &zpt,  "zpt/F");
     outTree->Branch("pt", &pt, "pt/F");
     outTree->Branch("eta", &eta, "eta/F");
     outTree->Branch("phi", &phi, "phi/F");
@@ -212,7 +214,8 @@ void selectProbesEleEff(const TString infilename, // input ntuple
         if (desiredrunNum != 0 && runNum != desiredrunNum)
             continue;
 
-        if (lep1->Pt() < TAG_PT_CUT)
+        if ((lep1->Pt() < TAG_PT_CUT || lep1->Pt() > TAG_PT_MAXCUT ) && (lep2->Pt() < TAG_PT_CUT || lep2->Pt() > TAG_PT_MAXCUT))
+            // if BOTH leptons do not satisfy the tag-pt requirement, then drop the event
             continue;
 
         // check GEN match if necessary
@@ -412,29 +415,34 @@ void selectProbesEleEff(const TString infilename, // input ntuple
         }
 
         // Fill tree
-        mass = dilep->M();
-        pt = (effType == eGsfSelEff && !pass) ? sc2->Pt() : lep2->Pt();
-        eta = (effType == eGsfSelEff && !pass) ? sc2->Eta() : lep2->Eta();
-        phi = (effType == eGsfSelEff && !pass) ? sc2->Phi() : lep2->Phi();
-        //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
-        weight = doWeighted ? (scale1fb >= 0 ? 1 : -1) : 1;
-        q = q2;
-        npv = npv;
-        npu = npu;
-        passes = (pass) ? 1 : 0;
-        runNum = runNum;
-        lumiSec = lumiSec;
-        evtNum = evtNum;
-        outTree->Fill();
+        if (lep1->Pt() >= TAG_PT_CUT && lep1->Pt() < TAG_PT_MAXCUT ) {
+            mass = dilep->M();
+            zpt = dilep->Pt();
+            pt = (effType == eGsfSelEff && !pass) ? sc2->Pt() : lep2->Pt();
+            eta = (effType == eGsfSelEff && !pass) ? sc2->Eta() : lep2->Eta();
+            phi = (effType == eGsfSelEff && !pass) ? sc2->Phi() : lep2->Phi();
+            //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            weight = doWeighted ? (scale1fb >= 0 ? 1 : -1) : 1;
+            q = q2;
+            npv = npv;
+            npu = npu;
+            passes = (pass) ? 1 : 0;
+            runNum = runNum;
+            lumiSec = lumiSec;
+            evtNum = evtNum;
+            outTree->Fill();
+        }
 
         if (category == eEleEle2HLT) {
-            if (lep2->Pt() < TAG_PT_CUT)
+            //if (lep2->Pt() < TAG_PT_CUT)
+            if (lep2->Pt() < TAG_PT_CUT || lep2->Pt() > TAG_PT_MAXCUT)
                 continue;
 
             //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
             nProbes += doWeighted ? (scale1fb >= 0 ? 1 : -1) : 1;
 
             mass = dilep->M();
+            zpt = dilep->Pt();
             pt = lep1->Pt();
             eta = lep1->Eta();
             phi = (effType == eGsfEff) ? sc1->Phi() : lep1->Phi();

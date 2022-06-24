@@ -28,7 +28,8 @@ void selectProbesMuEff(const TString infilename, // input ntuple
     const Int_t effType, // type of efficiency to compute
     const Bool_t doGenMatch = kFALSE, // match to generator leptons
     const Bool_t doWeighted = kFALSE, // store events with weights
-    const Double_t TAG_PT_CUT = 25.0 // tag Pt cut, by default 25GeV
+    const Double_t TAG_PT_CUT = 25.0, // tag Pt cut, by default 25GeV
+    const Double_t TAG_PT_MAXCUT = 10000000.0 // cut on the maximum tag Pt, by default infinite
     )
 {
     gBenchmark->Start("selectProbesMuEff");
@@ -39,6 +40,7 @@ void selectProbesMuEff(const TString infilename, // input ntuple
 
     //const Double_t TAG_PT_CUT = 25;
     cout << "Tag Pt cut " << TAG_PT_CUT << endl;
+    cout << "Tag maximum Pt cut " << TAG_PT_MAXCUT << endl;
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -53,9 +55,11 @@ void selectProbesMuEff(const TString infilename, // input ntuple
         ePOGIDEff,
         ePOGIsoEff,
         eSelIsoTrkEff,
+        eSelIsoStaEff,
         eHLTSelStaEff,
-        eHLTSelStaEff_iso };
-    if (effType > eHLTSelStaEff_iso) {
+        eHLTSelStaEff_iso,
+        eSelTrkEff};
+    if (effType > eSelTrkEff) {
         cout << "Invalid effType option! Exiting..." << endl;
         return;
     }
@@ -118,11 +122,14 @@ void selectProbesMuEff(const TString infilename, // input ntuple
     TTree* outTree = new TTree("Events", "Events");
     //EffData data;
     //outTree->Branch("Events",&data.mass,"mass/F:pt:eta:phi:weight:q/I:npv/i:npu:pass:runNum:lumiSec:evtNum");
-    Float_t mass, pt, eta, phi;
+    Float_t mass, zpt, pt, eta, phi;
     Double_t weight, weightPowPhot, weightPowPyth;
     Int_t q;
     UInt_t npv, npu, passes, runNum, lumiSec, evtNum;
+    Bool_t isRepeated;
     outTree->Branch("mass", &mass, "mass/F");
+    outTree->Branch("zpt",  &zpt,  "zpt/F");
+    outTree->Branch("isRepeated", &isRepeated, "isRepeated/O");
     outTree->Branch("pt", &pt, "pt/F");
     outTree->Branch("eta", &eta, "eta/F");
     outTree->Branch("phi", &phi, "phi/F");
@@ -223,7 +230,9 @@ void selectProbesMuEff(const TString infilename, // input ntuple
     for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
         intree->GetEntry(ientry);
 
-        if (lep1->Pt() < TAG_PT_CUT)
+        //if (lep1->Pt() < TAG_PT_CUT || lep1->Pt() > TAG_PT_MAXCUT)
+        if ((lep1->Pt() < TAG_PT_CUT || lep1->Pt() > TAG_PT_MAXCUT ) && (lep2->Pt() < TAG_PT_CUT || lep2->Pt() > TAG_PT_MAXCUT))
+            // if BOTH leptons do not satisfy the tag-pt requirement, then drop the event
             continue;
 
         // check GEN match if necessary
@@ -376,7 +385,6 @@ void selectProbesMuEff(const TString infilename, // input ntuple
 
             m = dilep->M();
         } else if (effType == eSelIsoTrkEff) {
-
             if (category == eMuMu2HLT) {
                 pass = kTRUE;
             } else if (category == eMuMu1HLT1L1) {
@@ -393,7 +401,32 @@ void selectProbesMuEff(const TString infilename, // input ntuple
             } else {
                 continue;
             }
-
+            m = dilep->M();
+            if (category == eMuSta) {
+               // for the case where there is a standalone muon but not a global muon,
+               // use the standalone muon kinematics instead, because the wrong matched track
+               // could cause biases to the Z kinematics
+               TLorentzVector tp = *lep1 + *sta2;
+               m = tp.M();
+               //std::cout << "eMuSta; sta2 Pt " << sta2->Pt() << " lep2 Pt " << lep2->Pt() << " dilepmass " << dilep->M() << " lep1+sta2 mass " << m << std::endl;
+            }
+        } else if (effType == eSelIsoStaEff) {
+            if (category == eMuMu2HLT) {
+                pass = kTRUE;
+            } else if (category == eMuMu1HLT1L1) {
+                pass = kTRUE;
+            } else if (category == eMuMu1HLT ) {
+                if(pfCombIso2 > 0.15 * (lep2->Pt()))
+                    pass = kFALSE;
+                else
+                    pass = kTRUE;
+            } else if (category == eMuMuNoSel) {
+                pass = kFALSE;
+            } else if (category == eMuTrk) {
+                pass = kFALSE;
+            } else {
+                continue;
+            }
             m = dilep->M();
 
         } else if (effType == eHLTSelStaEff_iso) {
@@ -525,11 +558,52 @@ void selectProbesMuEff(const TString infilename, // input ntuple
             }
 
             m = dilep->M();
+        }  else if (effType == eSelTrkEff) {
+            if (category == eMuMu2HLT) {
+                pass = kTRUE;
+            } else if (category == eMuMu1HLT1L1) {
+                pass = kTRUE;
+            } else if (category == eMuMu1HLT) {
+                pass = kTRUE;
+            } else if (category == eMuMuNoSel) {
+                if (nTkLayers2 < 6)
+                    pass = kFALSE;
+                else if (nPixHits2 < 1)
+                    pass = kFALSE;
+                else if (fabs(d02) > 0.2)
+                    pass = kFALSE;
+                else if (fabs(dz2) > 0.5)
+                    pass = kFALSE;
+                else if (muNchi22 > 10)
+                    pass = kFALSE;
+                else if (nMatch2 < 2)
+                    pass = kFALSE;
+                else if (nValidHits2 < 1)
+                    pass = kFALSE;
+                else if (!(typeBits2 & 2))
+                    pass = kFALSE;
+                else if (!(typeBits2 & 32))
+                    pass = kFALSE;
+                else
+                    pass = kTRUE;
+            } else if (category == eMuSta) {
+                pass = kFALSE;
+            } else {
+                continue;
+            }
+            m = dilep->M();
+            if (category == eMuSta) {
+               // for the case where there is a standalone muon but not a global muon,
+               // use the standalone muon kinematics instead, because the wrong matched track
+               // can cause biases to the Z kinematics
+               TLorentzVector tp = *lep1 + *sta2;
+               m = tp.M();
+               //std::cout << "eMuSta; sta2 Pt " << sta2->Pt() << " lep2 Pt " << lep2->Pt() << " dilepmass " << dilep->M() << " lep1+sta2 mass " << m << std::endl;
+            }
         }
+
         weightPowPhot = 1;
         weightPowPyth = 1;
-        //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
-        nProbes += doWeighted ? (scale1fb >=0 ? 1.0 : -1.0) : 1.0;
 
         if (doWeighted) {
             Float_t geneta = -99.;
@@ -571,31 +645,42 @@ void selectProbesMuEff(const TString infilename, // input ntuple
             }
         }
 
-        // Fill tree
-        mass = m;
-        pt = (effType == eTrkEff) ? sta2->Pt() : lep2->Pt();
-        eta = (effType == eTrkEff) ? sta2->Eta() : lep2->Eta();
-        phi = (effType == eTrkEff) ? sta2->Phi() : lep2->Phi();
-        //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
-        weight = doWeighted ? (scale1fb >=0 ? 1.0 : -1.0) : 1.0;
+        if (lep1->Pt() >= TAG_PT_CUT && lep1->Pt() < TAG_PT_MAXCUT ) {
+            //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            nProbes += doWeighted ? (scale1fb >=0 ? 1.0 : -1.0) : 1.0;
 
-        q = q2;
-        npv = npv;
-        npu = npu;
-        passes = (pass) ? 1 : 0;
-        runNum = runNum;
-        lumiSec = lumiSec;
-        evtNum = evtNum;
-        outTree->Fill();
+            // Fill tree
+            mass = m;
+            zpt = dilep->Pt();
+            isRepeated = 0;
+            pt = (effType == eTrkEff) ? sta2->Pt() : lep2->Pt();
+            eta = (effType == eTrkEff) ? sta2->Eta() : lep2->Eta();
+            phi = (effType == eTrkEff) ? sta2->Phi() : lep2->Phi();
+            //weight = doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
+            weight = doWeighted ? (scale1fb >=0 ? 1.0 : -1.0) : 1.0;
+
+            q = q2;
+            npv = npv;
+            npu = npu;
+            passes = (pass) ? 1 : 0;
+            runNum = runNum;
+            lumiSec = lumiSec;
+            evtNum = evtNum;
+            outTree->Fill();
+        }
 
         if (category == eMuMu2HLT) {
-            if (lep2->Pt() < TAG_PT_CUT)
+        //if (category == eMuMu2HLT || category == eMuMu1HLT1L1 || category == eMuMu1HLT) {
+
+            if (lep2->Pt() < TAG_PT_CUT || lep2->Pt() > TAG_PT_MAXCUT)
                 continue;
 
             //nProbes += doWeighted ? genWeight * PUWeight / std::abs(genWeight) : 1;
             nProbes += doWeighted ? (scale1fb >=0 ? 1.0 : -1.0) : 1.0;
 
             mass = m;
+            zpt = dilep->Pt();
+            isRepeated = 1;
             pt = (effType == eTrkEff) ? sta1->Pt() : lep1->Pt();
             eta = (effType == eTrkEff) ? sta1->Eta() : lep1->Eta();
             phi = (effType == eTrkEff) ? sta1->Phi() : lep1->Phi();
