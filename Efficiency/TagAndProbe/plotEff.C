@@ -101,10 +101,10 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
 // Generate MC-based signal templates
 void generateHistTemplates(const TString infilename,
     const vector<Double_t>& ptEdgesv, const vector<Double_t>& etaEdgesv, const vector<Double_t>& phiEdgesv, const vector<Double_t>& npvEdgesv,
-    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const TH1D* puWeights, const int typeCode);
+    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const TH1D* puWeights, const int typeCode, const Double_t zptLo, const Double_t zptHi);
 void generateDataTemplates(const TString infilename,
     const vector<Double_t>& ptEdgesv, const vector<Double_t>& etaEdgesv, const vector<Double_t>& phiEdgesv, const vector<Double_t>& npvEdgesv,
-    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge);
+    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const Double_t zptLo, const Double_t zptHi);
 
 // Perform count
 void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
@@ -159,9 +159,12 @@ void plotEff(const TString conf, // input binning file
     const double lumi = 40.0, // luminosity for plot label
     const TString mcfilename = "", // ROOT file containing MC events to generate templates from
     const UInt_t runNumLo = 0, // lower bound of run range
-    const UInt_t runNumHi = 999999 // upper bound of run range
+    const UInt_t runNumHi = 999999, // upper bound of run range
+    const double zptLo = 0, // lower bound of the zpt
+    const double zptHi = 100000 // higher bound of the zpt
     )
 {
+    std::cout << "zpt range " << zptLo << " and " << zptHi << std::endl;
     gBenchmark->Start("plotEff");
     // RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
     RooMsgService::instance().setSilentMode(true);
@@ -373,10 +376,10 @@ void plotEff(const TString conf, // input binning file
     int doType = 2; // set 5 to be the powheg+pythia and 6 to be powheg+photos
     if (sigModPass == 2 || sigModFail == 2 || sigModPass == 5 || sigModFail == 5 || sigModPass == 6 || sigModFail == 6) {
         doType = sigModPass;
-        generateHistTemplates(mcfilename, ptBinEdgesv, etaBinEdgesv, phiBinEdgesv, npvBinEdgesv, fitMassLo, fitMassHi, doAbsEta, charge, puWeights, doType);
+        generateHistTemplates(mcfilename, ptBinEdgesv, etaBinEdgesv, phiBinEdgesv, npvBinEdgesv, fitMassLo, fitMassHi, doAbsEta, charge, puWeights, doType, zptLo, zptHi);
     }
     if (sigModPass == 4 || sigModFail == 4) {
-        generateDataTemplates(mcfilename, ptBinEdgesv, etaBinEdgesv, phiBinEdgesv, npvBinEdgesv, fitMassLo, fitMassHi, doAbsEta, charge);
+        generateDataTemplates(mcfilename, ptBinEdgesv, etaBinEdgesv, phiBinEdgesv, npvBinEdgesv, fitMassLo, fitMassHi, doAbsEta, charge, zptLo, zptHi);
     }
 
     //
@@ -387,6 +390,7 @@ void plotEff(const TString conf, // input binning file
 
     Float_t pt, eta, phi;
     Double_t weight;
+    Float_t zpt;
     Int_t q;
     UInt_t npv, npu, pass, runNum, lumiSec, evtNum;
     Double_t weightPowPyth, weightPowPhot;
@@ -404,6 +408,7 @@ void plotEff(const TString conf, // input binning file
     eventTree->SetBranchAddress("evtNum", &evtNum);
     eventTree->SetBranchAddress("weightPowPyth", &weightPowPyth);
     eventTree->SetBranchAddress("weightPowPhot", &weightPowPhot);
+    eventTree->SetBranchAddress("zpt", &zpt);
     for (UInt_t ientry = 0; ientry < eventTree->GetEntries(); ientry++) {
         eventTree->GetEntry(ientry);
         if ((q)*charge < 0)
@@ -416,6 +421,10 @@ void plotEff(const TString conf, // input binning file
             continue;
         if (runNum > runNumHi)
             continue;
+        if (zpt < zptLo)
+            continue;
+        if (zpt > zptHi)
+            continue;
         wgt = weight;
         if (doPU > 0)
             wgt *= puWeights->GetBinContent(npu + 1);
@@ -425,6 +434,9 @@ void plotEff(const TString conf, // input binning file
         for (UInt_t ibin = 0; ibin < ptNbins; ibin++)
             if ((pt >= ptBinEdgesv[ibin]) && (pt < ptBinEdgesv[ibin + 1]))
                 ipt = ibin;
+            // include the pt overflow bin
+            else if (pt >= ptBinEdgesv[ptNbins])
+                ipt = ptNbins - 1;
         if (ipt < 0)
             continue;
 
@@ -1236,7 +1248,8 @@ void makeEffHist2D(TH2D* hEff, TH2D* hErrl, TH2D* hErrh, const vector<TTree*>& p
 //--------------------------------------------------------------------------------------------------
 void generateHistTemplates(const TString infilename,
     const vector<Double_t>& ptEdgesv, const vector<Double_t>& etaEdgesv, const vector<Double_t>& phiEdgesv, const vector<Double_t>& npvEdgesv,
-    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const TH1D* puWeights, int typeCode)
+    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const TH1D* puWeights, int typeCode,
+    const Double_t zptLo, const Double_t zptHi)
 {
     cout << "Creating histogram templates... " << std::endl;
     cout.flush();
@@ -1317,12 +1330,13 @@ void generateHistTemplates(const TString infilename,
     TFile infile(infilename);
     TTree* intree = (TTree*)infile.Get("Events");
 
-    Float_t mass, pt, eta, phi;
+    Float_t mass, pt, eta, phi, zpt;
     Double_t weight;
     Int_t q;
     UInt_t npv, npu, pass, runNum, lumiSec, evtNum;
     Double_t weightPowPyth, weightPowPhot;
     intree->SetBranchAddress("mass", &mass);
+    intree->SetBranchAddress("zpt", &zpt);
     intree->SetBranchAddress("pt", &pt);
     intree->SetBranchAddress("eta", &eta);
     intree->SetBranchAddress("phi", &phi);
@@ -1344,6 +1358,11 @@ void generateHistTemplates(const TString infilename,
     //std::cout << "hello" << std::endl;
     for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
         intree->GetEntry(ientry);
+
+        if(zpt < zptLo)
+            continue;
+        if(zpt > zptHi)
+            continue;
 
         Double_t puWgt = 1;
         if (puWeights)
@@ -1460,7 +1479,7 @@ void generateHistTemplates(const TString infilename,
 //--------------------------------------------------------------------------------------------------
 void generateDataTemplates(const TString infilename,
     const vector<Double_t>& ptEdgesv, const vector<Double_t>& etaEdgesv, const vector<Double_t>& phiEdgesv, const vector<Double_t>& npvEdgesv,
-    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge)
+    const Double_t fitMassLo, const Double_t fitMassHi, const Bool_t doAbsEta, const Int_t charge, const Double_t zptLo, const Double_t zptHi)
 {
     std::cout << "Creating data templates... ";
     //cout.flush();
@@ -1555,11 +1574,12 @@ void generateDataTemplates(const TString infilename,
     TFile infile(infilename);
     TTree* intree = (TTree*)infile.Get("Events");
 
-    Float_t pt, eta, phi, weight;
+    Float_t zpt, pt, eta, phi, weight;
     Int_t q;
     UInt_t npv, npu, pass, runNum, lumiSec, evtNum;
 
     intree->SetBranchAddress("mass", &mass);
+    intree->SetBranchAddress("zpt", &zpt);
     intree->SetBranchAddress("pt", &pt);
     intree->SetBranchAddress("eta", &eta);
     intree->SetBranchAddress("phi", &phi);
@@ -1574,6 +1594,11 @@ void generateDataTemplates(const TString infilename,
 
     for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
         intree->GetEntry(ientry);
+
+        if(zpt < zptLo)
+            continue;
+        if(zpt > zptHi)
+            continue;
 
         if ((q)*charge < 0)
             continue;
@@ -1790,10 +1815,10 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     sprintf(ylabel, "Events / %.1f GeV/c^{2}", (Double_t)BIN_SIZE_PASS);
     CPlot plotPass(pname, "Passing probes", "tag-probe mass [GeV/c^{2}]", ylabel);
     plotPass.AddHist1D(hpass, "E");
-    plotPass.AddTextBox(binlabelx, 0.21, 0.78, 0.51, 0.83, 0, kBlack, -1);
+    plotPass.AddTextBox(binlabelx, 0.21, 0.74, 0.51, 0.83, 0, kBlack, -1);
     if ((name.CompareTo("etapt") == 0) || (name.CompareTo("etaphi") == 0)) {
         plotPass.AddTextBox(binlabely, 0.21, 0.73, 0.51, 0.78, 0, kBlack, -1);
-        plotPass.AddTextBox(yield, 0.21, 0.69, 0.51, 0.73, 0, kBlack, -1);
+        plotPass.AddTextBox(yield, 0.21, 0.65, 0.51, 0.73, 0, kBlack, -1);
     } else {
         plotPass.AddTextBox(yield, 0.21, 0.81, 0.51, 0.85, 0, kBlack, -1);
     }
@@ -2834,12 +2859,14 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     sprintf(effstr, "#varepsilon = %.4f_{ -%.4f}^{ +%.4f}", eff.getVal(), fabs(eff.getErrorLo()), eff.getErrorHi());
 
     RooPlot* mframePass = m.frame(Bins(Int_t(fitMassHi - fitMassLo) / BIN_SIZE_PASS));
+    mframePass->GetYaxis()->SetTitleOffset(1.3);
     dataPass->plotOn(mframePass, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
     if (bkgpass > 0)
         modelPass->plotOn(mframePass, Components(bkgpassname /*"backgroundPass"*/), LineStyle(kDashed), LineColor(kRed));
     modelPass->plotOn(mframePass);
 
     RooPlot* mframeFail = m.frame(Bins(Int_t(fitMassHi - fitMassLo) / BIN_SIZE_FAIL));
+    mframeFail->GetYaxis()->SetTitleOffset(1.3);
     dataFail->plotOn(mframeFail, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
     modelFail->plotOn(mframeFail, Components(bkgfailname /*"backgroundFail"*/), LineStyle(kDashed), LineColor(kRed));
     modelFail->plotOn(mframeFail);
@@ -2849,21 +2876,22 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     pullPass->GetXaxis()->SetRangeUser(fitMassLo, fitMassHi);
     pullPass->GetYaxis()->SetTitle("Pull");
     pullPass->GetXaxis()->SetTitle("tag-probe mass [GeV/c^{2}]");
-    pullPass->GetYaxis()->SetRangeUser(-5., 5.);
+    pullPass->GetYaxis()->SetRangeUser(-4.9, 4.9);
     pullPass->SetMarkerColor(kAzure);
     pullPass->SetLineColor(kAzure);
     pullPass->SetFillColor(kAzure);
     //    pullPass->GetYaxis()->SetTitleFont(42);
     //    pullPass->GetXaxis()->SetTitleFont(42);
-    pullPass->GetYaxis()->SetTitleSize(0.085);
-    pullPass->GetYaxis()->SetTitleOffset(1.600);
+    pullPass->GetYaxis()->SetNdivisions(205);
+    pullPass->GetYaxis()->SetTitleSize(0.15);
+    pullPass->GetYaxis()->SetTitleOffset(0.40);
     pullPass->GetYaxis()->SetLabelOffset(0.014);
-    pullPass->GetYaxis()->SetLabelSize(0.070);
+    pullPass->GetYaxis()->SetLabelSize(0.12);
     pullPass->GetYaxis()->SetLabelFont(42);
-    pullPass->GetXaxis()->SetTitleSize(0.085);
-    pullPass->GetXaxis()->SetTitleOffset(1.300);
+    pullPass->GetXaxis()->SetTitleSize(0.15);
+    pullPass->GetXaxis()->SetTitleOffset(1.000);
     pullPass->GetXaxis()->SetLabelOffset(0.014);
-    pullPass->GetXaxis()->SetLabelSize(0.070);
+    pullPass->GetXaxis()->SetLabelSize(0.12);
     pullPass->GetXaxis()->SetLabelFont(42);
 
     RooHist* pullFail = mframeFail->pullHist();
@@ -2871,21 +2899,22 @@ RooWorkspace* performFit(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     pullFail->GetXaxis()->SetRangeUser(fitMassLo, fitMassHi);
     pullFail->GetYaxis()->SetTitle("Pull");
     pullFail->GetXaxis()->SetTitle("tag-probe mass [GeV/c^{2}]");
-    pullFail->GetYaxis()->SetRangeUser(-5., 5.);
+    pullFail->GetYaxis()->SetRangeUser(-4.9, 4.9);
     pullFail->SetMarkerColor(kAzure);
     pullFail->SetLineColor(kAzure);
     pullFail->SetFillColor(kAzure);
     //    pullFail->GetYaxis()->SetTitleFont(42);
     //    pullFail->GetXaxis()->SetTitleFont(42);
-    pullFail->GetYaxis()->SetTitleSize(0.085);
-    pullFail->GetYaxis()->SetTitleOffset(1.600);
+    pullFail->GetYaxis()->SetNdivisions(205);
+    pullFail->GetYaxis()->SetTitleSize(0.15);
+    pullFail->GetYaxis()->SetTitleOffset(0.40);
     pullFail->GetYaxis()->SetLabelOffset(0.014);
-    pullFail->GetYaxis()->SetLabelSize(0.070);
+    pullFail->GetYaxis()->SetLabelSize(0.12);
     pullFail->GetYaxis()->SetLabelFont(42);
-    pullFail->GetXaxis()->SetTitleSize(0.085);
-    pullFail->GetXaxis()->SetTitleOffset(1.300);
+    pullFail->GetXaxis()->SetTitleSize(0.15);
+    pullFail->GetXaxis()->SetTitleOffset(1.000);
     pullFail->GetXaxis()->SetLabelOffset(0.014);
-    pullFail->GetXaxis()->SetLabelSize(0.070);
+    pullFail->GetXaxis()->SetLabelSize(0.12);
     pullFail->GetXaxis()->SetLabelFont(42);
 
     char lumitext[100]; // lumi label
