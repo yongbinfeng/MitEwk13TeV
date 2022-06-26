@@ -1815,7 +1815,7 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     sprintf(ylabel, "Events / %.1f GeV/c^{2}", (Double_t)BIN_SIZE_PASS);
     CPlot plotPass(pname, "Passing probes", "tag-probe mass [GeV/c^{2}]", ylabel);
     plotPass.AddHist1D(hpass, "E");
-    plotPass.AddTextBox(binlabelx, 0.21, 0.74, 0.51, 0.83, 0, kBlack, -1);
+    plotPass.AddTextBox(binlabelx, 0.21, 0.78, 0.51, 0.83, 0, kBlack, -1);
     if ((name.CompareTo("etapt") == 0) || (name.CompareTo("etaphi") == 0)) {
         plotPass.AddTextBox(binlabely, 0.21, 0.73, 0.51, 0.78, 0, kBlack, -1);
         plotPass.AddTextBox(yield, 0.21, 0.65, 0.51, 0.73, 0, kBlack, -1);

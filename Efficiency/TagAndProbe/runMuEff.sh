@@ -3,11 +3,11 @@
 #==============================================================
 
 POSTFIX=
-NTUPLEDIR_13=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/13TeV/probes
-OUTPUTDIR_13=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNewMeasured/13TeV/results
+NTUPLEDIR_13=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/13TeV/probes
+OUTPUTDIR_13=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/13TeV/results
 
 # integrated luminosity for data
-LUMI13=199.270
+LUMI13=200.9
 
 
 #
@@ -31,7 +31,7 @@ root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuS
 # standalone
 root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 
-root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 
 #
 # systematics
@@ -48,22 +48,42 @@ root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,7,2,7,\"${NTUPLEDIR_13}/Zmm/Data/MuS
 # # # tag pt cut
 root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuSITEff_aMCxPythia_tagPt/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt/probes.root\"\)
 root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuSITEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuSITEff_aMCxPythia_tagPt${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt/probes.root\"\)
+## tag Max pt cut
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuSITEff_aMCxPythia_tagPt_Max/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt_Max/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuSITEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuSITEff_aMCxPythia_tagPt_Max${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPt_Max/probes.root\"\)
+### tag Pt cut at 20
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuSITEff_aMCxPythia_tagPtMin/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuSITEff_tagPtMin/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuSITEff_aMCxPythia_tagPtMin${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin/probes.root\"\)
+### tag Pt cut at 20-25GeV
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin20_Max25/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuSITEff_aMCxPythia_tagPtMin20_Max25/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin20_Max25/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sit.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuSITEff_tagPtMin20_Max25/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuSITEff_aMCxPythia_tagPtMin20_Max25${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"ID+Iso+Trk\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuSITEff_tagPtMin20_Max25/probes.root\"\)
+
 
 
 # # # standalone efficiency
 #mc
 # root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 # # # # powheg x pythia
-root -l -b -q plotEff.C+\(\"mu_sta.bins\",5,1,5,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",5,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 # # # # # powheg x photos
-root -l -b -q plotEff.C+\(\"mu_sta.bins\",6,1,6,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWxPhotos${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",6,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWxPhotos${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 # # # # # minlo
 # root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,6,2,6,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_minloxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_minlo/probes.root\"\)
 # # # bkg power law
-root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,7,2,7,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWBKG${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,7,7,7,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_POWBKG${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff/probes.root\"\)
 ## tag pt cut
 root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia_tagPt/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt/probes.root\"\)
-root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,2,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia_tagPt${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt/probes.root\"\)
+root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia_tagPt${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt/probes.root\"\)
+## tag max pt cut
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia_tagPt_Max/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt_Max/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia_tagPt_Max${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPt_Max/probes.root\"\)
+### tag pt cut at 20
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia_tagPtMin/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff_tagPtMin/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia_tagPtMin${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin/probes.root\"\)
+### tag pt cut at 20-25GeV
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin20_Max25/probes.root\",\"${OUTPUTDIR_13}/Zmm/MC/MuStaEff_aMCxPythia_tagPtMin20_Max25/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin20_Max25/probes.root\"\)
+#root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuStaEff_tagPtMin20_Max25/probes.root\",\"${OUTPUTDIR_13}/Zmm/Data/MuStaEff_aMCxPythia_tagPtMin20_Max25${POSTFIX}/Combined\",\"png\",0,0,0,\"Muon\",\"stand-alone\",0.7,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zmm/MC/MuStaEff_tagPtMin20_Max25/probes.root\"\)
+
 
 
 # # ## Make a bunch of plots ##
