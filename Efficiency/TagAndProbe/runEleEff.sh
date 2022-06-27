@@ -31,6 +31,9 @@ root -l -b -q plotEff.C+\(\"ele_gsf.bins\",2,7,2,7,\"${NTUPLEDIR_13}/Zee/Data/El
 ### Tag Pt
 root -l -b -q plotEff.C+\(\"ele_gsf.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zee/MC/EleGSFSelEff_aMCxPythia${POSTFIX}_tagPt/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt/probes.root\"\)
 root -l -b -q plotEff.C+\(\"ele_gsf.bins\",2,1,2,2,\"${NTUPLEDIR_13}/Zee/Data/EleGSFSelEff_tagPt/probes.root\",\"${OUTPUTDIR_13}/Zee/Data/EleGSFSelEff_aMCxPythia${POSTFIX}_tagPt/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt/probes.root\"\)
+### tag max pt
+root -l -b -q plotEff.C+\(\"ele_gsf.bins\",0,0,0,0,\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zee/MC/EleGSFSelEff_aMCxPythia${POSTFIX}_tagPt_Max/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt_Max/probes.root\"\)
+root -l -b -q plotEff.C+\(\"ele_gsf.bins\",2,1,2,2,\"${NTUPLEDIR_13}/Zee/Data/EleGSFSelEff_tagPt_Max/probes.root\",\"${OUTPUTDIR_13}/Zee/Data/EleGSFSelEff_aMCxPythia${POSTFIX}_tagPt_Max/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff_tagPt_Max/probes.root\"\)
 ### powheg x pythia
 root -l -b -q plotEff.C+\(\"ele_gsf.bins\",5,1,5,2,\"${NTUPLEDIR_13}/Zee/Data/EleGSFSelEff/probes.root\",\"${OUTPUTDIR_13}/Zee/Data/EleGSFSelEff_POWxPythia${POSTFIX}/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI13},\"${NTUPLEDIR_13}/Zee/MC/EleGSFSelEff/probes.root\"\)
 ### powheg x photos

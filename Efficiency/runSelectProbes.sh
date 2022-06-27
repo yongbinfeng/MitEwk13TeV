@@ -16,8 +16,8 @@ root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.r
 root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuSITEff_tagPt\",8,1,1,30.0\)
 root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuStaEff_tagPt\",4,1,1,30.0\)
 
-#root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuSITEff_tagPt_Max\",8,1,1,25.0,30.0\)
-#root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuStaEff_tagPt_Max\",4,1,1,25.0,30.0\)
+root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuSITEff_tagPt_Max\",8,1,1,25.0,30.0\)
+root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuStaEff_tagPt_Max\",4,1,1,25.0,30.0\)
 #
 #root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuHLTEff_tagPtMin\",0,1,1,20.0\)
 #root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/zmm_select.raw.root\",\"${OUTPUTDIR}/Zmm/MC/MuSITEff_tagPtMin\",8,1,1,20.0\)
@@ -43,8 +43,9 @@ root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.
 root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuSITEff_tagPt\",8,0,0,30.0\)
 root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuStaEff_tagPt\",4,0,0,30.0\)
 
-#root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuSITEff_tagPt_Max\",8,0,0,25.0,30.0\)
-#root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuStaEff_tagPt_Max\",4,0,0,25.0,30.0\)
+# tag pt cut between 25 and 30.0
+root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuSITEff_tagPt_Max\",8,0,0,25.0,30.0\)
+root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuStaEff_tagPt_Max\",4,0,0,25.0,30.0\)
 #
 #root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuHLTEff_tagPtMin\",0,0,0,20.0\)
 #root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zmm/Data/MuSITEff_tagPtMin\",8,0,0,20.0\)
@@ -61,8 +62,10 @@ root -l -n -q selectProbesMuEff.C+\(\"${INPUTDIR}/Zmumu/ntuples_0_1/data_select.
 root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleHLTEff\",0,1,1,0\)
 root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleGSFSelEff\",4,1,1,0\)
 
-root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleHLTEff_tagPt\",0,0,1,0,30\)
-root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleGSFSelEff_tagPt\",4,0,1,0,30\)
+root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleHLTEff_tagPt\",0,1,1,0,30\)
+root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleGSFSelEff_tagPt\",4,1,1,0,30\)
+root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleGSFSelEff_tagPt_Max\",4,1,1,0,25.0,30.0\)
+
 
 #root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee_minlo/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleHLTEff_minlo\",0,0,1,0\)
 #root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee_minlo/ntuples_0_1/zee_select.root\",\"${OUTPUTDIR}/Zee/MC/EleGSFSelEff_minlo\",4,0,1,0\)
@@ -72,6 +75,8 @@ root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/data_select.r
 
 root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zee/Data/EleHLTEff_tagPt\",0,0,0,0,30\)
 root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zee/Data/EleGSFSelEff_tagPt\",4,0,0,0,30\)
+root -l -n -q selectProbesEleEff.C+\(\"${INPUTDIR}/Zee/ntuples_0_1/data_select.root\",\"${OUTPUTDIR}/Zee/Data/EleGSFSelEff_tagPt_Max\",4,0,0,0,25.0,30.0\)
+
 
 
 # rm *.so *.d

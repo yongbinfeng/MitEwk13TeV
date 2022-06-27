@@ -32,7 +32,7 @@ void selectProbesEleEff(const TString infilename, // input ntuple
     const Int_t effType, // type of efficiency to compute
     const Bool_t doGenMatch = kFALSE, // match to generator leptons
     const Bool_t doWeighted = kFALSE, // store events with weights
-    const UInt_t desiredrunNum = 0, // select a specific run (0 for all runs). YB: not sure why we need this
+    const UInt_t desiredrunNum = 0, // select a specific run (0 for all runs).
     const Double_t TAG_PT_CUT = 25, // tag Pt cut, by default 25GeV
     const Double_t TAG_PT_MAXCUT = 10000000.0 // cut on the maximum tag Pt, by default infinite
     )
