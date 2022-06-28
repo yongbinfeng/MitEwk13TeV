@@ -134,15 +134,18 @@ void muonNtupleMod(const TString outputDir, // output directory
     //   Point to the Efficiency SF
     // -----------------------------------------------------------
     //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
-    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zmm/";
+    //TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zmm/";
+    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zmm/";
     AppEffSF effs(effDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
 
     // Warning: this needs to be updated for 5TeV
-    TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuSITEff.root";
-    TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuStaEff.root";
+    //TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuSITEff.root";
+    //TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuStaEff.root";
+    TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_MuSITEff.root";
+    TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_MuStaEff.root";
 
     effs.loadUncSel(sysFileSIT);
     effs.loadUncSta(sysFileSta);
@@ -471,7 +474,7 @@ void muonNtupleMod(const TString outputDir, // output directory
             mu1u.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), mu_MASS);
             mu1d.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), mu_MASS);
 
-            corr = effs.fullEfficiencies(&mu1, q);
+            corr = effs.fullCorrections(&mu1, q);
             vector<double> uncs_sta = effs.getUncSta(&mu1, q);
             vector<double> uncs_sit = effs.getUncSel(&mu1, q);
 

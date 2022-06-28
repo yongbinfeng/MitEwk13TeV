@@ -140,7 +140,7 @@ void ZeeNTupleMod(
     // efficiency files
 
     //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zee/";
+    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zee/";
     AppEffSF effs(baseDir);
     // effs.loadHLT("EleHLTEff_aMCxPythia","Combined","Combined");
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
@@ -151,8 +151,8 @@ void ZeeNTupleMod(
     //
     // Warning: this would need to be updated for 5TeV
     //
-    string sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/";
-    string SysFileGSFSel = sysDir + "SysUnc_EleGSFSelEff.root";
+    TString sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/";
+    TString SysFileGSFSel = sysDir + "SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
@@ -176,7 +176,7 @@ void ZeeNTupleMod(
     UInt_t matchGen;
     UInt_t category;
     UInt_t npv, npu;
-    Float_t scale1fb, scale1fbUp, scale1fbDown, genVMass;
+    Float_t scale1fb;
     Float_t prefireWeight, prefireUp = 1, prefireDown = 1;
     Float_t prefireEcal, prefireEcalUp, prefireEcalDown, prefireMuon, prefireMuonUp, prefireMuonDown;
     Float_t met, metPhi, u1, u2;
@@ -221,13 +221,13 @@ void ZeeNTupleMod(
     intree->SetBranchAddress("prefireMuonUp", &prefireMuonUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireMuonDown", &prefireMuonDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
-    intree->SetBranchAddress("scale1fbUp", &scale1fbUp); // event weight per 1/fb (MC)
-    intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
+    //intree->SetBranchAddress("scale1fbUp", &scale1fbUp); // event weight per 1/fb (MC)
+    //intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress("met", &met); // MET
     intree->SetBranchAddress("metPhi", &metPhi); // phi(MET)
     intree->SetBranchAddress("u1", &u1); // u1
     intree->SetBranchAddress("u2", &u2); // u2
-    intree->SetBranchAddress("genVMass", &genVMass); // event weight per 1/fb (MC)
+    //intree->SetBranchAddress("genVMass", &genVMass); // event weight per 1/fb (MC)
     intree->SetBranchAddress("genV", &genV); // lepton 4-vector
     intree->SetBranchAddress("q1", &q1); // charge of tag lepton
     intree->SetBranchAddress("q2", &q2); // charge of probe lepton
@@ -427,7 +427,7 @@ void ZeeNTupleMod(
 
             // if(genVMass>MASS_LOW && genVMass<MASS_HIGH) continue;
 
-            corr = effs.fullEfficiencies(&l1, q1, &l2, q2);
+            corr = effs.fullCorrections(&l1, q1, &l2, q2);
             // cout << corr1 << " " << corr << endl;
 
             vector<double> uncs_gsf = effs.getUncSel(&l1, q1, &l2, q2);
@@ -435,7 +435,7 @@ void ZeeNTupleMod(
             corrFSR *= uncs_gsf[0] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate fsr model
             corrMC *= uncs_gsf[1] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate mc gen model
             corrBkg *= uncs_gsf[2] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate bkg model
-            corrTag *= uncs_gsf[3] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate bkg model
+            corrTag *= uncs_gsf[3] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate tag-pt model
 
             double var = 0.;
             // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);

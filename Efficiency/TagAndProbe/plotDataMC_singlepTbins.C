@@ -23,8 +23,10 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
     const TString mcfname = "MC/eff.root",
     const TString datfname = "Data/eff.root",
     const TString fname = "noNameGiven",
-    const double efflow = 0.70,
+    const double efflow = 0.01,
     const double effhigh = 1.20,
+    const double refflow = 0.96,
+    const double reffhigh = 1.04,
     const double lumi = 7.3,
     const TString conf = "mupteta.bins",
     const TString xaxislabel = "", // 'Supercluster' or 'Muon'
@@ -69,6 +71,10 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
     }
     ifs.close();
 
+    for (unsigned i = 0; i < ptBinEdgesv.size(); ++i) {
+        std::cout << " i " <<  i << " " << ptBinEdgesv[i] << std::endl;
+    }
+
     //--------------------------------------------------------------------------------------------------------------
     // Settings
     //==============================================================================================================
@@ -77,9 +83,9 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
 
     char lumitext[300]; // lumi label
     if (lumi < 250)
-        sprintf(lumitext, "%.0f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
+        sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 13 TeV", lumi);
     else
-        sprintf(lumitext, "%.0f pb^{-1}  at  #sqrt{s} = 5 TeV", lumi);
+        sprintf(lumitext, "%.1f pb^{-1}  at  #sqrt{s} = 5 TeV", lumi);
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -261,7 +267,9 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
             hDummyEff->GetYaxis()->SetTitleSize(0.05);
             hDummyEff->GetYaxis()->SetTitleOffset(1.4);
             hDummyEff->GetYaxis()->SetTickLength(0.03);
-            hDummyEff->GetYaxis()->SetRangeUser(efflow, effhigh);
+            //hDummyEff->GetYaxis()->SetRangeUser(efflow, effhigh);
+            hDummyEff->SetMaximum(effhigh);
+            hDummyEff->SetMinimum(efflow);
 
             TH1D* hDummyScale = new TH1D("hDummyScale", "", 10, etalow, etahigh);
             hDummyScale->SetStats(0);
@@ -282,7 +290,9 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
             hDummyScale->GetYaxis()->CenterTitle();
             hDummyScale->GetYaxis()->SetTitleOffset(0.6);
             hDummyScale->GetYaxis()->SetTickLength(0.03);
-            hDummyScale->GetYaxis()->SetRangeUser(0.8, 1.2);
+            //hDummyScale->GetYaxis()->SetRangeUser(0.8, 1.2);
+            hDummyScale->SetMaximum(reffhigh);
+            hDummyScale->SetMinimum(refflow);
             hDummyScale->GetYaxis()->SetNdivisions(5);
 
             // Format efficiency graphs
@@ -341,7 +351,7 @@ void plotDataMC_singlepTbins(const TString outdir = "./DataMC",
 
             // Add pT bin label
             char binlabely[100];
-            sprintf(binlabely, "%i GeV/c < p_{T} < %i GeV/c", Int_t(ptBinEdgesv[ig]), Int_t(ptBinEdgesv[ig + 1]));
+            sprintf(binlabely, "%.1f GeV/c < p_{T} < %.1f GeV/c", ptBinEdgesv[ig], ptBinEdgesv[ig + 1]);
             TPaveText* ptbintext = new TPaveText(0.21, 0.75, 0.51, 0.80, "NDC");
             ptbintext->SetTextColor(kBlack);
             ptbintext->SetFillStyle(0);

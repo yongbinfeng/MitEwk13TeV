@@ -148,24 +148,21 @@ void CEffUser2D::printHist2D(const TH2D* h, ostream& os)
 //--------------------------------------------------------------------------------------------------
 Float_t CEffUser2D::getValue(const TH2D* h, const Double_t x, const Double_t y)
 {
-    Int_t ix = 0;
-    Int_t iy = 0;
     const Int_t nx = h->GetNbinsX();
     const Int_t ny = h->GetNbinsY();
 
-    for (Int_t i = 1; i <= nx; i++) {
-        if ((x >= h->GetXaxis()->GetBinLowEdge(i)) && (x < h->GetXaxis()->GetBinLowEdge(i + 1))) {
-            ix = i;
-            break;
-        }
-    }
-
-    for (Int_t i = 1; i <= ny; i++) {
-        if ((y >= h->GetYaxis()->GetBinLowEdge(i)) && (y < h->GetYaxis()->GetBinLowEdge(i + 1))) {
-            iy = i;
-            break;
-        }
-    }
+    Int_t ix = h->GetXaxis()->FindBin(x);
+    Int_t iy = h->GetYaxis()->FindBin(y);
+    // overflow
+    if (ix > nx)
+        ix = nx;
+    if (iy > ny)
+        iy = ny;
+    // underflow
+    if (ix <= 0)
+        ix = 1;
+    if (iy <= 0)
+        iy = 1;
 
     if (ix > 0 && iy > 0)
         return h->GetBinContent(h->GetBin(ix, iy));

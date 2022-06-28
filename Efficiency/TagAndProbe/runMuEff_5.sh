@@ -68,7 +68,7 @@ root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_5}/Zmm/Data/MuSt
 #
 # # ## Make a bunch of plots ##
 #
-#TYPE=_aMCxPythia
+TYPE=_aMCxPythia
 ## # # ## HLT
 #root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Negative\",\"$OUTPUTDIR_5/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_5/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"PtBins\",0.00,1.20,$LUMI5,\"mu_hlt.bins\"\)
 #root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Positive\",\"$OUTPUTDIR_5/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_5/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"PtBins\",0.00,1.20,$LUMI5,\"mu_hlt.bins\"\)

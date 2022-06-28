@@ -7,6 +7,7 @@ EFFTYPE=$5
 CHARGE=$6
 POSTFIX=$7
 POSTFIX_alt=$8
+POSTFIX_alt2=$9
 
 WORKDIR="/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV"
 FILEDIR=/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/
@@ -32,6 +33,7 @@ BINVAR=etapt # probably don't need to change
 OUTPUTDIR=${FILEDIR}/TOYS/${EFFTYPE}${POSTFIX}${POSTFIX_alt}/${CHARGE}/
 DIR1=${FILEDIR}/${FOLDER}/Data/${EFFTYPE}${POSTFIX}/${CHARGE}/plots/
 DIR2=${FILEDIR}/${FOLDER}/Data/${EFFTYPE}${POSTFIX_alt}/${CHARGE}/plots/
+DIR3=${FILEDIR}/${FOLDER}/Data/${EFFTYPE}${POSTFIX_alt2}/${CHARGE}/plots/
 cd $CMSSW_BASE
 eval `scramv1 runtime -sh`
 cd $TOP
@@ -40,7 +42,7 @@ mkdir -p ${OUTPUTDIR}
 #TOP="/afs/cern.ch/work/x/xniu/public/WZXSection/wz-efficiency"
 # root -l toyGenAndPull.C+
 root -l -b << EOF
-gSystem->Load("${WORKDIR}/Efficiency/Systematic/toyGenAndPull_C.so")
-toyGenAndPull("${DIR2}","${DIR1}","${BINVAR}_${binnum}","${OUTPUTDIR}","var_${BINVAR}_${binnum}",${NTOYS})
+gSystem->Load("${WORKDIR}/Efficiency/Systematic/toyGenAndPull_TagPt_C.so")
+toyGenAndPull_TagPt("${DIR2}","${DIR1}","${BINVAR}_${binnum}","${OUTPUTDIR}","var_${BINVAR}_${binnum}",${NTOYS}, "${DIR3}")
 .q
 EOF

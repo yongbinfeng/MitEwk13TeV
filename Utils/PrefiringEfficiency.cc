@@ -197,6 +197,7 @@ public:
                 down *= 1 - prefiringprobfromoverlappingjet_down;
             }
             //If overlapping photons have a non prefiring rate larger than the jet, then replace these weights by the jet one
+            // this might need some fix: i.e., checking nonprefiringprobfromoverlappingphotons_up and nonprefiringprobfromoverlappingphotons_down is 0, otherwise there might be some very very rare cases where the weight is Nan because of zero denominator
             else if (nonprefiringprobfromoverlappingphotons > 1 - prefiringprobfromoverlappingjet) {
                 if (nonprefiringprobfromoverlappingphotons > 0.) {
                     main *= (1 - prefiringprobfromoverlappingjet) / nonprefiringprobfromoverlappingphotons;

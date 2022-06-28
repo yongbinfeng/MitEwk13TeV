@@ -21,7 +21,7 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 // helper class to handle efficiency tables
-#include "../Utils/CEffUser2D.hh"
+#include "MitEwk13TeV/Utils/CEffUser2D.hh"
 
 struct basicEff {
     // data pos
@@ -143,8 +143,8 @@ public:
         return effdata / effmc;
     }
 
-    // compute efficiencies
-    double fullEfficiencies(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
+    // compute the corrections from mc to data: eff_data / eff_mc
+    double fullCorrections(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
     {
         // if there is a second lepton we need to calculate twice
         double corr = 1;
@@ -157,15 +157,16 @@ public:
         return corr;
     }
 
-    double dataOnly(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
+    double efficiencyOnly(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0, bool isData = 1)
     {
-        double corr = 1;
-        corr *= effHLTData(l1, q1, l2, q2);
-        corr *= effSelData(l1, q1, l2, q2);
+        // compute the efficiencies on data or on mc
+        double eff = 1;
+        eff *= effHLT(l1, q1, l2, q2, isData);
+        eff *= effSel(l1, q1, l2, q2, isData);
         if (isMuon) {
-            corr *= effStaData(l1, q1, l2, q2);
+            eff *= effSta(l1, q1, l2, q2, isData);
         }
-        return corr;
+        return eff;
     }
 
     double statHLTdilep(TH2D* pos, TH2D* neg, double wgt, TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
@@ -178,17 +179,17 @@ public:
         return sqrt(stat1 * stat1 * eff1 * eff1 + stat2 * stat2 * eff2 * eff2);
     }
 
-    double statUncHLT(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt)
+    double statUncHLT(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt, bool scale = false)
     {
-        return statUnc(hlt, l1, q1, pos, neg, wgt);
+        return statUnc(hlt, l1, q1, pos, neg, wgt, scale);
     }
-    double statUncSel(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt)
+    double statUncSel(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt, bool scale = false)
     {
-        return statUnc(sel, l1, q1, pos, neg, wgt);
+        return statUnc(sel, l1, q1, pos, neg, wgt, scale);
     }
-    double statUncSta(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt)
+    double statUncSta(TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt, bool scale = false)
     {
-        return statUnc(sta, l1, q1, pos, neg, wgt);
+        return statUnc(sta, l1, q1, pos, neg, wgt, scale);
     }
 
     //private:
@@ -252,7 +253,7 @@ public:
         return;
     }
 
-    double statUnc(basicEff eff, TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt)
+    double statUnc(basicEff eff, TLorentzVector* l1, int q1, TH2D* pos, TH2D* neg, double wgt, bool scale = false)
     {
         double var = 0.0;
         if (q1 > 0) {
@@ -261,6 +262,12 @@ public:
             Double_t effmc = eff.mcPos.getEff(l1->Eta(), l1->Pt());
             Double_t errmc = TMath::Max(eff.mcPos.getErrLow(l1->Eta(), l1->Pt()), eff.mcPos.getErrHigh(l1->Eta(), l1->Pt()));
             Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
+            if (scale) {
+                // double the statistical uncertainty if applying the scale
+                // because sometimes the corrections are measured charge inclusively
+                // where the statistical uncertainty is underestimated by roughly 1/sqrt(2)
+                errSta = errSta * sqrt(2);
+            }
             pos->Fill(l1->Eta(), l1->Pt(), errSta * wgt);
             var += errSta * errSta;
         } else {
@@ -269,6 +276,10 @@ public:
             Double_t effmc = eff.mcNeg.getEff(l1->Eta(), l1->Pt());
             Double_t errmc = TMath::Max(eff.mcNeg.getErrLow(l1->Eta(), l1->Pt()), eff.mcNeg.getErrHigh(l1->Eta(), l1->Pt()));
             Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
+            if (scale) {
+                // similar idea as positive
+                errSta = errSta * sqrt(2);
+            }
             neg->Fill(l1->Eta(), l1->Pt(), errSta * wgt);
             var += errSta * errSta;
         }
@@ -297,8 +308,10 @@ public:
         Double_t effmc = hlt.mcPos.getEff(l1->Eta(), l1->Pt());
         Double_t errmc = TMath::Max(hlt.mcPos.getErrLow(l1->Eta(), l1->Pt()), hlt.mcPos.getErrHigh(l1->Eta(), l1->Pt()));
         deff1 = sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
-        double deff1d = sqrt(errdata * errdata / effdata / effdata);
-        double deff1m = sqrt(errmc * errmc / effmc / effmc);
+        //double deff1d = sqrt(errdata * errdata / effdata / effdata);
+        //double deff1m = sqrt(errmc * errmc / effmc / effmc);
+        double deff1d = errdata;
+        double deff1m = errmc;
 
         double corr1d = (1 - effdata);
         double corr1m = (1 - effmc);
@@ -308,195 +321,143 @@ public:
         effmc = hlt.mcNeg.getEff(l2->Eta(), l2->Pt());
         errmc = TMath::Max(hlt.mcNeg.getErrLow(l2->Eta(), l2->Pt()), hlt.mcNeg.getErrHigh(l2->Eta(), l2->Pt()));
         deff2 = sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
-        double deff2d = sqrt(errdata * errdata / effdata / effdata);
-        double deff2m = sqrt(errmc * errmc / effmc / effmc);
+        //double deff2d = sqrt(errdata * errdata / effdata / effdata);
+        //double deff2m = sqrt(errmc * errmc / effmc / effmc);
+        double deff2d = errdata;
+        double deff2m = errmc;
 
         double corr2d = (1 - effdata);
         double corr2m = (1 - effmc);
 
         double corr = (1 - corr1d * corr2d) / (1 - corr1m * corr2m);
+        //std::cout << " hahah " << corr << std::endl;
 
         // var = corr*sqrt(deff1*deff1+deff2*deff2);
+        //var += corr1d * corr1d * deff2d * deff2d;
+        //var += corr1m * corr1m * deff2m * deff2m;
+        //var += corr2d * corr2d * deff1d * deff1d;
+        //var += corr2m * corr2m * deff1m * deff1m;
         var += corr1d * corr1d * deff2d * deff2d;
-        var += corr1m * corr1m * deff2m * deff2m;
         var += corr2d * corr2d * deff1d * deff1d;
-        var += corr2m * corr2m * deff1m * deff1m;
+        var += corr * corr * corr1m * corr1m * deff2m * deff2m;
+        var += corr * corr * corr2m * corr2m * deff1m * deff1m;
+        var = var / (1 - corr1m * corr2m) / (1 - corr1m * corr2m);
 
         return var;
     }
 
     double computeHLTSF(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
-
-        if (q1 > 0) {
-            effdata *= (1. - hlt.dataPos.getEff((l1->Eta()), l1->Pt()));
-            effmc *= (1. - hlt.mcPos.getEff((l1->Eta()), l1->Pt()));
-        } else {
-            effdata *= (1. - hlt.dataNeg.getEff((l1->Eta()), l1->Pt()));
-            effmc *= (1. - hlt.mcNeg.getEff((l1->Eta()), l1->Pt()));
-        }
-        if (!l2) {
-            effdata = 1. - effdata;
-            effmc = 1. - effmc;
-            corr *= effdata / effmc;
-            return corr;
-        }
-        if (q2 > 0) {
-            effdata *= (1. - hlt.dataPos.getEff((l2->Eta()), l2->Pt()));
-            effmc *= (1. - hlt.mcPos.getEff((l2->Eta()), l2->Pt()));
-        } else {
-            effdata *= (1. - hlt.dataNeg.getEff((l2->Eta()), l2->Pt()));
-            effmc *= (1. - hlt.mcNeg.getEff((l2->Eta()), l2->Pt()));
-        }
-        effdata = 1. - effdata;
-        effmc = 1. - effmc;
-        corr *= effdata / effmc;
-        return corr;
+        double effdata = effHLT(l1, q1, l2, q2, 1);
+        double effmc = effHLT(l1, q1, l2, q2, 0);
+        return effdata / effmc;
     }
 
     double computeStaSF(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
-        if (q1 > 0) {
-            effdata *= sta.dataPos.getEff((l1->Eta()), l1->Pt());
-            effmc *= sta.mcPos.getEff((l1->Eta()), l1->Pt());
-        } else {
-            effdata *= sta.dataNeg.getEff((l1->Eta()), l1->Pt());
-            effmc *= sta.mcNeg.getEff((l1->Eta()), l1->Pt());
-        }
-        if (!l2) {
-            effdata = effdata;
-            effmc = effmc;
-            corr *= effdata / effmc;
-            return corr;
-        }
-        if (q2 > 0) {
-            effdata *= sta.dataPos.getEff((l2->Eta()), l2->Pt());
-            effmc *= sta.mcPos.getEff((l2->Eta()), l2->Pt());
-        } else {
-            effdata *= sta.dataNeg.getEff((l2->Eta()), l2->Pt());
-            effmc *= sta.mcNeg.getEff((l2->Eta()), l2->Pt());
-        }
-        effdata = effdata;
-        effmc = effmc;
-        corr *= effdata / effmc;
-        return corr;
+        double effdata = effSta(l1, q1, l2, q2, 1);
+        double effmc = effSta(l1, q1, l2, q2, 0);
+        return effdata / effmc;
     }
 
     double computeSelSF(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
-        if (q1 > 0) {
-            effdata *= sel.dataPos.getEff((l1->Eta()), l1->Pt());
-            effmc *= sel.mcPos.getEff((l1->Eta()), l1->Pt());
-        } else {
-            effdata *= sel.dataNeg.getEff((l1->Eta()), l1->Pt());
-            effmc *= sel.mcNeg.getEff((l1->Eta()), l1->Pt());
-        }
-        if (!l2) {
-            effdata = effdata;
-            effmc = effmc;
-            corr *= effdata / effmc;
-            return corr;
-        }
-        if (q2 > 0) {
-            effdata *= sel.dataPos.getEff((l2->Eta()), l2->Pt());
-            effmc *= sel.mcPos.getEff((l2->Eta()), l2->Pt());
-        } else {
-            effdata *= sel.dataNeg.getEff((l2->Eta()), l2->Pt());
-            effmc *= sel.mcNeg.getEff((l2->Eta()), l2->Pt());
-        }
-        effdata = effdata;
-        effmc = effmc;
-        corr *= effdata / effmc;
-        return corr;
+        double effdata = effSel(l1, q1, l2, q2, 1);
+        double effmc = effSel(l1, q1, l2, q2, 0);
+        return effdata / effmc;
     }
 
-    double effHLTData(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
+    double effHLT(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0, bool isData = 1)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
-
+        double eff = 1.0;
         if (q1 > 0) {
-            effdata *= (1. - hlt.dataPos.getEff((l1->Eta()), l1->Pt()));
+            if (isData)
+                eff *= (1. - hlt.dataPos.getEff((l1->Eta()), l1->Pt()));
+            else
+                eff *= (1. - hlt.mcPos.getEff((l1->Eta()), l1->Pt()));
         } else {
-            effdata *= (1. - hlt.dataNeg.getEff((l1->Eta()), l1->Pt()));
+            if (isData)
+                eff *= (1. - hlt.dataNeg.getEff((l1->Eta()), l1->Pt()));
+            else
+                eff *= (1. - hlt.mcNeg.getEff((l1->Eta()), l1->Pt()));
         }
         if (!l2) {
-            effdata = 1. - effdata;
-            corr *= effdata / effmc;
-            return corr;
+            return 1.0 - eff;
         }
         if (q2 > 0) {
-            effdata *= (1. - hlt.dataPos.getEff((l2->Eta()), l2->Pt()));
+            if (isData)
+                eff *= (1. - hlt.dataPos.getEff((l2->Eta()), l2->Pt()));
+            else
+                eff *= (1. - hlt.mcPos.getEff((l2->Eta()), l2->Pt()));
         } else {
-            effdata *= (1. - hlt.dataNeg.getEff((l2->Eta()), l2->Pt()));
+            if (isData)
+                eff *= (1. - hlt.dataNeg.getEff((l2->Eta()), l2->Pt()));
+            else
+                eff *= (1. - hlt.mcNeg.getEff((l2->Eta()), l2->Pt()));
         }
-        effdata = 1. - effdata;
-        corr *= effdata / effmc;
-        return corr;
+        return 1.0 - eff;
     }
 
-    double effStaData(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
+    double effSta(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0, bool isData = 1)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
+        double eff = 1.0;
         if (q1 > 0) {
-            effdata *= sta.dataPos.getEff((l1->Eta()), l1->Pt());
+            if (isData)
+                eff *= sta.dataPos.getEff((l1->Eta()), l1->Pt());
+            else
+                eff *= sta.mcPos.getEff((l1->Eta()), l1->Pt());
         } else {
-            effdata *= sta.dataNeg.getEff((l1->Eta()), l1->Pt());
+            if (isData)
+                eff *= sta.dataNeg.getEff((l1->Eta()), l1->Pt());
+            else
+                eff *= sta.mcNeg.getEff((l1->Eta()), l1->Pt());
         }
         if (!l2) {
-            effdata = effdata;
-            effmc = effmc;
-            corr *= effdata / effmc;
-            return corr;
+            return eff;
         }
         if (q2 > 0) {
-            effdata *= sta.dataPos.getEff((l2->Eta()), l2->Pt());
+            if (isData)
+                eff *= sta.dataPos.getEff((l2->Eta()), l2->Pt());
+            else
+                eff *= sta.mcPos.getEff((l2->Eta()), l2->Pt());
         } else {
-            effdata *= sta.dataNeg.getEff((l2->Eta()), l2->Pt());
+            if (isData)
+                eff *= sta.dataNeg.getEff((l2->Eta()), l2->Pt());
+            else
+                eff *= sta.mcNeg.getEff((l2->Eta()), l2->Pt());
         }
-        effdata = effdata;
-        effmc = effmc;
-        corr *= effdata / effmc;
-        return corr;
+        return eff;
     }
 
-    double effSelData(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0)
+    double effSel(TLorentzVector* l1, int q1, TLorentzVector* l2 = nullptr, int q2 = 0, bool isData = 1)
     {
-        double effdata = 1.0;
-        double effmc = 1.0;
-        double corr = 1.0;
+        double eff = 1.0;
         if (q1 > 0) {
-            effdata *= sel.dataPos.getEff((l1->Eta()), l1->Pt());
+            if (isData)
+                eff *= sel.dataPos.getEff((l1->Eta()), l1->Pt());
+            else
+                eff *= sel.mcPos.getEff((l1->Eta()), l1->Pt());
         } else {
-            effdata *= sel.dataNeg.getEff((l1->Eta()), l1->Pt());
+            if (isData)
+                eff *= sel.dataNeg.getEff((l1->Eta()), l1->Pt());
+            else
+                eff *= sel.mcNeg.getEff((l1->Eta()), l1->Pt());
         }
         if (!l2) {
-            effdata = effdata;
-            effmc = effmc;
-            corr *= effdata / effmc;
-            return corr;
+            return eff;
         }
         if (q2 > 0) {
-            effdata *= sel.dataPos.getEff((l2->Eta()), l2->Pt());
+            if (isData)
+                eff *= sel.dataPos.getEff((l2->Eta()), l2->Pt());
+            else
+                eff *= sel.mcPos.getEff((l2->Eta()), l2->Pt());
         } else {
-            effdata *= sel.dataNeg.getEff((l2->Eta()), l2->Pt());
+            if (isData)
+                eff *= sel.dataNeg.getEff((l2->Eta()), l2->Pt());
+            else
+                eff *= sel.mcNeg.getEff((l2->Eta()), l2->Pt());
         }
-        effdata = effdata;
-        effmc = effmc;
-        corr *= effdata / effmc;
-        return corr;
+        return eff;
     }
 };
 

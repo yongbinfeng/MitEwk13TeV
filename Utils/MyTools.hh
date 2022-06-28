@@ -184,15 +184,18 @@ void toolbox::fillGen(TClonesArray* genPartArr, Int_t vid, TLorentzVector*& vec,
     } else if (lepPos) {
         lep1->SetPtEtaPhiM(lepPos->Pt(), lepPos->Eta(), lepPos->Phi(), lepPos->M());
         *lep1q = 1;
+        *lep2q = 0;
     } else if (lepNeg) {
         lep1->SetPtEtaPhiM(lepNeg->Pt(), lepNeg->Eta(), lepNeg->Phi(), lepNeg->M());
         *lep1q = -1;
+        *lep2q = 0;
     }
     //std::cout << "Vector boson " << vec->Pt() << " " << vec->Eta() << std::endl;
     delete preLepNeg;
     delete preLepPos;
     delete lepNeg;
     delete lepPos;
+
 
     preLepNeg = 0;
     preLepPos = 0;

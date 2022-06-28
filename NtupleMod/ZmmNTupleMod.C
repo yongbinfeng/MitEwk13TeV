@@ -123,7 +123,7 @@ void ZmmNTupleMod(
     // constructor-> construct and intialize the main file path
     // add
     //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zmm/";
+    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zmm/";
     AppEffSF effs(baseDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
@@ -132,9 +132,9 @@ void ZmmNTupleMod(
     //
     // Warning: this needs to be updated for 5TeV
     //
-    string sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/";
-    string sysFileSIT = sysDir + "SysUnc_MuSITEff.root";
-    string sysFileSta = sysDir + "SysUnc_MuStaEff.root";
+    TString sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/";
+    TString sysFileSIT = sysDir + "SysUnc_MuSITEff.root";
+    TString sysFileSta = sysDir + "SysUnc_MuStaEff.root";
     effs.loadUncSel(sysFileSIT);
     effs.loadUncSta(sysFileSta);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
@@ -307,8 +307,6 @@ void ZmmNTupleMod(
         Double_t corr = 1;
         Double_t corrFSR = 1, corrMC = 1, corrBkg = 1, corrTag = 1;
 
-        // cout << "pass kinematics " << endl;
-
         // fill Z events passing selection
         if (!(category == eMuMu2HLT) && !(category == eMuMu1HLT) && !(category == eMuMu1HLT1mu1))
             continue;
@@ -329,6 +327,13 @@ void ZmmNTupleMod(
                 (*lep1) *= dtSF1;
                 (*lep2) *= dtSF2; 
             }
+
+            if (mu1.Pt() < PT_CUT) 
+                continue;
+            if (mu2.Pt() < PT_CUT)
+                continue;
+            if (q1 * q2 > 0)
+                continue;
 
             Double_t lp1 = mu1.Pt();
             Double_t lp2 = mu2.Pt();
@@ -385,7 +390,12 @@ void ZmmNTupleMod(
             mu2 *= mcSF2;
             (*lep2) *= mcSF2;
 
-
+            if (mu1.Pt() < PT_CUT)
+                continue;
+            if (mu2.Pt() < PT_CUT)
+                continue;
+            if (q1 * q2 > 0)
+                continue;
 
             //double deltaMcSF1 = rc.kSpreadMCerror(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt1);
             //double deltaMcSF2 = rc.kSpreadMCerror(q2, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt2);
@@ -401,7 +411,7 @@ void ZmmNTupleMod(
             //double massD = (mu1d + mu2d).M();
 
             double mll = (mu1 + mu2).M();
-            corr = effs.fullEfficiencies(&mu1, q1, &mu2, q2);
+            corr = effs.fullCorrections(&mu1, q1, &mu2, q2);
 
             vector<double> uncs_sta = effs.getUncSta(&mu1, q1, &mu2, q2);
             vector<double> uncs_sit = effs.getUncSel(&mu1, q1, &mu2, q2);

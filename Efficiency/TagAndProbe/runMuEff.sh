@@ -87,22 +87,21 @@ root -l -b -q plotEff.C+\(\"mu_sta.bins\",2,1,7,1,\"${NTUPLEDIR_13}/Zmm/Data/MuS
 
 
 # # ## Make a bunch of plots ##
-TYPE=_aMCxPythia_tagPt
+TYPE=_aMCxPythia
 # # # ## TYPE
- # # root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}NewTAble/pt/Negative\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}/Negative/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}/Negative/eff.root\",\"PtBins\",0.00,1.20,$LUMI13,\"mufineptbins.bins\"\)
- # root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Negative\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"PtBins\",0.00,1.20,$LUMI13,\"mu_hlt.bins\"\)
- # root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Positive\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"PtBins\",0.00,1.20,$LUMI13,\"mu_hlt.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Negative\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"PtBins\",0.01,1.20,0.92,1.08,$LUMI13,\"mu_hlt.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/pt/Positive\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"PtBins\",0.01,1.20,0.92,1.08,$LUMI13,\"mu_hlt.bins\"\)
  
  # root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/eta/Negative\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"EtaBins\",0.00,1.20,$LUMI13,\"mu_hlt.bins\"\)
  # root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_13/Plots/ZmmHLT${TYPE}${POSTFIX}/eta/Positive\",\"$OUTPUTDIR_13/Zmm/MC/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"EtaBins\",0.00,1.20,$LUMI13,\"mu_hlt.bins\"\)
   
  # # ## SEL
- # root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSIT${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.00,1.20,$LUMI13,\"mu_sit.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSIT${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.01,1.20,0.96,1.04,$LUMI13,\"mu_sit.bins\"\)
  
  # root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSIT${TYPE}${POSTFIX}/eta/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuSITEff${TYPE}${POSTFIX}/Combined/eff.root\",\"EtaBins\",0.00,1.20,$LUMI13,\"mu_sit.bins\"\)
  
  # # # # # # STA
- # root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSta${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.00,1.20,$LUMI13,\"mu_sta.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSta${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.01,1.20,0.96,1.04,$LUMI13,\"mu_sta.bins\"\)
  
  # root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_13/Plots/ZmmSta${TYPE}${POSTFIX}/eta/Combined\",\"$OUTPUTDIR_13/Zmm/MC/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_13/Zmm/Data/MuStaEff${TYPE}${POSTFIX}/Combined/eff.root\",\"EtaBins\",0.00,1.20,$LUMI13,\"mu_sta.bins\"\)
 

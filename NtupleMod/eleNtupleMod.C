@@ -120,14 +120,15 @@ void eleNtupleMod(const TString outputDir, // output directory
     const Double_t ELE_MASS = 0.000511;
 
     //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" +sqrts + "/results/Zee/";
+    //TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" +sqrts + "/results/Zee/";
+    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zee/";
     AppEffSF effs(effDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
     //
     // Warning: this needs to be updated for 5TeV
     //
-    TString SysFileGSFSel = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_EleGSFSelEff.root";
+    TString SysFileGSFSel = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
@@ -395,7 +396,7 @@ void eleNtupleMod(const TString outputDir, // output directory
             TLorentzVector vEle;
             vEle.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), ELE_MASS);
 
-            corr = effs.fullEfficiencies(&vEle, q);
+            corr = effs.fullCorrections(&vEle, q);
             vector<double> uncs_gsf = effs.getUncSel(&vEle, q);
 
             corrFSR *= uncs_gsf[0] * effs.computeHLTSF(&vEle, q); // alternate fsr model

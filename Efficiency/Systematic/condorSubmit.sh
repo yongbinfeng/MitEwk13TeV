@@ -5,18 +5,18 @@ PU=`echo "${2}"`
 ID=`echo "${3}"`
 # NBINS=96 #96 bins for muon channels
 # NBINS=24 #24 bins for STANDALONE MUON channels
-NBINS=48 #for MuSITEff and EleGSFSelEff
-#NBINS=18 # for MuStaEff
+#NBINS=48 #for MuSITEff and EleGSFSelEff
+NBINS=18 # for MuStaEff
 NTOYS=300 # should be default 1000
 #EFFTYPE=MuSITEff
-#EFFTYPE=MuStaEff
-EFFTYPE=EleGSFSelEff
+EFFTYPE=MuStaEff
+#EFFTYPE=EleGSFSelEff
 
 # declare -a EFFTYPES=("MuHLTEff" "MuSelEff" "MuStaEff") #for muons
 declare -a CHARGES=("Combined") #for muons
 # declare -a CHARGES=("Positive" "Negative") #for muons
-#FOLDER=Zmm # or Zee
-FOLDER=Zee # or Zee
+FOLDER=Zmm # or Zee
+#FOLDER=Zee # or Zee
  
 VERS=
 
