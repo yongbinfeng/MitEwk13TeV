@@ -39,10 +39,10 @@ root -l -b -q plotEff.C+\(\"ele_gsf.bins\",5,1,5,2,\"${NTUPLEDIR_5}/Zee/Data/Ele
 root -l -b -q plotEff.C+\(\"ele_gsf.bins\",6,1,6,2,\"${NTUPLEDIR_5}/Zee/Data/EleGSFSelEff/probes.root\",\"${OUTPUTDIR_5}/Zee/Data/EleGSFSelEff_POWxPhotos${POSTFIX}/Combined\",\"png\",0,0,0,\"Supercluster\",\"GSF\",0.5,1.02,${LUMI5},\"${NTUPLEDIR_5}/Zee/MC/EleGSFSelEff/probes.root\"\)
 
 
-#TYPE=_aMCxPythia
+TYPE=_aMCxPythia
 ## # # # #### Draw Plots
-#root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/pt/Negative\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"PtBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
-#root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/pt/Positive\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"PtBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/pt/Negative\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"PtBins\",0.01,1.20,0.7,1.1,$LUMI5,\"ele_hlt.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/pt/Positive\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"PtBins\",0.01,1.20,0.7,1.1,$LUMI5,\"ele_hlt.bins\"\)
 #
 #root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/eta/Negative\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"EtaBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
 #root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/eta/Positive\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"EtaBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
@@ -50,7 +50,7 @@ root -l -b -q plotEff.C+\(\"ele_gsf.bins\",6,1,6,2,\"${NTUPLEDIR_5}/Zee/Data/Ele
 ##root -l -b -q plotDataMC.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/etapt/Negative\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Negative/eff.root\",\"EtaPtBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
 ##root -l -b -q plotDataMC.C+\(\"$OUTPUTDIR_5/Plots/ZeeHLT${TYPE}${POSTFIX}/etapt/Positive\",\"$OUTPUTDIR_5/Zee/MC/EleHLTEff${POSTFIX}/Positive/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleHLTEff${TYPE}${POSTFIX}/Positive/eff.root\",\"EtaPtBins\",0.00,1.20,$LUMI5,\"ele_hlt.bins\"\)
 # 
-#root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeGSFSel${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_5/Zee/MC/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.00,1.20,$LUMI5,\"ele_gsf.bins\"\)
+root -l -b -q plotDataMC_singlepTbins.C+\(\"$OUTPUTDIR_5/Plots/ZeeGSFSel${TYPE}${POSTFIX}/pt/Combined\",\"$OUTPUTDIR_5/Zee/MC/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"PtBins\",0.01,1.20,0.7,1.1,$LUMI5,\"ele_gsf.bins\"\)
 # 
 #root -l -b -q plotDataMC_singleEtabins.C+\(\"$OUTPUTDIR_5/Plots/ZeeGSFSel${TYPE}${POSTFIX}/eta/Combined\",\"$OUTPUTDIR_5/Zee/MC/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"$OUTPUTDIR_5/Zee/Data/EleGSFSelEff${TYPE}${POSTFIX}/Combined/eff.root\",\"EtaBins\",0.00,1.20,$LUMI5,\"ele_gsf.bins\"\)
  
