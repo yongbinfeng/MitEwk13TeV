@@ -17,23 +17,26 @@
 #include "TSystem.h"
 
 #include "../../Utils/MitStyleRemix.hh" // style settings for drawing
+#include "../../Utils/CPlot.hh"
 
-TString mainDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/TOYS/";
+TString sqrtS = "13TeV";
+
+TString mainDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/TOYS/";
 TString sigDirFSR = "_POWxPythia_POWxPhotos/";
 //TString sigDirMC = "_aMCxPythia_minloxPythia/";
 TString sigDirMC = "_aMCxPythia_POWxPythia/";
 TString bkgDir = "_aMCxPythia_POWBKG/"; // should be exp vs Powerlaw
 TString tagPtDir = "_aMCxPythia_aMCxPythia_tagPt/";
 
-TString effDirD = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Zee/Data/";
-TString effDirM = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Zee/MC/";
+TString effDirD = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Zee/Data/";
+TString effDirM = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Zee/MC/";
 TString fsr = "_POWxPhotos/";
 TString mc = "_POWxPythia/";
 TString bkg = "_POWBKG/";
 TString amc = "_aMCxPythia/";
 TString tagpt = "_aMCxPythia_tagPt/";
 
-TString outDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Systematics";
+TString outDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Systematics";
 TString subf = "";
 
 const vector<TString> charges{ "Combined", "Combined" };
@@ -54,7 +57,7 @@ void makeHTML(TString suffix) {
     htmlfile << "<tr>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcPosDat.png\"><img src=\"effetapt_amcPosDat.png\" alt=\"effetapt_amcPosDat.png\" width=\"100%\"><figcaption>effetapt_Data</figcaption></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcPosMC.png\"><img src=\"effetapt_amcPosMC.png\" alt=\"effetapt_amcPosMC.png\" width=\"100%\"><figcaption>effetapt_MC</figcaption></a></td>" << endl;
-    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcCorr.png\"><img src=\"effetapt_amcCorr.png\" alt=\"effetapt_amcCorr.png\" width=\"100%\"><figcaption>effetapt_MC</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcCorr.png\"><img src=\"effetapt_amcCorr.png\" alt=\"effetapt_amcCorr.png\" width=\"100%\"><figcaption>effetapt_scalefactors</figcaption></a></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "</tr>" << endl;
@@ -284,7 +287,7 @@ void makeTH2DEleMy(TString eType = "EleGSFSelEff")
             double val_pos = amcPosDat->GetBinContent(ieta + 1, ipt + 1);
             double val_neg = amcNegDat->GetBinContent(ieta + 1, ipt + 1);
             // vector saves the absolute eff_default - eff_alternative
-            // so sys_alternative = (eff_default - diff) / eff_default = 1.0 - diff / eff_default
+            // so sys_alternative = eff_alternative / eff_default = (eff_default - diff) / eff_default = 1.0 - diff / eff_default
             hFSRNeg->SetBinContent(ieta + 1, ipt + 1, 1. - vFSRNeg[ipt * NBeta + ieta] / val_neg);
             hFSRPos->SetBinContent(ieta + 1, ipt + 1, 1. - vFSRPos[ipt * NBeta + ieta] / val_pos);
             hMCNeg->SetBinContent(ieta + 1, ipt + 1,  1. - vMCNeg[ipt * NBeta + ieta] / val_neg);
