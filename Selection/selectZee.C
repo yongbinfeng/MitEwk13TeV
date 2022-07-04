@@ -408,8 +408,6 @@ void selectZee(const TString conf = "zee.conf", // input file
                     vTag.SetPtEtaPhiM(tag->pt, tag->eta, tag->phi, ELE_MASS);
                     vTagSC.SetPtEtaPhiM(tag->scEt, tag->scEta, tag->scPhi, ELE_MASS);
 
-                    // if(fabs(vTag.Eta())>=ECAL_GAP_LOW && fabs(vTag.Eta())<=ECAL_GAP_HIGH) continue;
-
                     float tagError = 0.;
                     float tagSCError = 0.;
                     if (doScaleCorr && (tag->r9 < 1.)) {
@@ -453,6 +451,9 @@ void selectZee(const TString conf = "zee.conf", // input file
                         continue; // lepton pT cut
                     if (fabs(vTag.Eta()) > ETA_CUT)
                         continue; // lepton |eta| cut
+                    // not in the ecal gap
+                    if(fabs(vTag.Eta())>=ECAL_GAP_LOW && fabs(vTag.Eta())<=ECAL_GAP_HIGH) 
+                        continue;
                     if (!passEleMediumID(tag, vTag, info->rhoIso))
                         continue; // lepton selection
 
@@ -506,9 +507,6 @@ void selectZee(const TString conf = "zee.conf", // input file
                     if (scProbe->scID == tagscID)
                         continue;
 
-                    // check ECAL gap
-                    // if(fabs(vProbe.Eta())>=ECAL_GAP_LOW && fabs(vProbe.Eta())<=ECAL_GAP_HIGH) continue;
-
                     float probeError = 0.;
                     if (doScaleCorr && (scProbe->r9 < 1.)) {
                         // set up variable and apply scale and smear correction to probe
@@ -536,6 +534,8 @@ void selectZee(const TString conf = "zee.conf", // input file
                     double probeEcalEnergy_tmp = 0;
                     if (fabs(vProbe.Eta()) > ETA_CUT)
                         continue;
+                    if (fabs(vProbe.Eta())>=ECAL_GAP_LOW && fabs(vProbe.Eta())<=ECAL_GAP_HIGH)
+                        continue;
                     for (Int_t i2 = 0; i2 < electronArr->GetEntriesFast(); i2++) {
                         if (itag == i2)
                             continue;
@@ -553,7 +553,6 @@ void selectZee(const TString conf = "zee.conf", // input file
                         double eTregress = eleProbe->ecalEnergy / cosh(fabs(eleProbe->eta));
                         vEleProbe.SetPtEtaPhiM(eleProbe->pt, eleProbe->eta, eleProbe->phi, ELE_MASS);
                         vEleProbeSC.SetPtEtaPhiM(eleProbe->scEt, eleProbe->scEta, eleProbe->scPhi, ELE_MASS);
-                        // if(fabs(vEleProbe.Eta())>=ECAL_GAP_LOW && fabs(vEleProbe.Eta())<=ECAL_GAP_HIGH) continue;
 
                         float eleProbeError = 0., eleProbeSCError = 0.;
 
@@ -604,7 +603,6 @@ void selectZee(const TString conf = "zee.conf", // input file
                         probeSCErrorfinal = eleProbeSCError;
                     } else {
                         El_Pt = vProbe.Pt();
-                        // if(fabs(vProbe.Eta())>=ECAL_GAP_LOW && fabs(vProbe.Eta())<=ECAL_GAP_HIGH) continue;
                         probeErrorfinal = probeError;
                         probeSCErrorfinal = probeError;
                     }
@@ -654,7 +652,8 @@ void selectZee(const TString conf = "zee.conf", // input file
                     }
                 }
 
-                // if(q1 == q2)         continue;  // opposite charge requirement
+                if(q1 == q2)         
+                    continue;  // opposite charge requirement
                 // mass window
                 TLorentzVector vDilep = vTagfinal + vProbefinal;
                 // TLorentzVector vDilepSC = vTagSCfinal + vProbeSC;

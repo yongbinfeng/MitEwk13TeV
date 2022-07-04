@@ -377,6 +377,8 @@ void selectWe(const TString conf = "we.conf", // input file
                         continue;
                     if (vEle.Pt() < VETO_PT)
                         continue;
+                    if(fabs(vEle.Eta())>=ECAL_GAP_LOW && fabs(vEle.Eta())<=ECAL_GAP_HIGH) 
+                        continue;
                     if (passEleLooseID(ele, vEle, info->rhoIso))
                         nLooseLep++;
                     if (nLooseLep > 1) { // extra lepton veto

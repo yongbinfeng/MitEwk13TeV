@@ -51,7 +51,7 @@ Output     = {jobname}.out
 Error      = {jobname}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-+JobFlavour = "tomorrow"
++JobFlavour = "workday"
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 
@@ -65,70 +65,92 @@ queue 1\n
 
 if __name__ == "__main__":
     ## Z -> mumu
-    #macro = "selectZmm.C"
-    #confname = "zmm_13.conf"
-    #outdir = "/eos/user/y/yofeng/LowPU/Selection/Zmumu"
-    #logsuffix = "selectZmm_zmm_13"
-    #for ijob in range(12):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
+    macro = "selectZmm.C"
+    confname = "zmm_13.conf"
+    outdir = "/eos/user/y/yofeng/LowPU/Selection_pT20/Zmumu/"
+    logsuffix = "selectZmm_zmm_13"
+    if 0:
+        for ijob in range(12):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
 
     ### W -> munu
-    #macro = "selectWm.C"
-    #confname = "wm_13.conf"
-    #outdir = "/eos/user/y/yofeng/LowPU/Selection/Wmunu"
-    #logsuffix = "selectWm_wm_13"
-    #for ijob in range(14):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
+    macro = "selectWm.C"
+    confname = "wm_13.conf"
+    outdir = "/eos/user/y/yofeng/LowPU/Selection/Wmunu"
+    logsuffix = "selectWm_wm_13"
+    if 0:
+        for ijob in range(14):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
 
     ## Z -> ee
-    #macro = "selectZee.C"
-    #confname = "zee_13.conf"
-    #outdir = "/eos/user/y/yofeng/LowPU/Selection/Zee"
-    #logsuffix = "selectZee_zee_13"
-    #for ijob in range(12):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
+    macro = "selectZee.C"
+    confname = "zee_13.conf"
+    outdir = "/eos/user/y/yofeng/LowPU/Selection_pT20/Zee"
+    logsuffix = "selectZee_zee_13"
+    if 0:
+        for ijob in range(12):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
 
     ## W -> enu
-    #macro = "selectWe.C"
-    #confname = "we_13.conf"
-    #outdir = "/eos/user/y/yofeng/LowPU/Selection/Wenu"
-    #logsuffix = "selectWe_we_13"
-    #for ijob in range(14):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
+    macro = "selectWe.C"
+    confname = "we_13.conf"
+    outdir = "/eos/user/y/yofeng/LowPU/Selection/Wenu"
+    logsuffix = "selectWe_we_13"
+    if 0:
+        for ijob in range(14):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
+
+    ## QCD control region (anti-isolated region) for W->enu
+    macro = "selectAntiWe.C"
+    confname = "we_13.conf"
+    outdir = "/eos/user/y/yofeng/LowPU/Selection/AntiWenu"
+    logsuffix = "selectAntiWe_we_13"
+    if 1:
+        for ijob in range(14):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
 
     # 5 TeV
     # Z -> mumu
     macro = "selectZmm.C"
     confname = "zmm_5.conf"
-    outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Zmumu"
+    outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zmumu"
     logsuffix = "selectZmm_zmm_5"
-    #for ijob in range(12):
-    #for ijob in range(1):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
+    if 0:
+        for ijob in range(12):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
 
     ## W -> munu
     macro = "selectWm.C"
     confname = "wm_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wmunu"
     logsuffix = "selectWm_wm_5"
-    #for ijob in range(14):
-    for ijob in range(1):
-        GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
+    if 0:
+        for ijob in range(14):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
 
     # Z -> ee
     macro = "selectZee.C"
     confname = "zee_5.conf"
-    outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Zee"
+    outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zee"
     logsuffix = "selectZee_zee_5"
-    #for ijob in range(12):
-    #for ijob in range(1):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
+    if 0:
+        for ijob in range(12):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
 
     # W -> enu
     macro = "selectWe.C"
     confname = "we_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wenu"
     logsuffix = "selectWe_we_5"
-    #for ijob in range(14):
-    #for ijob in range(1):
-    #    GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
+    if 0:
+        for ijob in range(10):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
+
+    ## QCD control region (anti-isolated region) for W->enu
+    macro = "selectAntiWe.C"
+    confname = "we_5.conf"
+    outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/AntiWenu"
+    logsuffix = "selectAntiWe_we_5"
+    if 1:
+        for ijob in range(10):
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
