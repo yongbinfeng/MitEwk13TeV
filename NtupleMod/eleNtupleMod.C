@@ -512,9 +512,9 @@ void eleNtupleMod(const TString outputDir, // output directory
         // std::cout << "done w recoil" << std::endl;
         // set electron relIso to be these quantities but scaled to a constant 0.15 cutoff
         if (fabs(lep->Eta()) < ECAL_GAP_LOW)
-            relIso = (pfCombIso - 0.506) / lep->Pt() + (0.15 - 0.0287);
+            relIso = (pfCombIso - 0.506) / lep->Pt() + (0.15 - 0.0478);
         if (fabs(lep->Eta()) > ECAL_GAP_LOW)
-            relIso = (pfCombIso - 0.963) / lep->Pt() + (0.15 - 0.0445);
+            relIso = (pfCombIso - 0.963) / lep->Pt() + (0.15 - 0.0658);
 
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree

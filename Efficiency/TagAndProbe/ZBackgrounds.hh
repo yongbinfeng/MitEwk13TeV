@@ -106,16 +106,16 @@ CErfExpo::CErfExpo(RooRealVar& m, const Bool_t pass, const int ibin)
         sprintf(vname, "alfa%s", name);
         alfa = new RooRealVar(vname, vname, 50, 5, 200);
         sprintf(vname, "beta%s", name);
-        beta = new RooRealVar(vname, vname, 0.01, 0, 10);
+        beta = new RooRealVar(vname, vname, 0.01, 0, 0.1);
         sprintf(vname, "gamma%s", name);
-        gamma = new RooRealVar(vname, vname, 0.1, 0, 1);
+        gamma = new RooRealVar(vname, vname, 0.1, -2.0, 2.0);
     } else {
         sprintf(vname, "alfa%s", name);
         alfa = new RooRealVar(vname, vname, 50, 5, 250);
         sprintf(vname, "beta%s", name);
-        beta = new RooRealVar(vname, vname, 0.01, 0, 10);
+        beta = new RooRealVar(vname, vname, 0.01, 0, 0.1);
         sprintf(vname, "gamma%s", name);
-        gamma = new RooRealVar(vname, vname, 0.1, 0, 1);
+        gamma = new RooRealVar(vname, vname, 0.1, -2.0, 2.0);
     }
 
     sprintf(vname, "peak%s", name);

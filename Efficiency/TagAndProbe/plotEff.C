@@ -51,7 +51,6 @@
 
 // structure for output ntuple
 #include "EffData.hh"
-
 #include "ZBackgrounds.hh"
 #include "ZSignals.hh"
 //#endif
@@ -1818,7 +1817,7 @@ void performCount(Double_t& resEff, Double_t& resErrl, Double_t& resErrh,
     plotPass.AddTextBox(binlabelx, 0.21, 0.78, 0.51, 0.83, 0, kBlack, -1);
     if ((name.CompareTo("etapt") == 0) || (name.CompareTo("etaphi") == 0)) {
         plotPass.AddTextBox(binlabely, 0.21, 0.73, 0.51, 0.78, 0, kBlack, -1);
-        plotPass.AddTextBox(yield, 0.21, 0.65, 0.51, 0.73, 0, kBlack, -1);
+        plotPass.AddTextBox(yield, 0.21, 0.69, 0.51, 0.73, 0, kBlack, -1);
     } else {
         plotPass.AddTextBox(yield, 0.21, 0.81, 0.51, 0.85, 0, kBlack, -1);
     }
