@@ -23,11 +23,12 @@
 #include <string> // C++ string class
 #include <vector> // STL vector class
 
-#include "../Utils/MyTools.hh"
-
 // define structures to read in ntuple
 #include "BaconAna/DataFormats/interface/TGenEventInfo.hh"
 #include "BaconAna/DataFormats/interface/TGenParticle.hh"
+#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/Utils/MyTools.hh"
 #endif
 
 //=== MAIN MACRO =================================================================================================
@@ -49,8 +50,6 @@ void computeAccGenWe(const TString conf, // input file
     const Double_t ETA_CUT = 2.4;
     const Double_t ETA_BARREL = 1.4442;
     const Double_t ETA_ENDCAP = 1.566;
-    // const Double_t ETA_BARREL = 10.;
-    // const Double_t ETA_ENDCAP = 10.;
 
     const Int_t BOSON_ID = 24;
     const Int_t LEPTON_ID = 11;
@@ -62,35 +61,13 @@ void computeAccGenWe(const TString conf, // input file
     // Main analysis code
     //==============================================================================================================
 
-    vector<TString> fnamev; // file name per input file
-    vector<TString> labelv; // TLegend label per input file
-    vector<Int_t> xsecv; // plot color per input file
-    vector<Int_t> linev; // plot line style per input file
+    vector<TString> snamev; // sample name (for output files)
+    vector<CSample*> samplev; // data/MC samples
 
     //
     // parse .conf file
     //
-    ifstream ifs;
-    ifs.open(conf.Data());
-    assert(ifs.is_open());
-    string line;
-    while (getline(ifs, line)) {
-        if (line[0] == '#')
-            continue;
-
-        string fname;
-        Int_t xsec, linesty;
-        stringstream ss(line);
-        ss >> fname >> xsec >> linesty;
-        string label = line.substr(line.find('@') + 1);
-        fnamev.push_back(fname);
-        labelv.push_back(label);
-        xsecv.push_back(xsec);
-        linev.push_back(linesty);
-    }
-    ifs.close();
-
-    int NFILES = fnamev.size();
+    confParse(conf, snamev, samplev);
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
@@ -102,217 +79,231 @@ void computeAccGenWe(const TString conf, // input file
     TFile* infile = 0;
     TTree* eventTree = 0;
 
-    // Variables to store acceptances and uncertainties (per input file)
-    vector<Double_t> nEvtsv, nSelv, nSelBv, nSelEv;
-    vector<Double_t> accv, accBv, accEv;
-    vector<Double_t> accErrv, accErrBv, accErrEv;
+    Double_t nEvtsv = 0, nSelv = 0, nSelBv = 0, nSelEv = 0;
+    Double_t nEntries = 0, nEvtsAfter1Lep = 0, nEvtsAfterMT = 0;
 
-    vector<Double_t> nEvtsv_pT, nSelv_pT, accv_pT;
+    Double_t accv = 0, accBv = 0, accEv = 0;
+    Double_t accErrv = 0, accErrBv = 0, accErrEv = 0;
 
-    vector<vector<Double_t>> nEvtsv_QCD, nSelv_QCD;
-    vector<vector<Double_t>> nEvtsv_PDF, nSelv_PDF;
+    Double_t nEvtsv_pT = 0, nSelv_pT = 0, accv_pT = 0;
+
+    vector<Double_t> nEvtsv_QCD(NQCD, 0), nSelv_QCD(NQCD, 0);
+    vector<Double_t> nEvtsv_PDF(NPDF, 0), nSelv_PDF(NPDF, 0);
 
     TString sqrts = "13TeV";
     if (conf.Contains("5"))
         sqrts = "5TeV";
-    TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
-    TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
-    //
+    //TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
+    //TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
+
+    CSample* samp = 0;
 
     //
-    // loop through files
+    // loop over the processes
     //
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t isamp = 0; isamp < samplev.size(); ++isamp) {
 
-        // Read input file and get the TTrees
-        cout << "Processing " << fnamev[ifile] << " ..." << endl;
-
-        std::cout << "cross section is ... " << xsecv[ifile] << std::endl;
-        infile = TFile::Open(fnamev[ifile]);
-        assert(infile);
-
-        eventTree = (TTree*)infile->Get("Events");
-        assert(eventTree);
-        eventTree->SetBranchAddress("GenEvtInfo", &gen);
-        TBranch* genBr = eventTree->GetBranch("GenEvtInfo");
-        eventTree->SetBranchAddress("GenParticle", &genPartArr);
-        TBranch* partBr = eventTree->GetBranch("GenParticle");
-        std::cout << "blah" << std::endl;
-        nEvtsv.push_back(0);
-        nSelv.push_back(0);
-        nSelBv.push_back(0);
-        nSelEv.push_back(0);
-        nEvtsv_pT.push_back(0);
-        nSelv_pT.push_back(0);
-
-        vector<Double_t> tempQCD_Selv, tempQCD_Evtsv;
-        vector<Double_t> tempPDF_Selv, tempPDF_Evtsv;
-
-        for (int i = 0; i < NQCD; ++i) {
-            tempQCD_Selv.push_back(0);
-            tempQCD_Evtsv.push_back(0);
-        }
-        for (int i = 0; i < NPDF; ++i) {
-            tempPDF_Selv.push_back(0);
-            tempPDF_Evtsv.push_back(0);
-        }
-
-        TLorentzVector* vec = new TLorentzVector(0, 0, 0, 0);
-        TLorentzVector* lep1 = new TLorentzVector(0, 0, 0, 0);
-        TLorentzVector* lep2 = new TLorentzVector(0, 0, 0, 0);
-        TLorentzVector* lep3 = new TLorentzVector(0, 0, 0, 0);
-        TLorentzVector* lep4 = new TLorentzVector(0, 0, 0, 0);
-        TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
-
-        // loop over events
         //
-        for (UInt_t ientry = 0; ientry < eventTree->GetEntries(); ientry++) {
-            if (ientry % 100000 == 0)
-                cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
-            genBr->GetEntry(ientry);
-            genPartArr->Clear();
-            partBr->GetEntry(ientry);
+        // loop through files
+        //
+        samp = samplev[isamp];
+        const UInt_t nfiles = samp->fnamev.size();
 
-            Int_t lepq1 = -99;
-            Int_t lepq2 = -99;
-            if (fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
-                continue;
-            if (charge == -1 && toolbox::flavor(genPartArr, BOSON_ID) != LEPTON_ID)
-                continue; // check for a e- from W
-            if (charge == 1 && toolbox::flavor(genPartArr, BOSON_ID) != -LEPTON_ID)
-                continue; // check for a e+ from W
-            if (charge == 0 && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
-                continue; // check flavor
+        for (UInt_t ifile = 0; ifile < nfiles; ifile++) {
 
-            // the function returns: lep1, lep3 are the paricles, lep2, lep4 are the anti-particles
-            toolbox::fillGenBorn(genPartArr, BOSON_ID, vec, lep1, lep2, lep3, lep4);
+            // Read input file and get the TTrees
+            cout << "Processing " << samp->fnamev[ifile] << " [xsec = " << samp->xsecv[ifile] << " pb] ... ";
+            cout.flush();
 
-            double ptWeight = 1;
-            for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
-                if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
-                    ptWeight = hh_diff->GetBinContent(i);
-                    break;
+            infile = TFile::Open(samp->fnamev[ifile]);
+            assert(infile);
+
+            eventTree = (TTree*)infile->Get("Events");
+            assert(eventTree);
+            eventTree->SetBranchAddress("GenEvtInfo", &gen);
+            TBranch* genBr = eventTree->GetBranch("GenEvtInfo");
+            eventTree->SetBranchAddress("GenParticle", &genPartArr);
+            TBranch* partBr = eventTree->GetBranch("GenParticle");
+
+            //
+            // loop over events
+            //
+            double frac = 0.001; // fraction of events to be used for calculation
+            double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
+
+            // loop over the events first, to get the positive and negative frations of events,
+            // used for scaling later
+            std::cout << "Process events quickly first time for counting" << std::endl;
+            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
+                if (ientry % 100000 == 0)
+                    cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
+                genBr->GetEntry(ientry);
+                nAbsSum += 1.;
+                nWgtSum += (gen->weight > 0) ? 1 : -1;
+            }
+            std::cout << "Finished first loop. Total events " << nAbsSum << " after negative weight subtraction " << nWgtSum / nAbsSum << std::endl;
+
+            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
+                if (ientry % 100000 == 0)
+                    cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
+                genBr->GetEntry(ientry);
+                genPartArr->Clear();
+                partBr->GetEntry(ientry);
+
+                Int_t lepq1 = -99;
+                Int_t lepq2 = -99;
+                if (fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
+                    continue;
+                if (charge == -1 && toolbox::flavor(genPartArr, BOSON_ID) != LEPTON_ID)
+                    continue; // check for a e- from W
+                if (charge == 1 && toolbox::flavor(genPartArr, BOSON_ID) != -LEPTON_ID)
+                    continue; // check for a e+ from W
+                if (charge == 0 && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
+                    continue; // check flavor
+
+                TLorentzVector* vec = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector* lep1 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector* lep2 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector* lep3 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector* lep4 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
+
+                // the function returns: lep1, lep3 are the paricles, lep2, lep4 are the anti-particles
+                toolbox::fillGenBorn(genPartArr, BOSON_ID, vec, lep1, lep2, lep3, lep4);
+
+                double ptWeight = 1;
+                //for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
+                //    if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
+                //        ptWeight = hh_diff->GetBinContent(i);
+                //        break;
+                //    }
+                //}
+
+                if (charge == 1) {
+                    //For W+->e+vu decay, change things up so that lep1 and lep3 are the charged particles
+                    TLorentzVector* tmp = lep1;
+                    lep1 = lep2;
+                    lep2 = tmp;
+                    tmp = lep3;
+                    lep3 = lep4;
+                    lep4 = tmp;
                 }
-            }
 
-            if (charge == 1) {
-                //For W+->e+vu decay, change things up so that lep1 and lep3 are the charged particles
-                TLorentzVector* tmp = lep1;
-                lep1 = lep2;
-                lep2 = tmp;
-                tmp = lep3;
-                lep3 = lep4;
-                lep4 = tmp;
-            }
-
-            if (doDressed) {
-                for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++) {
-                    const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
-                    if (fabs(genloop->pdgId) != 22)
-                        continue;
-                    gph->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
-                    if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep3->Eta(), lep3->Phi()) < 0.1) {
-                        lep3->operator+=(*gph);
+                if (doDressed) {
+                    for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++) {
+                        const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
+                        if (fabs(genloop->pdgId) != 22)
+                            continue;
+                        gph->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+                        if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep3->Eta(), lep3->Phi()) < 0.1) {
+                            lep3->operator+=(*gph);
+                        }
                     }
                 }
-            }
 
-            Double_t weight = gen->weight;
-            nEvtsv[ifile] += weight;
-            // nEvtsv[ifile]+=weight*ptWeight;
-            nEvtsv_pT[ifile] += weight * ptWeight;
+                Double_t weight = (gen->weight > 0 ? 1 : -1) * samp->xsecv[ifile] / nWgtSum;
+                nEvtsv += weight;
+                nEvtsv_pT += weight * ptWeight;
 
-            tempQCD_Evtsv[0] += weight * gen->lheweight[1];
-            tempQCD_Evtsv[1] += weight * gen->lheweight[2];
-            tempQCD_Evtsv[2] += weight * gen->lheweight[3];
-            tempQCD_Evtsv[3] += weight * gen->lheweight[4];
-            tempQCD_Evtsv[4] += weight * gen->lheweight[6];
-            tempQCD_Evtsv[5] += weight * gen->lheweight[8];
-            for (int npdf = 0; npdf < NPDF; npdf++)
-                tempPDF_Evtsv[npdf] += weight * gen->lheweight[9 + npdf];
+                nEvtsv_QCD[0] += weight * gen->lheweight[1];
+                nEvtsv_QCD[1] += weight * gen->lheweight[2];
+                nEvtsv_QCD[2] += weight * gen->lheweight[3];
+                nEvtsv_QCD[3] += weight * gen->lheweight[4];
+                nEvtsv_QCD[4] += weight * gen->lheweight[6];
+                nEvtsv_QCD[5] += weight * gen->lheweight[8];
 
-            for (int npdf = 0; npdf < NPDF; npdf++)
-                tempPDF_Evtsv[npdf] += weight * gen->lheweight[9 + npdf];
+                for (int npdf = 0; npdf < NPDF; npdf++)
+                    nEvtsv_PDF[npdf] += weight * gen->lheweight[9 + npdf];
 
-            Bool_t isBarrel = kTRUE;
-            if (doborn) {
-                if (lep1->Pt() < PT_CUT)
+                Bool_t isBarrel = kTRUE;
+                if (doborn) {
+                    if (lep1->Pt() < PT_CUT)
+                        continue;
+                    if (fabs(lep1->Eta()) > ETA_CUT)
+                        continue;
+                    if (fabs(lep1->Eta()) >= ETA_BARREL && fabs(lep1->Eta()) <= ETA_ENDCAP)
+                        // remove ecal gap
+                        continue;
+                    isBarrel = (fabs(lep1->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
+                } else {
+                    if (lep3->Pt() < PT_CUT)
+                        continue;
+                    if (fabs(lep3->Eta()) > ETA_CUT)
+                        continue;
+                    if (fabs(lep3->Eta()) >= ETA_BARREL && fabs(lep3->Eta()) < ETA_ENDCAP)
+                        // remove ecal gap
+                        continue;
+                    isBarrel = (fabs(lep3->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
+                }
+
+                nEvtsAfter1Lep += weight;
+
+                double mtgen = 0;
+                if (doborn)
+                    mtgen = sqrt(2.0 * (lep1->Pt()) * (lep2->Pt()) * (1.0 - cos(toolbox::deltaPhi(lep1->Phi(), lep2->Phi()))));
+                else
+                    mtgen = sqrt(2.0 * (lep3->Pt()) * (lep4->Pt()) * (1.0 - cos(toolbox::deltaPhi(lep3->Phi(), lep4->Phi()))));
+
+                if (mtgen < 20)
                     continue;
-                if (fabs(lep1->Eta()) > ETA_CUT)
-                    continue;
-                isBarrel = (fabs(lep1->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
-            } else {
-                if (lep3->Pt() < PT_CUT)
-                    continue;
-                if (fabs(lep3->Eta()) > ETA_CUT)
-                    continue;
-                isBarrel = (fabs(lep3->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
-            }
 
-            nSelv[ifile] += weight;
-            // nSelv[ifile]+=weight*ptWeight;
-            nSelv_pT[ifile] += weight * ptWeight;
-            if (isBarrel)
-                nSelBv[ifile] += weight;
-            else
-                nSelEv[ifile] += weight;
+                nEvtsAfterMT += weight;
 
-            tempQCD_Selv[0] += weight * gen->lheweight[1];
-            tempQCD_Selv[1] += weight * gen->lheweight[2];
-            tempQCD_Selv[2] += weight * gen->lheweight[3];
-            tempQCD_Selv[3] += weight * gen->lheweight[4];
-            tempQCD_Selv[4] += weight * gen->lheweight[6];
-            tempQCD_Selv[5] += weight * gen->lheweight[8];
-            for (int npdf = 0; npdf < NPDF; npdf++)
-                tempPDF_Selv[npdf] += weight * gen->lheweight[9 + npdf];
-        }
+                nSelv += weight;
+                nSelv_pT += weight * ptWeight;
+                if (isBarrel)
+                    nSelBv += weight;
+                else
+                    nSelEv += weight;
 
-        delete vec;
-        delete lep1;
-        delete lep2;
-        delete lep3;
-        delete lep4;
-        delete gph;
+                nSelv_QCD[0] += weight * gen->lheweight[1];
+                nSelv_QCD[1] += weight * gen->lheweight[2];
+                nSelv_QCD[2] += weight * gen->lheweight[3];
+                nSelv_QCD[3] += weight * gen->lheweight[4];
+                nSelv_QCD[4] += weight * gen->lheweight[6];
+                nSelv_QCD[5] += weight * gen->lheweight[8];
+                for (int npdf = 0; npdf < NPDF; npdf++)
+                    nSelv_PDF[npdf] += weight * gen->lheweight[9 + npdf];
 
-        // compute acceptances
-        accv.push_back(nSelv[ifile] / nEvtsv[ifile]);
-        accErrv.push_back(sqrt(accv[ifile] * (1. - accv[ifile]) / nEvtsv[ifile]));
-        accBv.push_back(nSelBv[ifile] / nEvtsv[ifile]);
-        accErrBv.push_back(sqrt(accBv[ifile] * (1. - accBv[ifile]) / nEvtsv[ifile]));
-        accEv.push_back(nSelEv[ifile] / nEvtsv[ifile]);
-        accErrEv.push_back(sqrt(accEv[ifile] * (1. - accEv[ifile]) / nEvtsv[ifile]));
-        nSelv_PDF.push_back(tempPDF_Selv);
-        nEvtsv_PDF.push_back(tempPDF_Evtsv);
-        nSelv_QCD.push_back(tempQCD_Selv);
-        nEvtsv_QCD.push_back(tempQCD_Evtsv);
+                delete vec;
+                delete lep1;
+                delete lep2;
+                delete lep3;
+                delete lep4;
+                delete gph;
+            } // loop events
+        } // loop files
 
-        accv_pT.push_back(nSelv_pT[ifile] / nEvtsv_pT[ifile]);
-
-        std::cout << "nselv " << nSelv[ifile] << "  nevtsv " << nEvtsv[ifile] << std::endl;
+        std::cout << "nselv " << nSelv << "  nevtsv " << nEvtsv << std::endl;
 
         delete infile;
         infile = 0, eventTree = 0;
-    }
-    // vector<Double_t> accv_PDF
-    double accTot = 0;
-    double accNum = 0, accDnm = 0;
-    std::cout << "here" << std::endl;
+        samp = 0;
+    } // loop samples
+
+    // compute acceptances
+    accv = nSelv / nEvtsv;
+    accErrv = sqrt(accv * (1. - accv) / nEvtsv);
+    accBv = nSelBv / nEvtsv;
+    accErrBv = sqrt(accBv * (1. - accBv) / nEvtsv);
+    accEv = nSelEv / nEvtsv;
+    accErrEv = sqrt(accEv * (1. - accEv) / nEvtsv);
+
+    accv_pT = nSelv_pT / nEvtsv_pT;
 
     // Print full set for efficiency calculations
     char masterOutput[600];
     // just start printing....
-    for (uint ifile = 0; ifile < fnamev.size(); ++ifile) { // go through info per file
-        sprintf(masterOutput, "%s/%s_%d.txt", outputDir.Data(), outputName.Data(), ifile);
-        ofstream txtfile;
-        txtfile.open(masterOutput);
-        txtfile << "acc " << nSelv[ifile] / nEvtsv[ifile] << endl;
+    sprintf(masterOutput, "%s/%s.txt", outputDir.Data(), outputName.Data());
+    ofstream txtfile;
+    txtfile.open(masterOutput);
+    txtfile << "acc " << nSelv / nEvtsv << endl;
 
-        for (int j = 0; j < NPDF; ++j)
-            txtfile << "pdf" << j << " " << nSelv_PDF[ifile][j] / nEvtsv_PDF[ifile][j] << endl;
-        for (int j = 0; j < NQCD; ++j)
-            txtfile << "qcd" << j << " " << nSelv_QCD[ifile][j] / nEvtsv_QCD[ifile][j] << endl;
-        txtfile.close();
-    }
+    for (int j = 0; j < NPDF; ++j)
+        txtfile << "pdf" << j << " " << nSelv_PDF[j] / nEvtsv_PDF[j] << endl;
+    for (int j = 0; j < NQCD; ++j)
+        txtfile << "qcd" << j << " " << nSelv_QCD[j] / nEvtsv_QCD[j] << endl;
+    txtfile.close();
 
     delete gen;
 
@@ -335,53 +326,55 @@ void computeAccGenWe(const TString conf, // input file
     cout << "  Endcap definition: |eta| > " << ETA_ENDCAP << endl;
     cout << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        cout << "   ================================================" << endl;
-        cout << "    Label: " << labelv[ifile] << endl;
-        cout << "     File: " << fnamev[ifile] << endl;
-        cout << endl;
-        cout << "    *** Acceptance ***" << endl;
-        cout << "            b: " << setw(12) << nSelBv[ifile] << " / " << nEvtsv[ifile] << " = " << accBv[ifile] << " +/- " << accErrBv[ifile] << endl;
-        cout << "            e: " << setw(12) << nSelEv[ifile] << " / " << nEvtsv[ifile] << " = " << accEv[ifile] << " +/- " << accErrEv[ifile] << endl;
-        cout << "        total: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
-        cout << " with pt: " << setw(12) << accv_pT[ifile] << endl;
-        cout << " pt diff: " << setw(12) << 100 * fabs(accv[ifile] / accv_pT[ifile] - 1) << endl;
-        cout << endl;
-    }
+    cout << "    *** Acceptance ***" << endl;
+    cout << "            b: " << setw(12) << nSelBv << " / " << nEvtsv << " = " << accBv << " +/- " << accErrBv << endl;
+    cout << "            e: " << setw(12) << nSelEv << " / " << nEvtsv << " = " << accEv << " +/- " << accErrEv << endl;
+    cout << "        total: " << setw(12) << nSelv << " / " << nEvtsv << " = " << accv << " +/- " << accErrv << endl;
+    cout << " with pt: " << setw(12) << accv_pT << endl;
+    cout << " pt diff: " << setw(12) << 100 * fabs(accv / accv_pT - 1) << endl;
+    cout << endl;
 
-    char txtfname[300];
-    sprintf(txtfname, "%s/gen.txt", outputDir.Data());
-    ofstream txtfile;
-    txtfile.open(txtfname);
-    txtfile << "*" << endl;
-    txtfile << "* SUMMARY" << endl;
-    txtfile << "*--------------------------------------------------" << endl;
+    char txtfname1[300];
+    sprintf(txtfname1, "%s/gen.txt", outputDir.Data());
+    ofstream txtfile1;
+    txtfile1.open(txtfname1);
+    txtfile1 << "*" << endl;
+    txtfile1 << "* SUMMARY" << endl;
+    txtfile1 << "*--------------------------------------------------" << endl;
     if (charge == 0)
-        txtfile << " W -> e nu" << endl;
+        txtfile1 << " W -> e nu" << endl;
     if (charge == -1)
-        txtfile << " W- -> e nu" << endl;
+        txtfile1 << " W- -> e nu" << endl;
     if (charge == 1)
-        txtfile << " W+ -> e nu" << endl;
-    txtfile << "  pT > " << PT_CUT << endl;
-    txtfile << "  |eta| < " << ETA_CUT << endl;
-    txtfile << "  Barrel definition: |eta| < " << ETA_BARREL << endl;
-    txtfile << "  Endcap definition: |eta| > " << ETA_ENDCAP << endl;
-    txtfile << endl;
+        txtfile1 << " W+ -> e nu" << endl;
+    txtfile1 << "  pT > " << PT_CUT << endl;
+    txtfile1 << "  |eta| < " << ETA_CUT << endl;
+    txtfile1 << "  Barrel definition: |eta| < " << ETA_BARREL << endl;
+    txtfile1 << "  Endcap definition: |eta| > " << ETA_ENDCAP << endl;
+    txtfile1 << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        txtfile << "   ================================================" << endl;
-        txtfile << "    Label: " << labelv[ifile] << endl;
-        txtfile << "     File: " << fnamev[ifile] << endl;
-        txtfile << endl;
-        txtfile << "    *** Acceptance ***" << endl;
-        txtfile << "            b: " << setw(12) << nSelBv[ifile] << " / " << nEvtsv[ifile] << " = " << accBv[ifile] << " +/- " << accErrBv[ifile] << endl;
-        txtfile << "            e: " << setw(12) << nSelEv[ifile] << " / " << nEvtsv[ifile] << " = " << accEv[ifile] << " +/- " << accErrEv[ifile] << endl;
-        txtfile << "        total: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
-        txtfile << " with pt: " << setw(12) << accv_pT[ifile] << endl;
-        txtfile << " pt diff: " << setw(12) << 100 * fabs(accv[ifile] / accv_pT[ifile] - 1) << endl;
-        txtfile << endl;
-    }
-    txtfile.close();
+    txtfile1 << "    *** Acceptance ***" << endl;
+    txtfile1 << "            b: " << setw(12) << nSelBv << " / " << nEvtsv << " = " << accBv << " +/- " << accErrBv << endl;
+    txtfile1 << "            e: " << setw(12) << nSelEv << " / " << nEvtsv << " = " << accEv << " +/- " << accErrEv << endl;
+    txtfile1 << "        total: " << setw(12) << nSelv << " / " << nEvtsv << " = " << accv << " +/- " << accErrv << endl;
+    txtfile1 << " with pt: " << setw(12) << accv_pT << endl;
+    txtfile1 << " pt diff: " << setw(12) << 100 * fabs(accv / accv_pT - 1) << endl;
+    txtfile1 << endl;
+    txtfile1.close();
+
+    char txtfname2[300];
+    sprintf(txtfname2, "%s/acceptance.txt", outputDir.Data());
+    ofstream txtfile2;
+    txtfile2.open(txtfname2);
+    txtfile2 << "*" << endl;
+    txtfile2 << "* SUMMARY" << endl;
+    txtfile2 << "*--------------------------------------------------" << endl;
+    txtfile2 << " W -> mu nu" << endl;
+    txtfile2 << " Total " << setw(20) << nEvtsv << endl;
+    txtfile2 << " After lep1 cut " << setw(20) << nEvtsAfter1Lep << endl;
+    txtfile2 << " After MT cut " << setw(20) << nEvtsAfterMT << endl;
+    txtfile2 << endl;
+    txtfile2.close();
 
     cout << endl;
     cout << "  <> Output saved in " << outputDir << "/" << endl;
