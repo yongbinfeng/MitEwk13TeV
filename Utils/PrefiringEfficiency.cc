@@ -220,7 +220,7 @@ public:
             const baconhep::TMuon* muon = (baconhep::TMuon*)((*muonArr)[im]);
             // Remove crappy tracker muons which would not have prefired the L1 trigger
             // if (pt < 5 || !muon.isLooseMuon())
-            if (muon->pt < 5 || passMuonLooseID(muon))
+            if (muon->pt < 5 || !passMuonLooseID(muon))
                 continue;
             double prate_central = 0., prate_up = 0., prate_down = 0., prate_statup = 0., prate_statdown = 0., prate_systup = 0., prate_systdown = 0.;
             getPrefiringRateMuon(muon->eta, muon->phi, muon->pt, prate_central, prate_up, prate_down, prate_statup, prate_statdown, prate_systup, prate_systdown);
