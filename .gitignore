@@ -28,3 +28,9 @@
 *test*
 *Test*
 *.tgz
+*.swp
+################
+# log files    #
+################
+*/log/*
+*/Result*/*
