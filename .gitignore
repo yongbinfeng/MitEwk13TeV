@@ -13,12 +13,15 @@
 ################
 # general junk #
 ################
-*~
 *.dvi
 *.png
 *.root
 *.pdf
+*.err
+*.error
+*.condor
 *.log
+*.out
 *.aux
 *.tex
 *tmp*
