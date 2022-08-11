@@ -128,7 +128,7 @@ void computeAccGenWm(const TString conf, // input file
             //
             // loop over events
             //
-            double frac = 0.001; // fraction of events to be used for calculation
+            double frac = 0.05; // fraction of events to be used for calculation
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
             // loop over the events first, to get the positive and negative frations of events,
@@ -360,13 +360,16 @@ void computeAccGenWm(const TString conf, // input file
     sprintf(txtfname2, "%s/acceptance.txt", outputDir.Data());
     ofstream txtfile2;
     txtfile2.open(txtfname2);
-    txtfile2 << "*" << endl;
-    txtfile2 << "* SUMMARY" << endl;
-    txtfile2 << "*--------------------------------------------------" << endl;
-    txtfile2 << " W -> mu nu" << endl;
-    txtfile2 << " Total " << setw(20) << nEvtsv << endl;
-    txtfile2 << " After lep1 cut " << setw(20) << nEvtsAfter1Lep << endl;
-    txtfile2 << " After MT cut " << setw(20) << nEvtsAfterMT << endl;
+    double ndiv = nEvtsv;
+    if (charge == 1)
+        txtfile2 << "\\PW^{+}\\to\\mu^{+}\\nu" << endl;
+    else if (charge == -1)
+        txtfile2 << "\\PW^{-}\\to\\mu^{-}\\nu" << endl;
+    else
+        txtfile2 << "\\PW^{\\pm}\\to\\mu^{\\pm}\\nu" << endl;
+    txtfile2 << " Total " << setw(20) << nEvtsv << setw(20) << nEvtsv / ndiv << endl;
+    txtfile2 << " After_lep1_cut " << setw(20) << nEvtsAfter1Lep << setw(20) << nEvtsAfter1Lep / ndiv << endl;
+    txtfile2 << " After_MT_cut " << setw(20) << nEvtsAfterMT << setw(20) << nEvtsAfterMT / ndiv << endl;
     txtfile2 << endl;
     txtfile2.close();
 

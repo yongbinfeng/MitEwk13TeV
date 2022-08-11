@@ -1,6 +1,6 @@
 #! /bin/bash
 
-OUTDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Acceptance/FINAL_GEN/V
+OUTDIR=${PWD}/ResultsGEN
 
 
 ########################################
@@ -100,7 +100,8 @@ root -l -q computeAccGenZmm.C+\(\"zmm13_pythia.conf\",\"${OUTDIR}/GEN_zmm_13TeV_
 ########################################
 # ################################################################################
 # # ##########             aMCnlo+Pythia for RESUMMATION
-root -l -q computeAccGenZee.C+\(\"z13.conf\",\"${OUTDIR}/GEN_zee_13TeV_amcPythia_dressed\",\"ACC_zee_13_amcPythia_dressed\",1\)# ################################################################################
+root -l -q computeAccGenZee.C+\(\"z13.conf\",\"${OUTDIR}/GEN_zee_13TeV_amcPythia_dressed\",\"ACC_zee_13_amcPythia_dressed\",1\)
+# ################################################################################
 # # ##########             aMCnlo+Pythia for RESUMMATION
 root -l -q computeAccGenZee.C+\(\"z13.conf\",\"${OUTDIR}/GEN_zee_13TeV_amcPythia_ptWeight\",\"ACC_zee_13_amcPythia_ptWeight\",1\)
 # ################################################################################
@@ -114,3 +115,6 @@ root -l -q computeAccGenZee.C+\(\"zee13_photos.conf\",\"${OUTDIR}/GEN_zee_13TeV_
 root -l -q computeAccGenZee.C+\(\"zee13_pythia.conf\",\"${OUTDIR}/GEN_zee_13TeV_powPythia_undressed\",\"ACC_zee_13_powPythia_undressed\",0\)
 
 # rm *.so *.d
+
+./scripts/makeAcceptance.sh 13TeV Z test TestGEN
+./scripts/makeAcceptance.sh 13TeV W test TestGEN

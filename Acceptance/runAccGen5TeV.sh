@@ -1,6 +1,6 @@
 #! /bin/bash
 
-OUTDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Acceptance/FINAL_GEN/V
+OUTDIR=${PWD}/ResultsGEN
 
 
 ########################################
@@ -116,3 +116,7 @@ root -l -q -b computeAccGenZee.C+\(\"zee5_photos.conf\",\"${OUTDIR}/GEN_zee_5TeV
 root -l -q -b computeAccGenZee.C+\(\"zee5_pythia.conf\",\"${OUTDIR}/GEN_zee_5TeV_powPythia_undressed\",\"ACC_zee_5_powPythia_undressed\",0\)
 
 # rm *.so *.d
+
+./scripts/makeAcceptance.sh 5TeV Z test TestGEN
+./scripts/makeAcceptance.sh 5TeV W test TestGEN
+

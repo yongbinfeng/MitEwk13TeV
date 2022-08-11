@@ -93,7 +93,7 @@ void computeAccGenZee(const TString conf, // input file
     Double_t nEvtsv_pT = 0, nSelv_pT = 0, accv_pT = 0;
 
     vector<Double_t> nEvtsv_QCD(NQCD, 0), nSelv_QCD(NQCD, 0);
-    vector<Double_t> nEvtsv_PDF(NPDF, 0), nSelv_PDF(NQCD, 0);
+    vector<Double_t> nEvtsv_PDF(NPDF, 0), nSelv_PDF(NPDF, 0);
 
     TString sqrts = "13TeV";
     if (conf.Contains("5"))
@@ -125,7 +125,7 @@ void computeAccGenZee(const TString conf, // input file
         //
         // loop over events
         //
-        double frac = 0.01; // fraction of events to be used for calculation
+        double frac = 0.1; // fraction of events to be used for calculation
         double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
         // loop over the events first, to get the positive and negative frations of events,
@@ -141,7 +141,7 @@ void computeAccGenZee(const TString conf, // input file
         std::cout << "Finished first loop. Total events " << nAbsSum << " after negative weight subtraction " << nWgtSum / nAbsSum << std::endl;
 
         for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
-            if (ientry % 1000000 == 0)
+            if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
 
             genBr->GetEntry(ientry);
@@ -184,6 +184,7 @@ void computeAccGenZee(const TString conf, // input file
                 }
             }
 
+            // w = sigma * L / N, L = 1
             Double_t weight = (gen->weight > 0 ? 1 : -1) * samp->xsecv[ifile] / nWgtSum;
 
             nEvtsBeforeMass += weight;
@@ -222,16 +223,16 @@ void computeAccGenZee(const TString conf, // input file
                     continue;
                 if (fabs(lep1->Eta()) > ETA_CUT)
                     continue;
-                 if (fabs(lep1->Eta()) > ETA_BARREL && fabs(lep1->Eta()) < ETA_ENDCAP)
-                    continue;
+                //if (fabs(lep1->Eta()) > ETA_BARREL && fabs(lep1->Eta()) < ETA_ENDCAP)
+                //    continue;
                 nEvtsAfter1Lep += weight;
 
                 if (lep2->Pt() < PT_CUT)
                     continue;
                 if (fabs(lep2->Eta()) > ETA_CUT)
                     continue;
-                if (fabs(lep2->Eta()) > ETA_BARREL && fabs(lep2->Eta()) < ETA_ENDCAP)
-                    continue;
+                //if (fabs(lep2->Eta()) > ETA_BARREL && fabs(lep2->Eta()) < ETA_ENDCAP)
+                //    continue;
                 nEvtsAfter2Lep += weight;
 
                 isB1 = (fabs(lep1->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
@@ -242,16 +243,16 @@ void computeAccGenZee(const TString conf, // input file
                     continue;
                 if (fabs(lep3->Eta()) > ETA_CUT)
                     continue;
-                if (fabs(lep3->Eta()) > ETA_BARREL && fabs(lep3->Eta()) < ETA_ENDCAP)
-                    continue;
+                //if (fabs(lep3->Eta()) > ETA_BARREL && fabs(lep3->Eta()) < ETA_ENDCAP)
+                //    continue;
                 nEvtsAfter1Lep += weight;
 
                 if (lep4->Pt() < PT_CUT)
                     continue;
                 if (fabs(lep4->Eta()) > ETA_CUT)
                     continue;
-                if (fabs(lep4->Eta()) > ETA_BARREL && fabs(lep4->Eta()) < ETA_ENDCAP)
-                    continue;
+                //if (fabs(lep4->Eta()) > ETA_BARREL && fabs(lep4->Eta()) < ETA_ENDCAP)
+                //    continue;
                 nEvtsAfter2Lep += weight;
 
                 isB1 = (fabs(lep3->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
@@ -268,6 +269,7 @@ void computeAccGenZee(const TString conf, // input file
             } else {
                 nSelBEv += weight;
             }
+
             // Get the values with the QCD and PDF weights:
             // QCD first
             nSelv_QCD[0] += weight * gen->lheweight[0];
@@ -278,7 +280,7 @@ void computeAccGenZee(const TString conf, // input file
             nSelv_QCD[5] += weight * gen->lheweight[7];
             for (int npdf = 0; npdf < NPDF; npdf++)
                 nSelv_PDF[npdf] += weight * gen->lheweight[8 + npdf];
-            
+
             delete vec;
             delete lep1;
             delete lep2;
@@ -375,13 +377,11 @@ void computeAccGenZee(const TString conf, // input file
     sprintf(txtfname2, "%s/acceptance.txt", outputDir.Data());
     ofstream txtfile2;
     txtfile2.open(txtfname2);
-    txtfile2 << "*" << endl;
-    txtfile2 << "* SUMMARY" << endl;
-    txtfile2 << "*--------------------------------------------------" << endl;
-    txtfile2 << " Z -> ee" << endl;
-    txtfile2 << " Total " << setw(20) << nEvtsAfterMass << endl;
-    txtfile2 << " After lep1 cut " << setw(20) << nEvtsAfter1Lep << endl;
-    txtfile2 << " After lep2 cut " << setw(20) << nEvtsAfter2Lep << endl;
+    double ndiv = nEvtsAfterMass;
+    txtfile2 << " \\PZ\\to e^{+}e^{-}" << endl;
+    txtfile2 << " Total " << setw(20) << nEvtsAfterMass << setw(20) << nEvtsAfterMass / ndiv<< endl;
+    txtfile2 << " After_lep1_cut " << setw(20) << nEvtsAfter1Lep << setw(20) << nEvtsAfter1Lep / ndiv << endl;
+    txtfile2 << " After_lep2_cut " << setw(20) << nEvtsAfter2Lep << setw(20) << nEvtsAfter2Lep / ndiv << endl;
     txtfile2 << endl;
     txtfile2.close();
 

@@ -124,7 +124,7 @@ void computeAccGenZmm(const TString conf, // input file
         //
         // loop over events
         //
-        double frac = 0.01; // fraction of events to be used for calculation
+        double frac = 0.05; // fraction of events to be used for calculation
         double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
         // loop over the events first, to get the positive and negative frations of events, 
@@ -364,13 +364,11 @@ void computeAccGenZmm(const TString conf, // input file
     sprintf(txtfname2, "%s/acceptance.txt", outputDir.Data());
     ofstream txtfile2;
     txtfile2.open(txtfname2);
-    txtfile2 << "*" << endl;
-    txtfile2 << "* SUMMARY" << endl;
-    txtfile2 << "*--------------------------------------------------" << endl;
-    txtfile2 << " Z -> mu mu" << endl;
-    txtfile2 << " Total " << setw(20) << nEvtsAfterMass << endl;
-    txtfile2 << " After lep1 cut " << setw(20) << nEvtsAfter1Lep << endl;
-    txtfile2 << " After lep2 cut " << setw(20) << nEvtsAfter2Lep << endl;
+    double ndiv = nEvtsAfterMass;
+    txtfile2 << " \\PZ\\to\\mu^{+}\\mu^{-}" << endl;
+    txtfile2 << " Total " << setw(20) << nEvtsAfterMass << setw(20) << nEvtsAfterMass / ndiv<< endl;
+    txtfile2 << " After_lep1_cut " << setw(20) << nEvtsAfter1Lep << setw(20) << nEvtsAfter1Lep / ndiv << endl;
+    txtfile2 << " After_lep2_cut " << setw(20) << nEvtsAfter2Lep << setw(20) << nEvtsAfter2Lep / ndiv << endl;
     txtfile2 << endl;
     txtfile2.close();
 
