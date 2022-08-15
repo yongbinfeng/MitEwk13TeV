@@ -86,8 +86,8 @@ void computeAccSelZee(const TString conf, // input file
 
     const int muEtaNB = 12;
     const float muEtaRange[muEtaNB + 1] = { -2.4, -2.0, -1.566, -1.4442, -1.0, -0.5, 0, 0.5, 1.0, 1.4442, 1.566, 2.0, 2.4 };
-    const int muPtNB = 3;
-    const float muPtRange[muPtNB + 1] = { 25, 35, 50, 10000 };
+    const int muPtNB = 4;
+    const float muPtRange[muPtNB + 1] = { 25, 30, 35, 40, 50};
     // const int muPtNB = 9;
     // const float muPtRange[muPtNB+1] = {25,27,29,31,33,35,40,50,60,10000};
     // const int muPtNB = 11;
@@ -104,7 +104,8 @@ void computeAccSelZee(const TString conf, // input file
     // effs.loadSta("MuStaEff_aMCxPythia","Combined","Combined");
     effs.loadUncSel(SysFileGSFSel);
 
-    const TString corrFiles = "../EleScale/Run2017_LowPU_v2";
+    //const TString corrFiles = "../EleScale/Run2017_LowPU_v2";
+    const TString corrFiles = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
     EnergyScaleCorrection eleCorr(corrFiles.Data(), EnergyScaleCorrection::ECALELF); // eleCorr.doScale= true; eleCorr.doSmearings =true;
     // load pileup reweighting file
     TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
@@ -165,9 +166,9 @@ void computeAccSelZee(const TString conf, // input file
 
     // Variables to store acceptances and uncertainties (per input file)
     vector<Double_t> nEvtsv, nSelv;
-    vector<Double_t> nSelCorrv, nSelCorrVarv;
+    vector<Double_t> nSelCorrv, nSelCorrVarv, nSelCorrVarvPos, nSelCorrVarvNeg;
     vector<Double_t> accv, accCorrv;
-    vector<Double_t> accErrv, accErrCorrv;
+    vector<Double_t> accErrv, accErrCorrv, accErrCorrvPos, accErrCorrvNeg;
     vector<Double_t> nSelCorrvFSR, nSelCorrvMC, nSelCorrvBkg, nSelCorrvTag;
     vector<Double_t> nSelCorrVarvFSR, nSelCorrVarvMC, nSelCorrVarvBkg, nSelCorrVarvTag;
     vector<Double_t> accCorrvFSR, accCorrvMC, accCorrvBkg, accCorrvTag;
@@ -202,6 +203,8 @@ void computeAccSelZee(const TString conf, // input file
         nSelv.push_back(0);
         nSelCorrv.push_back(0);
         nSelCorrVarv.push_back(0);
+        nSelCorrVarvPos.push_back(0);
+        nSelCorrVarvNeg.push_back(0);
         nSelCorrvFSR.push_back(0);
         nSelCorrVarvFSR.push_back(0);
         nSelCorrvMC.push_back(0);
@@ -215,7 +218,7 @@ void computeAccSelZee(const TString conf, // input file
         // loop over events
         //
         // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-        for (UInt_t ientry = 0; ientry < (uint)(0.25 * eventTree->GetEntries()); ientry++) {
+        for (UInt_t ientry = 0; ientry < (uint)(0.05 * eventTree->GetEntries()); ientry++) {
             // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry+=15) {
             if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
@@ -233,8 +236,8 @@ void computeAccSelZee(const TString conf, // input file
             TLorentzVector* lep1 = new TLorentzVector(0, 0, 0, 0);
             TLorentzVector* lep2 = new TLorentzVector(0, 0, 0, 0);
             toolbox::fillGen(genPartArr, BOSON_ID, vec, lep1, lep2, &glepq1, &glepq2, 1);
-            if (vec->M() < MASS_LOW || vec->M() > MASS_HIGH)
-                continue;
+            //if (vec->M() < MASS_LOW || vec->M() > MASS_HIGH)
+            //    continue;
             delete vec;
             delete lep1;
             delete lep2;
@@ -265,9 +268,6 @@ void computeAccSelZee(const TString conf, // input file
 
                 TLorentzVector vEle1(0, 0, 0, 0);
                 vEle1.SetPtEtaPhiM(ele1->pt, ele1->eta, ele1->phi, ELE_MASS);
-
-                // check ECAL gap
-                // if(fabs(vEle1.Eta())>=ETA_BARREL && fabs(vEle1.Eta())<=ETA_ENDCAP) continue;
 
                 if (doScaleCorr && (ele1->r9 < 1.)) {
                     // set up variable and apply smear correction to ele1
@@ -300,16 +300,17 @@ void computeAccSelZee(const TString conf, // input file
                     continue; // lepton pT cut
                 if (fabs(vEle1.Eta()) > ETA_CUT)
                     continue; // lepton |eta| cut
+                if(fabs(vEle1.Eta())>=ETA_BARREL && fabs(vEle1.Eta())<=ETA_ENDCAP) 
+                    continue;
                 if (!passEleMediumID(ele1, vEle1, info->rhoIso))
                     continue; // lepton selection
+
 
                 for (Int_t i2 = i1 + 1; i2 < electronArr->GetEntriesFast(); i2++) {
                     const baconhep::TElectron* ele2 = (baconhep::TElectron*)((*electronArr)[i2]);
 
                     TLorentzVector vEle2(0, 0, 0, 0);
                     vEle2.SetPtEtaPhiM(ele2->pt, ele2->eta, ele2->phi, ELE_MASS);
-
-                    // if(fabs(vEle2.Eta())>=ETA_BARREL && fabs(vEle2.Eta())<=ETA_ENDCAP) continue;
 
                     if (doScaleCorr && (ele2->r9 < 1.)) {
                         float ele2Smear = 0.;
@@ -346,6 +347,8 @@ void computeAccSelZee(const TString conf, // input file
                         continue; // lepton |eta| cut
                     if (!passEleMediumID(ele2, vEle2, info->rhoIso))
                         continue; // lepton selection
+                    if(fabs(vEle2.Eta())>=ETA_BARREL && fabs(vEle2.Eta())<=ETA_ENDCAP) 
+                        continue;
 
                     if (!isEleTriggerObj(triggerMenu, ele1->hltMatchBits, kFALSE, kFALSE, is13TeV) && !isEleTriggerObj(triggerMenu, ele2->hltMatchBits, kFALSE, kFALSE, is13TeV))
                         continue;
@@ -371,7 +374,7 @@ void computeAccSelZee(const TString conf, // input file
                     int q1 = ele1->q;
                     int q2 = ele2->q;
 
-                    corr = effs.fullEfficiencies(&vEle1, q1, &vEle2, q2);
+                    corr = effs.fullCorrections(&vEle1, q1, &vEle2, q2);
                     // corr = effs.dataOnly(&vEle1,q1,&vEle2,q2);
                     // dataeff = effs.dataOnly(&vEle1,q1,&vEle2,q2);
                     vector<double> uncs_gsf = effs.getUncSel(&vEle1, q1, &vEle2, q2);
@@ -384,8 +387,8 @@ void computeAccSelZee(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr);
-                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr);
+                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
                     var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
                     var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
                     // cout << var1 << " " << var << endl;
@@ -408,26 +411,33 @@ void computeAccSelZee(const TString conf, // input file
 
         cout << "already there " << nSelCorrVarv[ifile] << endl;
 
-        Double_t var = 0;
-        for (Int_t iy = 1; iy <= hHLTErr_pos->GetNbinsY(); iy++) {
-            for (Int_t ix = 1; ix <= hHLTErr_pos->GetNbinsX(); ix++) {
+        Double_t var = 0, var_pos = 0, var_neg = 0;
+        for (Int_t iy = 0; iy <= hHLTErr_pos->GetNbinsY() + 1; iy++) {
+            for (Int_t ix = 0; ix <= hHLTErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hHLTErr_pos->GetBinContent(ix, iy);
                 var += err * err;
+                var_pos += err * err;
                 // cout << "hlt pos " << err*err << endl;
                 err = hHLTErr_neg->GetBinContent(ix, iy);
                 var += err * err;
+                var_neg += err * err;
+
+                std::cout << "hlt x " <<  ix << " y " << iy << " err " << err << std::endl;
             }
         }
         cout << "var1: " << var << endl;
-        for (Int_t iy = 1; iy <= hGsfSelErr_pos->GetNbinsY(); iy++) {
-            for (Int_t ix = 1; ix <= hGsfSelErr_pos->GetNbinsX(); ix++) {
+        for (Int_t iy = 0; iy <= hGsfSelErr_pos->GetNbinsY() + 1; iy++) {
+            for (Int_t ix = 0; ix <= hGsfSelErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hGsfSelErr_pos->GetBinContent(ix, iy);
 
                 var += err * err;
+                var_pos += err * err;
                 err = hGsfSelErr_neg->GetBinContent(ix, iy);
 
                 var += err * err;
+                var_neg += err * err;
                 // cout << "gsf pos " << err*err << endl;
+                std::cout << "gsf x " <<  ix << " y " << iy << " err " << err << std::endl;
             }
         }
         std::cout << "blah  " << std::endl;
@@ -435,6 +445,8 @@ void computeAccSelZee(const TString conf, // input file
         nSelCorrVarvMC[ifile] += var;
         nSelCorrVarvBkg[ifile] += var;
         nSelCorrVarv[ifile] += var;
+        nSelCorrVarvPos[ifile] += var_pos;
+        nSelCorrVarvNeg[ifile] += var_neg;
         cout << var << endl;
         std::cout << "comput acceptances" << std::endl;
 
@@ -453,7 +465,12 @@ void computeAccSelZee(const TString conf, // input file
         accErrCorrvMC.push_back(accCorrvMC[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvMC[ifile] * nSelCorrvMC[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvBkg.push_back(accCorrvBkg[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvBkg[ifile] * nSelCorrvBkg[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvTag.push_back(accCorrvTag[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvTag[ifile] * nSelCorrvTag[ifile]) + 1. / nEvtsv[ifile]));
-        accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrvPos.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvPos[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrvNeg.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvNeg[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        accErrCorrv.push_back(accCorrv[ifile] * sqrt(nSelCorrVarv[ifile]) / nSelCorrv[ifile] );
+        accErrCorrvPos.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvPos[ifile]) / nSelCorrv[ifile] );
+        accErrCorrvNeg.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvNeg[ifile]) / nSelCorrv[ifile] );
 
         delete infile;
         infile = 0, eventTree = 0;
@@ -475,6 +492,8 @@ void computeAccSelZee(const TString conf, // input file
         txtfile.open(masterOutput);
         txtfile << "acc " << accCorrv[ifile] << endl;
         txtfile << "acc_stat " << accCorrv[ifile] + accErrCorrv[ifile] << endl;
+        txtfile << "acc_stat pos " << accCorrv[ifile] + accErrCorrvPos[ifile] << endl;
+        txtfile << "acc_stat neg " << accCorrv[ifile] + accErrCorrvNeg[ifile] << endl;
         txtfile << "sel_fsr"
                 << " " << accCorrvFSR[ifile] << endl;
         txtfile << "sel_mc"
@@ -503,6 +522,8 @@ void computeAccSelZee(const TString conf, // input file
         cout << "    *** Acceptance ***" << endl;
         cout << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
         cout << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
+        cout << "     SF corrected pos: " << accCorrv[ifile] << " +/- " << accErrCorrvPos[ifile] << endl;
+        cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrvNeg[ifile] << endl;
         cout << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
         cout << "          pct: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
         cout << "          FSR unc: " << accCorrvFSR[ifile] << " +/- " << accErrCorrvFSR[ifile] << endl;
@@ -534,6 +555,8 @@ void computeAccSelZee(const TString conf, // input file
         txtfile << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
         txtfile << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
         txtfile << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
+        txtfile << "     SF corrected Pos: " << accCorrv[ifile] << " +/- " << accErrCorrvPos[ifile] << endl;
+        txtfile << "     SF corrected Neg: " << accCorrv[ifile] << " +/- " << accErrCorrvNeg[ifile] << endl;
         txtfile << "          FSR unc: " << accCorrvFSR[ifile] << " +/- " << accErrCorrvFSR[ifile] << endl;
         txtfile << "           MC unc: " << accCorrvMC[ifile] << " +/- " << accErrCorrvMC[ifile] << endl;
         txtfile << "          Bkg unc: " << accCorrvBkg[ifile] << " +/- " << accErrCorrvBkg[ifile] << endl;

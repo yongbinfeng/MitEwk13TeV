@@ -259,15 +259,20 @@ public:
         if (q1 > 0) {
             Double_t effdata = eff.dataPos.getEff(l1->Eta(), l1->Pt());
             Double_t errdata = TMath::Max(eff.dataPos.getErrLow(l1->Eta(), l1->Pt()), eff.dataPos.getErrHigh(l1->Eta(), l1->Pt()));
+            //Double_t errdata = 0.5 * (eff.dataPos.getErrLow(l1->Eta(), l1->Pt()) + eff.dataPos.getErrHigh(l1->Eta(), l1->Pt()));
             Double_t effmc = eff.mcPos.getEff(l1->Eta(), l1->Pt());
             Double_t errmc = TMath::Max(eff.mcPos.getErrLow(l1->Eta(), l1->Pt()), eff.mcPos.getErrHigh(l1->Eta(), l1->Pt()));
-            Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
+            //Double_t errmc = 0.5* (eff.mcPos.getErrLow(l1->Eta(), l1->Pt()) + eff.mcPos.getErrHigh(l1->Eta(), l1->Pt()));
             if (scale) {
                 // double the statistical uncertainty if applying the scale
                 // because sometimes the corrections are measured charge inclusively
                 // where the statistical uncertainty is underestimated by roughly 1/sqrt(2)
-                errSta = errSta * sqrt(2);
+                errmc = errmc * sqrt(2);
+                errdata = errdata * sqrt(2);
             }
+            // err(a/b) = a/b * sqrt( err_a^2 / a^2 + err_b^2 / b^2)
+            Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / (effdata * effdata) + errmc * errmc / (effmc * effmc));
+
             pos->Fill(l1->Eta(), l1->Pt(), errSta * wgt);
             var += errSta * errSta;
         } else {
@@ -275,11 +280,13 @@ public:
             Double_t errdata = TMath::Max(eff.dataNeg.getErrLow(l1->Eta(), l1->Pt()), eff.dataNeg.getErrHigh(l1->Eta(), l1->Pt()));
             Double_t effmc = eff.mcNeg.getEff(l1->Eta(), l1->Pt());
             Double_t errmc = TMath::Max(eff.mcNeg.getErrLow(l1->Eta(), l1->Pt()), eff.mcNeg.getErrHigh(l1->Eta(), l1->Pt()));
-            Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / effdata / effdata + errmc * errmc / effmc / effmc);
             if (scale) {
                 // similar idea as positive
-                errSta = errSta * sqrt(2);
+                errmc *= sqrt(2);
+                errdata *= sqrt(2);
             }
+            Double_t errSta = (effdata / effmc) * sqrt(errdata * errdata / (effdata * effdata) + errmc * errmc / (effmc * effmc));
+
             neg->Fill(l1->Eta(), l1->Pt(), errSta * wgt);
             var += errSta * errSta;
         }

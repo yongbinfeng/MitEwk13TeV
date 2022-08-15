@@ -35,6 +35,7 @@
 
 #include "../Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
 #include "../Utils/MyTools.hh" // various helper functions
+#include "../RochesterCorr/RoccoR.cc"
 
 // helper class to handle efficiency tables
 #include "../Utils/AppEffSF.cc"
@@ -62,6 +63,7 @@ void computeAccSelZmm(const TString conf, // input file
     const Double_t MASS_LOW = 60;
     const Double_t MASS_HIGH = 120;
     const Double_t PT_CUT = 25;
+    const Double_t PT_CUT_PRESELECT = 20;
     const Double_t ETA_CUT = 2.4;
     const Double_t MUON_MASS = 0.105658369;
 
@@ -89,6 +91,8 @@ void computeAccSelZmm(const TString conf, // input file
     // load pileup reweighting file
     TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
     TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
+
+    RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -148,13 +152,16 @@ void computeAccSelZmm(const TString conf, // input file
 
     // Variables to store acceptances and uncertainties (per input file)
     vector<Double_t> nEvtsv, nSelv, nAllv;
-    vector<Double_t> nSelCorrv, nSelCorrVarv;
+    vector<Double_t> nEvtsv_inFiducial, nSelv_inFiducial, nSelCorrv_inFiducial, nSelCorrv_MC, nSelCorrv_lepup, nSelCorrv_lepdn, nSelCorrv_leps;
+    vector<Double_t> nEvtsv_pv, nEvtsv_reco, nEvtsv_sta, nEvtsv_sel, nEvtsv_trig;
+    vector<Double_t> nSelCorrv, nSelCorrVarv, nSelCorrVarv_pos, nSelCorrVarv_neg;
     vector<Double_t> accv, accCorrv;
-    vector<Double_t> accErrv, accErrCorrv;
+    vector<Double_t> accErrv, accErrCorrv, accErrCorrv_pos, accErrCorrv_neg;
     vector<Double_t> nSelCorrvFSR, nSelCorrvMC, nSelCorrvBkg, nSelCorrvTag; //, nSelCorrvStat;
     vector<Double_t> nSelCorrvFSR_I, nSelCorrvMC_I, nSelCorrvBkg_I, nSelCorrvTag_I; //, nSelCorrvStat_I;
     vector<Double_t> nSelCorrvFSR_S, nSelCorrvMC_S, nSelCorrvBkg_S, nSelCorrvTag_S; //, nSelCorrvStat_S;
     vector<Double_t> nSelCorrVarvFSR, nSelCorrVarvMC, nSelCorrVarvBkg, nSelCorrVarvTag; //, nSelCorrVarvStat;
+    vector<Double_t> nSelCorrv_MC_trg, nSelCorrv_MC_sel, nSelCorrv_MC_sit; // for closure test
     vector<Double_t> accCorrvFSR, accCorrvMC, accCorrvBkg, accCorrvTag; //, accCorrvStat;
     vector<Double_t> accCorrvFSR_I, accCorrvMC_I, accCorrvBkg_I, accCorrvTag_I; //, accCorrvStat_I;
     vector<Double_t> accCorrvFSR_S, accCorrvMC_S, accCorrvBkg_S, accCorrvTag_S; //, accCorrvStat_S;
@@ -186,9 +193,23 @@ void computeAccSelZmm(const TString conf, // input file
 
         nAllv.push_back(0);
         nEvtsv.push_back(0);
+        nEvtsv_inFiducial.push_back(0);
+        nEvtsv_pv.push_back(0);
+        nEvtsv_reco.push_back(0);
+        nEvtsv_sta.push_back(0);
+        nEvtsv_sel.push_back(0);
+        nEvtsv_trig.push_back(0);
         nSelv.push_back(0);
+        nSelv_inFiducial.push_back(0);
+        nSelCorrv_inFiducial.push_back(0);
+        nSelCorrv_MC.push_back(0);
+        nSelCorrv_lepup.push_back(0);
+        nSelCorrv_lepdn.push_back(0);
+        nSelCorrv_leps.push_back(0);
         nSelCorrv.push_back(0);
         nSelCorrVarv.push_back(0);
+        nSelCorrVarv_pos.push_back(0);
+        nSelCorrVarv_neg.push_back(0);
         nSelCorrvFSR.push_back(0);
         nSelCorrVarvFSR.push_back(0);
         nSelCorrvMC.push_back(0);
@@ -205,11 +226,15 @@ void computeAccSelZmm(const TString conf, // input file
         nSelCorrvBkg_S.push_back(0);
         nSelCorrvTag_I.push_back(0);
         nSelCorrvTag_S.push_back(0);
+
+        nSelCorrv_MC_trg.push_back(0);
+        nSelCorrv_MC_sel.push_back(0);
+        nSelCorrv_MC_sit.push_back(0);
         //
         // loop over events
         //
         // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-        for (UInt_t ientry = 0; ientry < (uint)(0.25 * eventTree->GetEntries()); ientry++) {
+        for (UInt_t ientry = 0; ientry < (uint)(0.1 * eventTree->GetEntries()); ientry++) {
             if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
             genBr->GetEntry(ientry);
@@ -219,25 +244,48 @@ void computeAccSelZmm(const TString conf, // input file
 
             Int_t glepq1 = -99;
             Int_t glepq2 = -99;
-            bool alreadyDid = false;
 
             if (fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
                 continue;
 
-            nAllv[ifile] += gen->weight;
+            //nAllv[ifile] += gen->weight;
+            nAllv[ifile] += (gen->weight > 0) ? 1: -1;
+
             TLorentzVector* vec = new TLorentzVector(0, 0, 0, 0);
             TLorentzVector* lep1 = new TLorentzVector(0, 0, 0, 0);
             TLorentzVector* lep2 = new TLorentzVector(0, 0, 0, 0);
-            toolbox::fillGen(genPartArr, BOSON_ID, vec, lep1, lep2, &glepq1, &glepq2, 1);
-            // if((vec->M()<MASS_LOW || vec->M()>MASS_HIGH)) continue;
-            delete vec;
-            delete lep1;
-            delete lep2;
+            TLorentzVector* lep3 = new TLorentzVector(0, 0, 0, 0);
+            TLorentzVector* lep4 = new TLorentzVector(0, 0, 0, 0);
+            toolbox::fillGenBorn(genPartArr, BOSON_ID, vec, lep1, lep2, lep3, lep4);
 
+            bool doDressed = true;
+
+            if (doDressed) {
+                //cout << "do dressed lepton " << endl;
+                TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
+                for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++) {
+                    const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
+                    if (fabs(genloop->pdgId) != 22)
+                        continue;
+                    gph->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+                    if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep3->Eta(), lep3->Phi()) < 0.1)
+                        lep3->operator+=(*gph);
+                    if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep4->Eta(), lep4->Phi()) < 0.1)
+                        lep4->operator+=(*gph);
+                }
+                delete gph;
+            }
+
+            double genmass =vec->M();
+            //if (ientry%1==0)
+            //    cout << "mass " << genmass << endl;
+
+            // if((vec->M()<MASS_LOW || vec->M()>MASS_HIGH)) continue;
             vertexArr->Clear();
             vertexBr->GetEntry(ientry);
             double npv = vertexArr->GetEntries();
             Double_t weight = gen->weight;
+            //Double_t weight = (gen->weight > 0) ? 1: -1;
             if (doPU > 0)
                 weight *= h_rw->GetBinContent(h_rw->FindBin(info->nPUmean));
 
@@ -250,70 +298,172 @@ void computeAccSelZmm(const TString conf, // input file
             // good vertex requirement
             if (!(info->hasGoodPV))
                 continue;
+            nEvtsv_pv[ifile] += weight;
 
             muonArr->Clear();
             muonBr->GetEntry(ientry);
 
             for (Int_t i1 = 0; i1 < muonArr->GetEntriesFast(); i1++) {
+                double weight_l1 = weight;
+                double weight_l1_lepup = weight;
+                double weight_l1_lepdn = weight;
+                double weight_l1_leps = weight;
+
                 const baconhep::TMuon* mu1 = (baconhep::TMuon*)((*muonArr)[i1]);
 
-                if (mu1->pt < PT_CUT)
+                if (mu1->pt < PT_CUT_PRESELECT)
                     continue; // lepton pT cut
                 if (fabs(mu1->eta) > ETA_CUT)
                     continue; // lepton |eta| cut
                 if (!passMuonID(mu1))
                     continue; // lepton selection
 
+                int q1 = mu1->q;
+
                 TLorentzVector vMu1(0, 0, 0, 0);
                 vMu1.SetPtEtaPhiM(mu1->pt, mu1->eta, mu1->phi, MUON_MASS);
+                TLorentzVector vMu1u, vMu1d;
+                vMu1u = vMu1;
+                vMu1d = vMu1;
 
-                for (Int_t i2 = i1 + 1; i2 < muonArr->GetEntriesFast(); i2++) {
+                // rochester correction
+                float genMuonPt1 = -1;
+                if (lep3 && toolbox::deltaR(mu1->eta, mu1->phi, lep3->Eta(), lep3->Phi()) < 0.3) {
+                    genMuonPt1 = lep3->Pt();
+                } else if (lep4 && toolbox::deltaR(mu1->eta, mu1->phi, lep4->Eta(), lep4->Phi()) < 0.3) {
+                    genMuonPt1 = lep4->Pt();
+                }
+                double mcSF1 = 1;
+                double deltaMcSF1 = 0.;
+                if (genMuonPt1 > 0) {
+                    mcSF1 = rc.kSpreadMC(q1, vMu1.Pt(), vMu1.Eta(), vMu1.Phi(), genMuonPt1);
+                    deltaMcSF1 = rc.kSpreadMCerror(q1, vMu1.Pt(), vMu1.Eta(), vMu1.Phi(), genMuonPt1);
+                } else {
+                    double rand = gRandom->Uniform(1);
+                    mcSF1 = rc.kSmearMC(q1, vMu1.Pt(), vMu1.Eta(), vMu1.Phi(), mu1->nTkLayers, rand);
+                    deltaMcSF1 = rc.kSmearMCerror(q1, vMu1.Pt(), vMu1.Eta(), vMu1.Phi(), mu1->nTkLayers, rand);
+                }
+                mcSF1 = 1.0;
+                vMu1 *= mcSF1;
+                vMu1u *= mcSF1 * (1 + deltaMcSF1);
+                vMu1d *= mcSF1 * (1 - deltaMcSF1);
+                if (vMu1.Pt() < PT_CUT)
+                    continue; // lepton pT cut
+                // do not use continue option to evaluate the lepton 
+                // energy scale effects
+                double weight_lepup = weight;
+                double weight_lepdn = weight;
+
+                weight_l1_lepup *= (vMu1u.Pt() >= PT_CUT);
+                weight_l1_lepdn *= (vMu1d.Pt() >= PT_CUT);
+
+                double rsmear = gRandom->Gaus(0,1);
+                // check the smearing effect on the Z->mumu counts
+                TLorentzVector vMu1s;
+                vMu1s.SetPtEtaPhiM( vMu1.Pt() + rsmear * 0.3, vMu1.Eta(), vMu1.Phi(), vMu1.M() );
+                weight_l1_leps *= (vMu1s.Pt() >= PT_CUT);
+
+                for (Int_t i2 = i1 + 1; (i2 < muonArr->GetEntriesFast()); i2++) {
+
+                    double weight_l2 = weight_l1;
+                    double weight_l2_lepup = weight_l1_lepup;
+                    double weight_l2_lepdn = weight_l1_lepdn;
+                    double weight_l2_leps = weight_l1_leps;
+
                     const baconhep::TMuon* mu2 = (baconhep::TMuon*)((*muonArr)[i2]);
 
                     if (mu1->q == mu2->q)
                         continue; // opposite charge requirement
-                    if (mu2->pt < PT_CUT)
+                    if (mu2->pt < PT_CUT_PRESELECT)
                         continue; // lepton pT cut
                     if (fabs(mu2->eta) > ETA_CUT)
                         continue; // lepton |eta| cut
                     if (!passMuonID(mu2))
                         continue; // lepton selection
 
+                    int q2 = mu2->q;
+
                     TLorentzVector vMu2(0, 0, 0, 0);
                     vMu2.SetPtEtaPhiM(mu2->pt, mu2->eta, mu2->phi, MUON_MASS);
+                    TLorentzVector vMu2u, vMu2d;
+                    vMu2u = vMu2;
+                    vMu2d = vMu2;
 
-                    // trigger match
-                    if (!isMuonTriggerObj(triggerMenu, mu1->hltMatchBits, kFALSE, is13TeV) && !isMuonTriggerObj(triggerMenu, mu2->hltMatchBits, kFALSE, is13TeV))
-                        continue;
+                    // rochester correction for mu2
+                    float genMuonPt2 = -1;
+                    if (lep3 && toolbox::deltaR(mu2->eta, mu2->phi, lep3->Eta(), lep3->Phi()) < 0.3) {
+                        genMuonPt2 = lep3->Pt();
+                    } else if (lep4 && toolbox::deltaR(mu2->eta, mu2->phi, lep4->Eta(), lep4->Phi()) < 0.3) {
+                        genMuonPt2 = lep4->Pt();
+                    }
+                    double mcSF2 = 1;
+                    double deltaMcSF2 = 0.;
+                    if (genMuonPt2 > 0) {
+                        mcSF2 = rc.kSpreadMC(q2, vMu2.Pt(), vMu2.Eta(), vMu2.Phi(), genMuonPt2);
+                        deltaMcSF2 = rc.kSpreadMCerror(q2, vMu2.Pt(), vMu2.Eta(), vMu2.Phi(), genMuonPt2);
+                    } else {
+                        double rand = gRandom->Uniform(1);
+                        mcSF2 = rc.kSmearMC(q2, vMu2.Pt(), vMu2.Eta(), vMu2.Phi(), mu2->nTkLayers, rand);
+                        deltaMcSF2 = rc.kSmearMCerror(q2, vMu2.Pt(), vMu2.Eta(), vMu2.Phi(), mu2->nTkLayers, rand);
+                    }
+
+                    //std::cout << "mcSF1 " << mcSF1 << " deltaMcSF1 " << deltaMcSF1 << " mcSF2 " << mcSF2 << " deltaMcSF2 " << deltaMcSF2 << std::endl;
+                    mcSF2 = 1.0;
+                    vMu2 *= mcSF2;
+                    vMu2u *= mcSF2 * (1 + deltaMcSF2);
+                    vMu2d *= mcSF2 * (1 - deltaMcSF2);
+                    if (vMu2.Pt() < PT_CUT)
+                        continue; // lepton pT cut
+                    // do not use continue option to evaluate the lepton
+                    // energy scale effects
+                    weight_l2_lepup *= (vMu2u.Pt() >= PT_CUT);
+                    weight_l2_lepdn *= (vMu2d.Pt() >= PT_CUT);
+
+                    double rsmear = gRandom->Gaus(0,1);
+                    TLorentzVector vMu2s;
+                    vMu2s.SetPtEtaPhiM( vMu2.Pt() + rsmear * 0.3, vMu2.Eta(), vMu2.Phi(), vMu2.M() );
+                    weight_l2_leps *= (vMu2s.Pt() >= PT_CUT);
+
+
                     // mass window
                     TLorentzVector vDilep = vMu1 + vMu2;
                     if ((vDilep.M() < MASS_LOW) || (vDilep.M() > MASS_HIGH))
                         continue;
 
+                    TLorentzVector vDilepu = vMu1u + vMu2u;
+                    weight_l2_lepup *= ((vDilepu.M() >= MASS_LOW) && (vDilepu.M() <= MASS_HIGH));
+                    TLorentzVector vDilepd = vMu1d + vMu2d;
+                    weight_l2_lepdn *= ((vDilepd.M() >= MASS_LOW) && (vDilepd.M() <= MASS_HIGH));
+
+                    TLorentzVector vDileps = vMu1s + vMu2s;
+                    weight_l2_leps *= ((vDileps.M() >= MASS_LOW) && (vDileps.M() <= MASS_HIGH));
+
+                    //std::cout << "mu1 pt " << vMu1.Pt() << " up " << vMu1u.Pt() << " down " << vMu1d.Pt() << std::endl;
+                    //std::cout << "mu2 pt " << vMu2.Pt() << " up " << vMu2u.Pt() << " down " << vMu2d.Pt() << std::endl;
+                    //std::cout << "invariant mass " << vDilep.M() << " up " << vDilepu.M() << " down " << vDilepd.M() << std::endl;
+
+                    // gen reco matching
+                    bool isMatched = false;
+                    Bool_t match1 = false;
+                    Bool_t match2 = false;
+                    if (lep3 && lep4 && lep3->Pt() > 0 && lep4->Pt() > 0) {
+                        match1 = ((toolbox::deltaR(vMu1.Eta(), vMu1.Phi(), lep3->Eta(), lep3->Phi()) < 0.3) || (toolbox::deltaR(vMu1.Eta(), vMu1.Phi(), lep4->Eta(), lep4->Phi()) < 0.3));
+                        match2 = ((toolbox::deltaR(vMu2.Eta(), vMu2.Phi(), lep3->Eta(), lep3->Phi()) < 0.3) || (toolbox::deltaR(vMu2.Eta(), vMu2.Phi(), lep4->Eta(), lep4->Phi()) < 0.3));
+                    }
+                    if (match1 && match2 && q1!=q2 )
+                        isMatched = true;
+
+                    // trigger match
+                    if (!isMuonTriggerObj(triggerMenu, mu1->hltMatchBits, kFALSE, is13TeV) && !isMuonTriggerObj(triggerMenu, mu2->hltMatchBits, kFALSE, is13TeV))
+                        continue;
+
                     /******** We have a Z candidate! HURRAY! ********/
-                    Double_t effdata, effmc, emTag;
-                    Double_t edFSR, edMC, edBkg, edTag; //, edStat;
-                    Double_t corr = 1;
                     Double_t corrFSR = 1, corrMC = 1, corrBkg = 1, corrTag = 1; //, corrStat=1;
                     Double_t corrFSR_I = 1, corrMC_I = 1, corrBkg_I = 1, corrTag_I = 1; //, corrStat_I=1;
                     Double_t corrFSR_S = 1, corrMC_S = 1, corrBkg_S = 1, corrTag_S = 1; //, corrStat_S=1;
 
-                    effdata = 1;
-                    effmc = 1;
-                    emTag = 1;
-                    edFSR = 1;
-                    edMC = 1;
-                    edBkg = 1;
-                    edTag = 1; //edStat=1;
-                    // }
-                    if (alreadyDid)
-                        continue;
-                    alreadyDid = true;
 
-                    int q1 = mu1->q;
-                    int q2 = mu2->q;
-
-                    corr = effs.fullEfficiencies(&vMu1, q1, &vMu2, q2);
+                    double corr = effs.fullCorrections(&vMu1, q1, &vMu2, q2);
                     // corr = effs.dataOnly(&vMu1,q1,&vMu2,q2);
                     vector<double> uncs_sta = effs.getUncSta(&vMu1, q1, &vMu2, q2);
                     vector<double> uncs_sit = effs.getUncSel(&vMu1, q1, &vMu2, q2);
@@ -321,8 +471,7 @@ void computeAccSelZmm(const TString conf, // input file
                     corrFSR *= uncs_sta[0] * uncs_sit[0] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2); // alternate fsr model
                     corrMC *= uncs_sta[1] * uncs_sit[1] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2); // alternate mc gen model
                     corrBkg *= uncs_sta[2] * uncs_sit[2] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2); // alternate bkg model
-                    corrTag *= uncs_sta[3] * uncs_sit[3] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2); // alternate bkg model
-                    // corr *= effdata/effmc; // orig
+                    corrTag *= uncs_sta[3] * uncs_sit[3] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2); // alternate tag-pt cut
 
                     corrFSR_I *= uncs_sit[0] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2) * effs.computeStaSF(&vMu1, q1, &vMu2, q2);
                     corrMC_I *= uncs_sit[1] * effs.computeHLTSF(&vMu1, q1, &vMu2, q2) * effs.computeStaSF(&vMu1, q1, &vMu2, q2);
@@ -336,75 +485,108 @@ void computeAccSelZmm(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, fabs(weight) * corr);
-                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, fabs(weight) * corr);
-                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, fabs(weight) * corr);
-                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, fabs(weight) * corr);
-                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
-                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
+                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
+                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
 
                     // std::cout << info->evtNum << " " << corr << " " << std::endl;
-                    nSelv[ifile] += weight;
-                    nSelCorrvFSR[ifile] += weight * corrFSR;
-                    nSelCorrvFSR_I[ifile] += weight * corrFSR_I;
-                    nSelCorrvFSR_S[ifile] += weight * corrFSR_S;
-                    nSelCorrvMC[ifile] += weight * corrMC;
-                    nSelCorrvMC_I[ifile] += weight * corrMC_I;
-                    nSelCorrvMC_S[ifile] += weight * corrMC_S;
-                    nSelCorrvBkg[ifile] += weight * corrBkg;
-                    nSelCorrvBkg_I[ifile] += weight * corrBkg_I;
-                    nSelCorrvBkg_S[ifile] += weight * corrBkg_S;
-                    nSelCorrvTag[ifile] += weight * corrTag;
-                    nSelCorrvTag_I[ifile] += weight * corrTag_I;
-                    nSelCorrvTag_S[ifile] += weight * corrTag_S;
+                    nSelv[ifile] += weight_l2;
+                    nSelCorrvFSR[ifile] += weight_l2 * corrFSR;
+                    nSelCorrvFSR_I[ifile] += weight_l2 * corrFSR_I;
+                    nSelCorrvFSR_S[ifile] += weight_l2 * corrFSR_S;
+                    nSelCorrvMC[ifile] += weight_l2 * corrMC;
+                    nSelCorrvMC_I[ifile] += weight_l2 * corrMC_I;
+                    nSelCorrvMC_S[ifile] += weight_l2 * corrMC_S;
+                    nSelCorrvBkg[ifile] += weight_l2 * corrBkg;
+                    nSelCorrvBkg_I[ifile] += weight_l2 * corrBkg_I;
+                    nSelCorrvBkg_S[ifile] += weight_l2 * corrBkg_S;
+                    nSelCorrvTag[ifile] += weight_l2 * corrTag;
+                    nSelCorrvTag_I[ifile] += weight_l2 * corrTag_I;
+                    nSelCorrvTag_S[ifile] += weight_l2 * corrTag_S;
 
-                    nSelCorrv[ifile] += weight * corr;
-                    nSelCorrVarvFSR[ifile] += weight * weight * corrFSR * corrFSR;
-                    nSelCorrVarvMC[ifile] += weight * weight * corrMC * corrMC;
-                    nSelCorrVarvBkg[ifile] += weight * weight * corrBkg * corrBkg;
-                    nSelCorrVarvTag[ifile] += weight * weight * corrTag * corrTag;
+                    // get the MC efficiencies
+                    double effMC = effs.efficiencyOnly(&vMu1, q1, &vMu2, q2, 0);
+                    nSelCorrv_MC[ifile] += weight_l2 / effMC;
+                    nSelCorrv[ifile] += weight_l2 * corr;
+                    nSelCorrVarvFSR[ifile] += weight_l2 * weight_l2 * corrFSR * corrFSR;
+                    nSelCorrVarvMC[ifile] += weight_l2 * weight_l2 * corrMC * corrMC;
+                    nSelCorrVarvBkg[ifile] += weight_l2 * weight_l2 * corrBkg * corrBkg;
+                    nSelCorrVarvTag[ifile] += weight_l2 * weight_l2 * corrTag * corrTag;
                     // nSelCorrVarv[ifile]+=weight*weight*corr*corr;
+                    //
+                    nSelCorrv_lepup[ifile] += weight_l2_lepup * corr;
+                    nSelCorrv_lepdn[ifile] += weight_l2_lepdn * corr;
+                    nSelCorrv_leps[ifile]  += weight_l2_leps * corr;
+                    
+                    // for closure test
+                    double effMC_sta = effs.effSta(&vMu1, q1, &vMu2, q2, 0);
+                    double effMC_sel = effs.effSel(&vMu1, q1, &vMu2, q2, 0);
+                    double effMC_trg = effs.effHLT(&vMu1, q1, &vMu2, q2, 0);
+                    nSelCorrv_MC_trg[ifile] += weight_l2 / effMC_trg * isMatched;
+                    nSelCorrv_MC_sel[ifile] += weight_l2 / (effMC_trg * effMC_sel) * isMatched;
+                    nSelCorrv_MC_sit[ifile] += weight_l2 / (effMC_trg * effMC_sel * effMC_sta) * isMatched;
                 }
             }
+
+            delete vec;
+            delete lep1;
+            delete lep2;
+            delete lep3;
+            delete lep4;
         }
 
         // std::cout << "nSelCorrVarv[ifile]  " <<  nSelCorrVarv[ifile] << std::endl;
         // std::cout << "var" << std::endl;
         Double_t var = 0;
-        for (Int_t iy = 0; iy <= hHLTErr_pos->GetNbinsY(); iy++) {
-            for (Int_t ix = 0; ix <= hHLTErr_pos->GetNbinsX(); ix++) {
+        Double_t var_pos = 0;
+        Double_t var_neg = 0;
+
+        for (Int_t iy = 0; iy <= hHLTErr_pos->GetNbinsY() + 1; iy++) {
+            for (Int_t ix = 0; ix <= hHLTErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hHLTErr_pos->GetBinContent(ix, iy);
                 var += err * err;
+                var_pos += err * err;
                 err = hHLTErr_neg->GetBinContent(ix, iy);
                 var += err * err;
-                // std::cout << "hlt pos " << var << std::endl;
+                var_neg += err * err;
             }
         }
 
-        for (Int_t iy = 0; iy <= hSelErr_pos->GetNbinsY(); iy++) {
-            for (Int_t ix = 0; ix <= hSelErr_pos->GetNbinsX(); ix++) {
+        for (Int_t iy = 0; iy <= hSelErr_pos->GetNbinsY() + 1; iy++) {
+            for (Int_t ix = 0; ix <= hSelErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hSelErr_pos->GetBinContent(ix, iy);
                 var += err * err;
+                var_pos += err * err;
                 err = hSelErr_neg->GetBinContent(ix, iy);
                 var += err * err;
+                var_neg += err * err;
                 // std::cout << "sel pos " << var << std::endl;
             }
         }
 
-        for (Int_t iy = 0; iy <= hStaErr_pos->GetNbinsY(); iy++) {
-            for (Int_t ix = 0; ix <= hStaErr_pos->GetNbinsX(); ix++) {
+        for (Int_t iy = 0; iy <= hStaErr_pos->GetNbinsY() + 1; iy++) {
+            for (Int_t ix = 0; ix <= hStaErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hStaErr_pos->GetBinContent(ix, iy);
                 var += err * err;
+                var_pos += err * err;
                 err = hStaErr_neg->GetBinContent(ix, iy);
                 var += err * err;
+                var_neg += err * err;
             }
         }
+
+        std::cout << "var " << var << " pos " << var_pos << " neg " << var_neg << std::endl;
 
         nSelCorrVarvFSR[ifile] += var;
         nSelCorrVarvMC[ifile] += var;
         nSelCorrVarvBkg[ifile] += var;
         nSelCorrVarvTag[ifile] += var;
         nSelCorrVarv[ifile] += var;
+        nSelCorrVarv_pos[ifile] += var_pos;
+        nSelCorrVarv_neg[ifile] += var_neg;
         // compute acceptances
         accv.push_back(nSelv[ifile] / nEvtsv[ifile]);
         accErrv.push_back(accv[ifile] * sqrt((1. + accv[ifile]) / nEvtsv[ifile]));
@@ -424,13 +606,20 @@ void computeAccSelZmm(const TString conf, // input file
         accCorrvBkg_S.push_back(nSelCorrvBkg_S[ifile] / nEvtsv[ifile]);
         accCorrvTag_S.push_back(nSelCorrvTag_S[ifile] / nEvtsv[ifile]);
 
+        std::cout << "statistical variation " << sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile])) << std::endl;
         accErrCorrvFSR.push_back(accCorrvFSR[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvFSR[ifile] * nSelCorrvFSR[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvMC.push_back(accCorrvMC[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvMC[ifile] * nSelCorrvMC[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvBkg.push_back(accCorrvBkg[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvBkg[ifile] * nSelCorrvBkg[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvTag.push_back(accCorrvTag[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvTag[ifile] * nSelCorrvTag[ifile]) + 1. / nEvtsv[ifile]));
 
         accCorrv.push_back(nSelCorrv[ifile] / nEvtsv[ifile]);
-        accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        accErrCorrv.push_back(accCorrv[ifile] * sqrt(nSelCorrVarv[ifile]) / nSelCorrv[ifile] );
+
+        //accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv_pos[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt(nSelCorrVarv_pos[ifile]) / nSelCorrv[ifile] );
+        //accErrCorrv_neg.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv_neg[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        accErrCorrv_neg.push_back( accCorrv[ifile] * sqrt(nSelCorrVarv_neg[ifile]) / nSelCorrv[ifile] );
 
         delete infile;
         infile = 0, eventTree = 0;
@@ -486,11 +675,28 @@ void computeAccSelZmm(const TString conf, // input file
         cout << "    Label: " << labelv[ifile] << endl;
         cout << "     File: " << fnamev[ifile] << endl;
         cout << endl;
+        cout << "     After PV selection: " << nEvtsv_pv[ifile] << endl;
+        cout << "     After RecoMuon selection: " << nEvtsv_reco[ifile] << endl;
+        cout << "     After standalone muon requirement " << nEvtsv_sta[ifile] << endl;
+        cout << "     After Muon selection: " << nEvtsv_sel[ifile] << endl;
+        cout << "     After trig requirement: " << nEvtsv_trig[ifile] << endl;
+        cout << endl;
+        cout << "     efficiency correction with MC trig " << nSelCorrv_MC_trg[ifile] << endl;
+        cout << "     efficiency correction with MC trig * sel " << nSelCorrv_MC_sel[ifile] << endl;
+        cout << "     efficiency correction with MC trig * sel * sit " << nSelCorrv_MC_sit[ifile] << endl;
+        cout << endl;
         cout << "    *** Acceptance ***" << endl;
-        cout << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
+        cout << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile]  << ", after correction " << nSelCorrv_MC[ifile] << endl;
+        cout << "          In the fiducial region " << setw(12) << nSelv_inFiducial[ifile] << " / " << nEvtsv_inFiducial[ifile] << ", after correction " << nSelCorrv_inFiducial[ifile] << endl;
+        cout << "          with lepton momentum scale variation up " << setw(12) << nSelCorrv_lepup[ifile] << " and down " << nSelCorrv_lepdn[ifile] << " central " << nSelCorrv[ifile] << " smearing " << nSelCorrv_leps[ifile] << endl;
         cout << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
+        cout << "     SF corrected pos: " << accCorrv[ifile] << " +/- " << accErrCorrv_pos[ifile] << endl;
+        cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
         cout << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
-        cout << "          pct: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat pos: " << 100 * accErrCorrv_pos[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat neg: " << 100 * accErrCorrv_neg[ifile] / accCorrv[ifile] << endl;
+        
         cout << "          FSR unc: " << accCorrvFSR[ifile] << " / Sel: " << accCorrvFSR_I[ifile] << " / Sta: " << accCorrvFSR_S[ifile] << endl;
         cout << "           MC unc: " << accCorrvMC[ifile] << " / Sel: " << accCorrvMC_I[ifile] << " / Sta: " << accCorrvMC_S[ifile] << endl;
         cout << "          Bkg unc: " << accCorrvBkg[ifile] << " / Sel: " << accCorrvBkg_I[ifile] << " / Sta: " << accCorrvBkg_S[ifile] << endl;
