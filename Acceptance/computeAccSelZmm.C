@@ -33,14 +33,16 @@
 #include "BaconAna/DataFormats/interface/TMuon.hh"
 #include "BaconAna/Utils/interface/TTrigger.hh"
 
-#include "../Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
-#include "../Utils/MyTools.hh" // various helper functions
-#include "../RochesterCorr/RoccoR.cc"
+#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
 
 // helper class to handle efficiency tables
-#include "../Utils/AppEffSF.cc"
-#include "../Utils/CEffUser1D.hh"
-#include "../Utils/CEffUser2D.hh"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
+#include "MitEwk13TeV/Utils/CEffUser1D.hh"
+#include "MitEwk13TeV/Utils/CEffUser2D.hh"
 #endif
 
 //=== MAIN MACRO =================================================================================================
@@ -54,7 +56,7 @@ void computeAccSelZmm(const TString conf, // input file
     const TString sysFileSta,
     const bool is13TeV = 1)
 {
-    gBenchmark->Start("computeAccSelZmmBinned");
+    gBenchmark->Start("computeAccSelZmm");
 
     //--------------------------------------------------------------------------------------------------------------
     // Settings
@@ -70,16 +72,20 @@ void computeAccSelZmm(const TString conf, // input file
     const Int_t BOSON_ID = 23;
     const Int_t LEPTON_ID = 13;
 
-    const int NBptSta = 3;
-    const float ptrangeSta[NBptSta + 1] = { 25., 35, 50., 10000. };
+    const int NBptSta = 1;
+    const float ptrangeSta[NBptSta + 1] = {25., 50.};
+
+    const int NBetaSta = 18;
+    const float etarangeSta[NBetaSta + 1] = {-2.4, -2.1,-1.8,-1.5,-1.2,-0.9,-0.6,-0.3,-0.15,0,0.15,0.3,0.6,0.9,1.2,1.5,1.8,2.1,2.4};
+
+    const int NBptSIT = 4;
+    const float ptrangeSIT[NBptSIT + 1] = { 25., 30, 35, 40, 50.};
 
     const int NBeta = 12;
     const float etarange[NBeta + 1] = { -2.4, -2.1, -1.6, -1.2, -0.9, -0.3, 0, 0.3, 0.9, 1.2, 1.6, 2.1, 2.4 };
-    const int NBptSIT = 3;
-    const float ptrangeSIT[NBptSIT + 1] = { 25, 35, 50, 10000 };
 
     const int NBptHLT = 12;
-    const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 10000 };
+    const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 100 };
 
     AppEffSF effs(inputDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
@@ -89,47 +95,24 @@ void computeAccSelZmm(const TString conf, // input file
     effs.loadUncSta(sysFileSta);
 
     // load pileup reweighting file
-    TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
-    TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
+    //TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
+    //TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
 
-    RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
+    RoccoR rc("/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
     //==============================================================================================================
-
-    vector<TString> fnamev; // file name per input file
-    vector<TString> labelv; // TLegend label per input file
-    vector<Int_t> colorv; // plot color per input file
-    vector<Int_t> linev; // plot line style per input file
+    vector<TString> snamev; // sample name (for output files)
+    vector<CSample*> samplev; // data/MC samples
 
     //
     // parse .conf file
     //
-    ifstream ifs;
-    ifs.open(conf.Data());
-    assert(ifs.is_open());
-    string line;
-    while (getline(ifs, line)) {
-        if (line[0] == '#')
-            continue;
-
-        string fname;
-        Int_t color, linesty;
-        stringstream ss(line);
-        ss >> fname >> color >> linesty;
-        string label = line.substr(line.find('@') + 1);
-        fnamev.push_back(fname);
-        labelv.push_back(label);
-        colorv.push_back(color);
-        linev.push_back(linesty);
-    }
-    ifs.close();
+    confParse(conf, snamev, samplev);
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
-
-    TH2D* h = 0;
 
     TH2D* hSelErr_pos = new TH2D("hSelErr_pos", "", NBeta, etarange, NBptSIT, ptrangeSIT);
     TH2D* hSelErr_neg = new TH2D("hSelErr_neg", "", NBeta, etarange, NBptSIT, ptrangeSIT);
@@ -171,11 +154,14 @@ void computeAccSelZmm(const TString conf, // input file
     //
     // loop through files
     //
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    CSample* samp = samplev[0];
+    const UInt_t nfiles = samp->fnamev.size();
+
+    for (UInt_t ifile = 0; ifile < nfiles; ifile++) {
 
         // Read input file and get the TTrees
-        cout << "Processing " << fnamev[ifile] << " ..." << endl;
-        infile = TFile::Open(fnamev[ifile]);
+        cout << "Processing " << samp->fnamev[ifile] << " ..." << endl;
+        infile = TFile::Open(samp->fnamev[ifile]);
         assert(infile);
 
         eventTree = (TTree*)infile->Get("Events");
@@ -284,10 +270,10 @@ void computeAccSelZmm(const TString conf, // input file
             vertexArr->Clear();
             vertexBr->GetEntry(ientry);
             double npv = vertexArr->GetEntries();
-            Double_t weight = gen->weight;
-            //Double_t weight = (gen->weight > 0) ? 1: -1;
-            if (doPU > 0)
-                weight *= h_rw->GetBinContent(h_rw->FindBin(info->nPUmean));
+            //Double_t weight = gen->weight;
+            Double_t weight = (gen->weight > 0) ? 1: -1;
+            //if (doPU > 0)
+            //    weight *= h_rw->GetBinContent(h_rw->FindBin(info->nPUmean));
 
             nEvtsv[ifile] += weight;
 
@@ -632,7 +618,8 @@ void computeAccSelZmm(const TString conf, // input file
     // Print full set for efficiency calculations
     char masterOutput[600];
     // just start printing....
-    for (uint ifile = 0; ifile < fnamev.size(); ++ifile) { // go through info per file
+    //for (uint ifile = 0; ifile < fnamev.size(); ++ifile) { // go through info per file
+    for (uint ifile = 0; ifile < 1; ++ifile) { // go through info per file
         sprintf(masterOutput, "%s/%s.txt", outputDir.Data(), outputName.Data());
         ofstream txtfile;
         txtfile.open(masterOutput);
@@ -670,11 +657,18 @@ void computeAccSelZmm(const TString conf, // input file
     cout << "  |eta| < " << ETA_CUT << endl;
     cout << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        cout << "   ================================================" << endl;
-        cout << "    Label: " << labelv[ifile] << endl;
-        cout << "     File: " << fnamev[ifile] << endl;
-        cout << endl;
+    //for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    double acc_sys = 0.;
+    int ifile = 0;
+    acc_sys += TMath::Power(accErrCorrv_pos[ifile] / accCorrv[ifile], 2.0);
+    acc_sys += TMath::Power(accErrCorrv_neg[ifile] / accCorrv[ifile], 2.0);
+    acc_sys += TMath::Power(accCorrvFSR[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvMC[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvBkg[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvTag[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys = TMath::Sqrt(acc_sys);
+
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         cout << "     After PV selection: " << nEvtsv_pv[ifile] << endl;
         cout << "     After RecoMuon selection: " << nEvtsv_reco[ifile] << endl;
         cout << "     After standalone muon requirement " << nEvtsv_sta[ifile] << endl;
@@ -694,14 +688,15 @@ void computeAccSelZmm(const TString conf, // input file
         cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
         cout << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
         cout << "          stat: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
-        cout << "          stat pos: " << 100 * accErrCorrv_pos[ifile] / accCorrv[ifile] << endl;
-        cout << "          stat neg: " << 100 * accErrCorrv_neg[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat pos: " << accErrCorrv_pos[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat neg: " << accErrCorrv_neg[ifile] / accCorrv[ifile] << endl;
         
-        cout << "          FSR unc: " << accCorrvFSR[ifile] << " / Sel: " << accCorrvFSR_I[ifile] << " / Sta: " << accCorrvFSR_S[ifile] << endl;
-        cout << "           MC unc: " << accCorrvMC[ifile] << " / Sel: " << accCorrvMC_I[ifile] << " / Sta: " << accCorrvMC_S[ifile] << endl;
-        cout << "          Bkg unc: " << accCorrvBkg[ifile] << " / Sel: " << accCorrvBkg_I[ifile] << " / Sta: " << accCorrvBkg_S[ifile] << endl;
-        cout << "          Tag unc: " << accCorrvTag[ifile] << " / Sel: " << accCorrvTag_I[ifile] << " / Sta: " << accCorrvTag_S[ifile] << endl;
+        cout << "          FSR unc: " << accCorrvFSR[ifile] / accCorrv[ifile] - 1.0 << " / Sel: " << accCorrvFSR_I[ifile] << " / Sta: " << accCorrvFSR_S[ifile] << endl;
+        cout << "           MC unc: " << accCorrvMC[ifile] / accCorrv[ifile] - 1.0 << " / Sel: " << accCorrvMC_I[ifile] << " / Sta: " << accCorrvMC_S[ifile] << endl;
+        cout << "          Bkg unc: " << accCorrvBkg[ifile] / accCorrv[ifile] - 1.0 << " / Sel: " << accCorrvBkg_I[ifile] << " / Sta: " << accCorrvBkg_S[ifile] << endl;
+        cout << "          Tag unc: " << accCorrvTag[ifile] / accCorrv[ifile] - 1.0 << " / Sel: " << accCorrvTag_I[ifile] << " / Sta: " << accCorrvTag_S[ifile] << endl;
         // cout << "         Stat unc: " << accCorrvStat[ifile] << " / Sel: " << accCorrvStat_I[ifile]<< " / Sta: " << accCorrvStat_S[ifile] << endl;
+        cout << "          Total: " << acc_sys << endl;
         cout << "  fraction passing gen cut: " << nEvtsv[ifile] << " / " << nAllv[ifile] << " = " << nEvtsv[ifile] / nAllv[ifile] << endl;
         cout << endl;
     }
@@ -719,11 +714,8 @@ void computeAccSelZmm(const TString conf, // input file
     txtfile << "  |eta| < " << ETA_CUT << endl;
     txtfile << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        txtfile << "   ================================================" << endl;
-        txtfile << "    Label: " << labelv[ifile] << endl;
-        txtfile << "     File: " << fnamev[ifile] << endl;
-        txtfile << endl;
+    //for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile << "    *** Acceptance ***" << endl;
         txtfile << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
         txtfile << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
@@ -743,7 +735,8 @@ void computeAccSelZmm(const TString conf, // input file
     ofstream txtfile2;
     txtfile2.open(txtfname);
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    //for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile2 << accCorrv[ifile] << " " << accErrCorrv[ifile] << endl;
         txtfile2 << accCorrvFSR[ifile] << " " << accCorrvFSR_I[ifile] << " " << accCorrvFSR_S[ifile] << endl;
         txtfile2 << accCorrvMC[ifile] << " " << accCorrvMC_I[ifile] << " " << accCorrvMC_S[ifile] << endl;
@@ -760,7 +753,8 @@ void computeAccSelZmm(const TString conf, // input file
     ofstream txtfile3;
     txtfile3.open(txtfname);
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    //for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile3 << accCorrv[ifile] << endl;
         txtfile3 << accCorrvFSR_I[ifile] << endl;
         txtfile3 << accCorrvMC_I[ifile] << endl;
@@ -777,7 +771,8 @@ void computeAccSelZmm(const TString conf, // input file
     ofstream txtfile4;
     txtfile4.open(txtfname);
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    //for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile4 << accCorrv[ifile] << endl;
         txtfile4 << accCorrvFSR_S[ifile] << endl;
         txtfile4 << accCorrvMC_S[ifile] << endl;
@@ -793,5 +788,5 @@ void computeAccSelZmm(const TString conf, // input file
     cout << "  <> Output saved in " << outputDir << "/" << endl;
     cout << endl;
 
-    gBenchmark->Show("computeAccSelZmmBinned");
+    gBenchmark->Show("computeAccSelZmm");
 }

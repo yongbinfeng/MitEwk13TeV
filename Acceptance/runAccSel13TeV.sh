@@ -2,14 +2,14 @@
 
 
 SYS=""
-OUTDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Acceptance/FINAL_SEL/TEST
-EFFDIR="/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/results"
+OUTDIR=/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Acceptance/ResultsSEL
+EFFDIR="/uscms_data/d3/yfeng/WpT/Data/lowpu_dataNew/13TeV/results"
 
 S13="13TeV"
 S5="5TeV"
 
 #### Efficiency Systematics Files
-EFFSYSDIR="/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/Systematics"
+EFFSYSDIR="/uscms_data/d3/yfeng/WpT/Data/lowpu_dataNew/13TeV/results/Systematics"
 Sta=${EFFSYSDIR}/SysUnc_MuStaEff.root
 SIT=${EFFSYSDIR}/SysUnc_MuSITEff.root
 GSF=${EFFSYSDIR}/SysUnc_EleGSFSelEff.root
