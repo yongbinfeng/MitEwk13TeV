@@ -88,7 +88,7 @@ void computeAccSelZee(const TString conf, // input file
     const int muEtaNB = 12;
     const float muEtaRange[muEtaNB + 1] = { -2.4, -2.0, -1.566, -1.4442, -1.0, -0.5, 0, 0.5, 1.0, 1.4442, 1.566, 2.0, 2.4 };
     const int muPtNB = 4;
-    const float muPtRange[muPtNB + 1] = { 25, 30, 35, 40, 50};
+    const float muPtRange[muPtNB + 1] = { 25, 30, 35, 40, 100000};
 
     const int NBptHLT = 12;
     const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 10000 };
@@ -358,10 +358,10 @@ void computeAccSelZee(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
-                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
-                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
-                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
+                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, weight * corr, true);
+                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, weight * corr, true);
+                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos,    hHLTErr_neg,    weight * corr);
+                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos,    hHLTErr_neg,    weight * corr);
                     // cout << var1 << " " << var << endl;
                     // std::cout << "event " << info->evtNum << " weight " << corr << std::endl;
                     nSelv[ifile] += weight;

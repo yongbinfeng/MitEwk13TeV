@@ -73,19 +73,21 @@ void computeAccSelZmm(const TString conf, // input file
     const Int_t LEPTON_ID = 13;
 
     const int NBptSta = 1;
-    const float ptrangeSta[NBptSta + 1] = {25., 50.};
+    // max pt should be a large number, 
+    // so that the overflow bin can be correlated with the max bin
+    const float ptrangeSta[NBptSta + 1] = {25., 100000.};
 
     const int NBetaSta = 18;
     const float etarangeSta[NBetaSta + 1] = {-2.4, -2.1,-1.8,-1.5,-1.2,-0.9,-0.6,-0.3,-0.15,0,0.15,0.3,0.6,0.9,1.2,1.5,1.8,2.1,2.4};
 
     const int NBptSIT = 4;
-    const float ptrangeSIT[NBptSIT + 1] = { 25., 30, 35, 40, 50.};
+    const float ptrangeSIT[NBptSIT + 1] = { 25., 30, 35, 40, 100000.};
 
     const int NBeta = 12;
     const float etarange[NBeta + 1] = { -2.4, -2.1, -1.6, -1.2, -0.9, -0.3, 0, 0.3, 0.9, 1.2, 1.6, 2.1, 2.4 };
 
     const int NBptHLT = 12;
-    const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 100 };
+    const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 1000000 };
 
     AppEffSF effs(inputDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
@@ -471,12 +473,12 @@ void computeAccSelZmm(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
-                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
-                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
-                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
-                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
-                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
+                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, weight_l2 * corr, true);
+                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, weight_l2 * corr, true);
+                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, weight_l2 * corr, true);
+                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, weight_l2 * corr, true);
+                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, weight_l2 * corr);
+                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, weight_l2 * corr);
 
                     // std::cout << info->evtNum << " " << corr << " " << std::endl;
                     nSelv[ifile] += weight_l2;
@@ -566,10 +568,6 @@ void computeAccSelZmm(const TString conf, // input file
 
         std::cout << "var " << var << " pos " << var_pos << " neg " << var_neg << std::endl;
 
-        nSelCorrVarvFSR[ifile] += var;
-        nSelCorrVarvMC[ifile] += var;
-        nSelCorrVarvBkg[ifile] += var;
-        nSelCorrVarvTag[ifile] += var;
         nSelCorrVarv[ifile] += var;
         nSelCorrVarv_pos[ifile] += var_pos;
         nSelCorrVarv_neg[ifile] += var_neg;
