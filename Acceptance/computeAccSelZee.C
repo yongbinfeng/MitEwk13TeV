@@ -36,17 +36,18 @@
 #include "BaconAna/DataFormats/interface/TVertex.hh"
 #include "BaconAna/Utils/interface/TTrigger.hh"
 
-#include "../EleScale/EnergyScaleCorrection.h" //EGMSmear
-#include "../Utils/LeptonCorr.hh" // Scale and resolution corrections
+#include "MitEwk13TeV/EleScale/EnergyScaleCorrection.h" //EGMSmear
+#include "MitEwk13TeV/Utils/LeptonCorr.hh" // Scale and resolution corrections
 
-#include "../Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
-#include "../Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
 
 // helper class to handle efficiency tables
-#include "../Utils/CEffUser1D.hh"
-#include "../Utils/CEffUser2D.hh"
-
-#include "../Utils/AppEffSF.cc"
+#include "MitEwk13TeV/Utils/CEffUser1D.hh"
+#include "MitEwk13TeV/Utils/CEffUser2D.hh"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
 #endif
 
 //=== MAIN MACRO =================================================================================================
@@ -61,7 +62,7 @@ void computeAccSelZee(const TString conf, // input file
     const TString SysFileGSFSel = "SysUnc_GSFSelEff.root",
     const bool is13TeV = 1)
 {
-    gBenchmark->Start("computeAccSelZeeBinned");
+    gBenchmark->Start("computeAccSelZee");
     const int gainSeed = 12;
 
     //--------------------------------------------------------------------------------------------------------------
@@ -87,13 +88,7 @@ void computeAccSelZee(const TString conf, // input file
     const int muEtaNB = 12;
     const float muEtaRange[muEtaNB + 1] = { -2.4, -2.0, -1.566, -1.4442, -1.0, -0.5, 0, 0.5, 1.0, 1.4442, 1.566, 2.0, 2.4 };
     const int muPtNB = 4;
-    const float muPtRange[muPtNB + 1] = { 25, 30, 35, 40, 50};
-    // const int muPtNB = 9;
-    // const float muPtRange[muPtNB+1] = {25,27,29,31,33,35,40,50,60,10000};
-    // const int muPtNB = 11;
-    // const float muPtRange[muPtNB+1] = {25,26,27,28,29,30,32,35,40,50,60,10000};
-    // const int muPtNB = 6;
-    // const float muPtRange[muPtNB+1] = {25,30,35,40,50,60,10000};
+    const float muPtRange[muPtNB + 1] = { 25, 30, 35, 40, 100000};
 
     const int NBptHLT = 12;
     const float ptrangeHLT[NBptHLT + 1] = { 25, 26.5, 28, 29.5, 31, 32.5, 35, 40, 45, 50, 60, 80, 10000 };
@@ -101,47 +96,22 @@ void computeAccSelZee(const TString conf, // input file
     AppEffSF effs(inputDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
-    // effs.loadSta("MuStaEff_aMCxPythia","Combined","Combined");
     effs.loadUncSel(SysFileGSFSel);
 
     //const TString corrFiles = "../EleScale/Run2017_LowPU_v2";
-    const TString corrFiles = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
+    const TString corrFiles = "/uscms_data/d3/yfeng/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
     EnergyScaleCorrection eleCorr(corrFiles.Data(), EnergyScaleCorrection::ECALELF); // eleCorr.doScale= true; eleCorr.doSmearings =true;
-    // load pileup reweighting file
-    TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
-    TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
     //==============================================================================================================
-
-    vector<TString> fnamev; // file name per input file
-    vector<TString> labelv; // TLegend label per input file
-    vector<Int_t> colorv; // plot color per input file
-    vector<Int_t> linev; // plot line style per input file
+    vector<TString> snamev; // sample name (for output files)
+    vector<CSample*> samplev; // data/MC samples
 
     //
     // parse .conf file
     //
-    ifstream ifs;
-    ifs.open(conf.Data());
-    assert(ifs.is_open());
-    string line;
-    while (getline(ifs, line)) {
-        if (line[0] == '#')
-            continue;
-
-        string fname;
-        Int_t color, linesty;
-        stringstream ss(line);
-        ss >> fname >> color >> linesty;
-        string label = line.substr(line.find('@') + 1);
-        fnamev.push_back(fname);
-        labelv.push_back(label);
-        colorv.push_back(color);
-        linev.push_back(linesty);
-    }
-    ifs.close();
+    confParse(conf, snamev, samplev);
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
@@ -168,7 +138,7 @@ void computeAccSelZee(const TString conf, // input file
     vector<Double_t> nEvtsv, nSelv;
     vector<Double_t> nSelCorrv, nSelCorrVarv, nSelCorrVarvPos, nSelCorrVarvNeg;
     vector<Double_t> accv, accCorrv;
-    vector<Double_t> accErrv, accErrCorrv, accErrCorrvPos, accErrCorrvNeg;
+    vector<Double_t> accErrv, accErrCorrv, accErrCorrv_pos, accErrCorrv_neg;
     vector<Double_t> nSelCorrvFSR, nSelCorrvMC, nSelCorrvBkg, nSelCorrvTag;
     vector<Double_t> nSelCorrVarvFSR, nSelCorrVarvMC, nSelCorrVarvBkg, nSelCorrVarvTag;
     vector<Double_t> accCorrvFSR, accCorrvMC, accCorrvBkg, accCorrvTag;
@@ -179,11 +149,14 @@ void computeAccSelZee(const TString conf, // input file
     //
     // loop through files
     //
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    CSample* samp = samplev[0];
+    const UInt_t nfiles = samp->fnamev.size();
+
+    for (UInt_t ifile = 0; ifile < nfiles; ifile++) {
 
         // Read input file and get the TTrees
-        cout << "Processing " << fnamev[ifile] << " ..." << endl;
-        infile = TFile::Open(fnamev[ifile]);
+        cout << "Processing " << samp->fnamev[ifile] << " ..." << endl;
+        infile = TFile::Open(samp->fnamev[ifile]);
         assert(infile);
 
         eventTree = (TTree*)infile->Get("Events");
@@ -217,8 +190,10 @@ void computeAccSelZee(const TString conf, // input file
         //
         // loop over events
         //
-        // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-        for (UInt_t ientry = 0; ientry < (uint)(0.05 * eventTree->GetEntries()); ientry++) {
+        double frac = 0.10;
+        if (is13TeV)
+            frac = 0.30;
+        for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
             // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry+=15) {
             if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
@@ -245,9 +220,7 @@ void computeAccSelZee(const TString conf, // input file
             vertexArr->Clear();
             vertexBr->GetEntry(ientry);
             double npv = vertexArr->GetEntries();
-            Double_t weight = gen->weight;
-            if (doPU > 0)
-                weight *= h_rw->GetBinContent(h_rw->FindBin(info->nPUmean));
+            Double_t weight = (gen->weight > 0) ? 1: -1;
 
             nEvtsv[ifile] += weight;
 
@@ -389,8 +362,8 @@ void computeAccSelZee(const TString conf, // input file
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
                     var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
                     var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
-                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
-                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
+                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
+                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
                     // cout << var1 << " " << var << endl;
                     // std::cout << "event " << info->evtNum << " weight " << corr << std::endl;
                     nSelv[ifile] += weight;
@@ -409,35 +382,27 @@ void computeAccSelZee(const TString conf, // input file
             }
         }
 
-        cout << "already there " << nSelCorrVarv[ifile] << endl;
-
         Double_t var = 0, var_pos = 0, var_neg = 0;
         for (Int_t iy = 0; iy <= hHLTErr_pos->GetNbinsY() + 1; iy++) {
             for (Int_t ix = 0; ix <= hHLTErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hHLTErr_pos->GetBinContent(ix, iy);
                 var += err * err;
                 var_pos += err * err;
-                // cout << "hlt pos " << err*err << endl;
+
                 err = hHLTErr_neg->GetBinContent(ix, iy);
                 var += err * err;
                 var_neg += err * err;
-
-                std::cout << "hlt x " <<  ix << " y " << iy << " err " << err << std::endl;
             }
         }
-        cout << "var1: " << var << endl;
         for (Int_t iy = 0; iy <= hGsfSelErr_pos->GetNbinsY() + 1; iy++) {
             for (Int_t ix = 0; ix <= hGsfSelErr_pos->GetNbinsX() + 1; ix++) {
                 Double_t err = hGsfSelErr_pos->GetBinContent(ix, iy);
-
                 var += err * err;
                 var_pos += err * err;
-                err = hGsfSelErr_neg->GetBinContent(ix, iy);
 
+                err = hGsfSelErr_neg->GetBinContent(ix, iy);
                 var += err * err;
                 var_neg += err * err;
-                // cout << "gsf pos " << err*err << endl;
-                std::cout << "gsf x " <<  ix << " y " << iy << " err " << err << std::endl;
             }
         }
         std::cout << "blah  " << std::endl;
@@ -466,11 +431,11 @@ void computeAccSelZee(const TString conf, // input file
         accErrCorrvBkg.push_back(accCorrvBkg[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvBkg[ifile] * nSelCorrvBkg[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrvTag.push_back(accCorrvTag[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvTag[ifile] * nSelCorrvTag[ifile]) + 1. / nEvtsv[ifile]));
         //accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
-        //accErrCorrvPos.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvPos[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
-        //accErrCorrvNeg.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvNeg[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvPos[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
+        //accErrCorrv_neg.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvNeg[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
         accErrCorrv.push_back(accCorrv[ifile] * sqrt(nSelCorrVarv[ifile]) / nSelCorrv[ifile] );
-        accErrCorrvPos.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvPos[ifile]) / nSelCorrv[ifile] );
-        accErrCorrvNeg.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvNeg[ifile]) / nSelCorrv[ifile] );
+        accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvPos[ifile]) / nSelCorrv[ifile] );
+        accErrCorrv_neg.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvNeg[ifile]) / nSelCorrv[ifile] );
 
         delete infile;
         infile = 0, eventTree = 0;
@@ -486,14 +451,15 @@ void computeAccSelZee(const TString conf, // input file
     // Print full set for efficiency calculations
     char masterOutput[600];
     // just start printing....
-    for (uint ifile = 0; ifile < fnamev.size(); ++ifile) { // go through info per file
+    //for (uint ifile = 0; ifile < fnamev.size(); ++ifile) { // go through info per file
+    for (uint ifile = 0; ifile < 1; ++ifile) { // go through info per file
         sprintf(masterOutput, "%s/%s.txt", outputDir.Data(), outputName.Data());
         ofstream txtfile;
         txtfile.open(masterOutput);
         txtfile << "acc " << accCorrv[ifile] << endl;
         txtfile << "acc_stat " << accCorrv[ifile] + accErrCorrv[ifile] << endl;
-        txtfile << "acc_stat pos " << accCorrv[ifile] + accErrCorrvPos[ifile] << endl;
-        txtfile << "acc_stat neg " << accCorrv[ifile] + accErrCorrvNeg[ifile] << endl;
+        txtfile << "acc_stat pos " << accCorrv[ifile] + accErrCorrv_pos[ifile] << endl;
+        txtfile << "acc_stat neg " << accCorrv[ifile] + accErrCorrv_neg[ifile] << endl;
         txtfile << "sel_fsr"
                 << " " << accCorrvFSR[ifile] << endl;
         txtfile << "sel_mc"
@@ -505,6 +471,16 @@ void computeAccSelZee(const TString conf, // input file
         txtfile.close();
     }
 
+    double acc_sys = 0.;
+    int ifile = 0;
+    acc_sys += TMath::Power(accErrCorrv_pos[ifile] / accCorrv[ifile], 2.0);
+    acc_sys += TMath::Power(accErrCorrv_neg[ifile] / accCorrv[ifile], 2.0);
+    acc_sys += TMath::Power(accCorrvFSR[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvMC[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvBkg[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvTag[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys = TMath::Sqrt(acc_sys);
+
     cout << "*" << endl;
     cout << "* SUMMARY" << endl;
     cout << "*--------------------------------------------------" << endl;
@@ -514,22 +490,21 @@ void computeAccSelZee(const TString conf, // input file
     cout << "  |eta| < " << ETA_CUT << endl;
     cout << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        cout << "   ================================================" << endl;
-        cout << "    Label: " << labelv[ifile] << endl;
-        cout << "     File: " << fnamev[ifile] << endl;
-        cout << endl;
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         cout << "    *** Acceptance ***" << endl;
         cout << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
         cout << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
-        cout << "     SF corrected pos: " << accCorrv[ifile] << " +/- " << accErrCorrvPos[ifile] << endl;
-        cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrvNeg[ifile] << endl;
+        cout << "     SF corrected pos: " << accCorrv[ifile] << " +/- " << accErrCorrv_pos[ifile] << endl;
+        cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
         cout << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
-        cout << "          pct: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
-        cout << "          FSR unc: " << accCorrvFSR[ifile] << " +/- " << accErrCorrvFSR[ifile] << endl;
-        cout << "           MC unc: " << accCorrvMC[ifile] << " +/- " << accErrCorrvMC[ifile] << endl;
-        cout << "          Bkg unc: " << accCorrvBkg[ifile] << " +/- " << accErrCorrvBkg[ifile] << endl;
-        cout << "          Tag unc: " << accCorrvTag[ifile] << " +/- " << accErrCorrvTag[ifile] << endl;
+        cout << "          stat: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat pos: " << accErrCorrv_pos[ifile] / accCorrv[ifile] << endl;
+        cout << "          stat neg: " << accErrCorrv_neg[ifile] / accCorrv[ifile] << endl;
+        cout << "          FSR unc: " << accCorrvFSR[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvFSR[ifile] << endl;
+        cout << "           MC unc: " << accCorrvMC[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvMC[ifile] << endl;
+        cout << "          Bkg unc: " << accCorrvBkg[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvBkg[ifile] << endl;
+        cout << "          Tag unc: " << accCorrvTag[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvTag[ifile] << endl;
+        cout << "          Total: " << acc_sys << endl;
         cout << endl;
     }
 
@@ -546,17 +521,13 @@ void computeAccSelZee(const TString conf, // input file
     txtfile << "  |eta| < " << ETA_CUT << endl;
     txtfile << endl;
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
-        txtfile << "   ================================================" << endl;
-        txtfile << "    Label: " << labelv[ifile] << endl;
-        txtfile << "     File: " << fnamev[ifile] << endl;
-        txtfile << endl;
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile << "    *** Acceptance ***" << endl;
         txtfile << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
         txtfile << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
         txtfile << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
-        txtfile << "     SF corrected Pos: " << accCorrv[ifile] << " +/- " << accErrCorrvPos[ifile] << endl;
-        txtfile << "     SF corrected Neg: " << accCorrv[ifile] << " +/- " << accErrCorrvNeg[ifile] << endl;
+        txtfile << "     SF corrected Pos: " << accCorrv[ifile] << " +/- " << accErrCorrv_pos[ifile] << endl;
+        txtfile << "     SF corrected Neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
         txtfile << "          FSR unc: " << accCorrvFSR[ifile] << " +/- " << accErrCorrvFSR[ifile] << endl;
         txtfile << "           MC unc: " << accCorrvMC[ifile] << " +/- " << accErrCorrvMC[ifile] << endl;
         txtfile << "          Bkg unc: " << accCorrvBkg[ifile] << " +/- " << accErrCorrvBkg[ifile] << endl;
@@ -570,7 +541,7 @@ void computeAccSelZee(const TString conf, // input file
     ofstream txtfile2;
     txtfile2.open(txtfname);
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile2 << accCorrv[ifile] << " " << accErrCorrv[ifile] << endl;
         txtfile2 << accCorrvFSR[ifile] << endl;
         txtfile2 << accCorrvMC[ifile] << endl;
@@ -587,7 +558,7 @@ void computeAccSelZee(const TString conf, // input file
     ofstream txtfile3;
     txtfile3.open(txtfname);
 
-    for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+    for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile3 << accCorrv[ifile] << endl;
         txtfile3 << accCorrvFSR[ifile] << endl;
         txtfile3 << accCorrvMC[ifile] << endl;
@@ -603,5 +574,5 @@ void computeAccSelZee(const TString conf, // input file
     cout << "  <> Output saved in " << outputDir << "/" << endl;
     cout << endl;
 
-    gBenchmark->Show("computeAccSelZeeBinned");
+    gBenchmark->Show("computeAccSelZee");
 }
