@@ -358,10 +358,10 @@ void computeAccSelZee(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, weight * corr, true);
-                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, weight * corr, true);
-                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos,    hHLTErr_neg,    weight * corr);
-                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos,    hHLTErr_neg,    weight * corr);
+                    var += effs.statUncSel(&vEle1, q1, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncSel(&vEle2, q2, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncHLT(&vEle1, q1, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
+                    var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
                     // cout << var1 << " " << var << endl;
                     // std::cout << "event " << info->evtNum << " weight " << corr << std::endl;
                     nSelv[ifile] += weight;

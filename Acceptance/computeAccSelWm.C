@@ -390,9 +390,9 @@ void computeAccSelWm(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSta(&vMu, q, hStaErr_pos, hStaErr_neg, weight * corr, true);
-                    var += effs.statUncSel(&vMu, q, hSelErr_pos, hSelErr_neg, weight * corr, true);
-                    var += effs.statUncHLT(&vMu, q, hHLTErr_pos, hHLTErr_neg, weight * corr);
+                    var += effs.statUncSta(&vMu, q, hStaErr_pos, hStaErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncSel(&vMu, q, hSelErr_pos, hSelErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncHLT(&vMu, q, hHLTErr_pos, hHLTErr_neg, fabs(weight) * corr);
 
                     nSelv += weight;
                     nSelCorrvFSR += weight * corrFSR;

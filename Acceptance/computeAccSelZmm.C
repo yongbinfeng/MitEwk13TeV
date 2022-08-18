@@ -473,12 +473,14 @@ void computeAccSelZmm(const TString conf, // input file
 
                     double var = 0.;
                     // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, weight_l2 * corr, true);
-                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, weight_l2 * corr, true);
-                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, weight_l2 * corr, true);
-                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, weight_l2 * corr, true);
-                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, weight_l2 * corr);
-                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, weight_l2 * corr);
+                    // should it be fabs(weight) or weight?
+                    // i.e., should the negative weight sample contribute positively to the stat unc, or negatively?
+                    var += effs.statUncSta(&vMu1, q1, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSta(&vMu2, q2, hStaErr_pos, hStaErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSel(&vMu1, q1, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncSel(&vMu2, q2, hSelErr_pos, hSelErr_neg, fabs(weight_l2) * corr, true);
+                    var += effs.statUncHLT(&vMu1, q1, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
+                    var += effs.statUncHLT(&vMu2, q2, hHLTErr_pos, hHLTErr_neg, fabs(weight_l2) * corr);
 
                     // std::cout << info->evtNum << " " << corr << " " << std::endl;
                     nSelv[ifile] += weight_l2;

@@ -362,8 +362,8 @@ void computeAccSelWe(const TString conf, // input file
                     corrTag *= uncs_gsf[3] * effs.computeHLTSF(&vElefinal, q); // alternate bkg model
 
                     double var = 0.;
-                    var += effs.statUncSel(&vElefinal, q, hGsfSelErr_pos, hGsfSelErr_neg, weight * corr, true);
-                    var += effs.statUncHLT(&vElefinal, q, hHLTErr_pos,    hHLTErr_neg,    weight * corr);
+                    var += effs.statUncSel(&vElefinal, q, hGsfSelErr_pos, hGsfSelErr_neg, fabs(weight) * corr, true);
+                    var += effs.statUncHLT(&vElefinal, q, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
 
                     nSelv += weight;
                     nSelCorrv += weight * corr;
