@@ -77,9 +77,6 @@ void computeAccSelWe(const TString conf, // input file
     const Double_t VETO_PT = 10;
     const Double_t VETO_ETA = 2.4;
 
-    const Double_t ECAL_GAP_LOW = 1.4442;
-    const Double_t ECAL_GAP_HIGH = 1.566;
-
     const Int_t BOSON_ID = 24;
     const Int_t LEPTON_ID = 11;
 
@@ -94,8 +91,6 @@ void computeAccSelWe(const TString conf, // input file
     AppEffSF effs(inputDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
-    //effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
-    //effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadUncSel(SysFileGSFSel);
 
     const TString corrFiles = "/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
@@ -190,6 +185,7 @@ void computeAccSelWe(const TString conf, // input file
             if (isamp == 0) frac = 0.05;
             if (isamp == 1) frac = 0.10;
             if (isamp == 2) frac = 0.30;
+            if (is13TeV) frac = 0.30;
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
             // loop over the events first, to get the positive and negative frations of events,
@@ -271,7 +267,6 @@ void computeAccSelWe(const TString conf, // input file
                     const baconhep::TElectron* ele = (baconhep::TElectron*)((*electronArr)[i]);
                     vEle.SetPtEtaPhiM(ele->pt, ele->eta, ele->phi, ELE_MASS);
                     // check ECAL gap
-                    // if(fabs(vEle.Eta())>=ECAL_GAP_LOW && fabs(vEle.Eta())<=ECAL_GAP_HIGH) continue;
                     if (doScaleCorr && (ele->r9 < 1.)) {
                         float eleSmear = 0.;
 

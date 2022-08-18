@@ -194,6 +194,7 @@ void computeAccSelWm(const TString conf, // input file
             if (isamp == 0) frac = 0.05;
             if (isamp == 1) frac = 0.10;
             if (isamp == 2) frac = 0.30;
+            if (is13TeV) frac = 0.30;
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
             // loop over the events first, to get the positive and negative frations of events,

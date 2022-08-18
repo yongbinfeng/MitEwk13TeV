@@ -2,14 +2,14 @@
 
 
 SYS=""
-OUTDIR=/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Acceptance/FINAL_SEL/TEST
-EFFDIR="/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_5TeV/results"
+OUTDIR=/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Acceptance/ResultsSEL
+EFFDIR=/uscms_data/d3/yfeng/WpT/Data/lowpu_dataNew/5TeV/results
 
 S13="13TeV"
 S5="5TeV"
 
 #### Efficiency Systematics Files
-EFFSYSDIR="/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/Systematics"
+EFFSYSDIR=/uscms_data/d3/yfeng/WpT/Data/lowpu_dataNew/5TeV/results/Systematics
 Sta=${EFFSYSDIR}/SysUnc_MuStaEff.root
 SIT=${EFFSYSDIR}/SysUnc_MuSITEff.root
 GSF=${EFFSYSDIR}/SysUnc_EleGSFSelEff.root
@@ -18,16 +18,16 @@ GSF=${EFFSYSDIR}/SysUnc_EleGSFSelEff.root
 # #    W- > mu nu
 # # #
 
-  root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wmp_5TeV\",\"ACC_wmp_5\",1,0,\"${SIT}\",\"${Sta}\",0\)
-  
-  root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wmm_5TeV\",\"ACC_wmm_5\",-1,0,\"${SIT}\",\"${Sta}\",0\)
-  
-  root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wm_5TeV\",\"ACC_wm_5\",0,0,\"${SIT}\",\"${Sta}\",0\)
+root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wmp_5TeV\",\"ACC_wmp_5\",1,0,\"${SIT}\",\"${Sta}\",0\)
 
-# ####
-# ####     Z -> mu mu
+root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wmm_5TeV\",\"ACC_wmm_5\",-1,0,\"${SIT}\",\"${Sta}\",0\)
 
-  root -l -q computeAccSelZmm.C+\(\"z5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_zmm_5TeV${SYS}\",\"ACC_zmm_5\",0,\"${SIT}\",\"${Sta}\",0\)
+root -l -q computeAccSelWm.C+\(\"w5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_wm_5TeV\",\"ACC_wm_5\",0,0,\"${SIT}\",\"${Sta}\",0\)
+
+####
+####     Z -> mu mu
+
+root -l -q computeAccSelZmm.C+\(\"z5.conf\",\"${EFFDIR}/Zmm/\",\"${OUTDIR}/SEL_zmm_5TeV${SYS}\",\"ACC_zmm_5\",0,\"${SIT}\",\"${Sta}\",0\)
 
 
 # # #

@@ -190,8 +190,10 @@ void computeAccSelZee(const TString conf, // input file
         //
         // loop over events
         //
-        // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-        for (UInt_t ientry = 0; ientry < (uint)(0.10 * eventTree->GetEntries()); ientry++) {
+        double frac = 0.10;
+        if (is13TeV)
+            frac = 0.30;
+        for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
             // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry+=15) {
             if (ientry % 100000 == 0)
                 cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
