@@ -31,12 +31,15 @@
 #include "BaconAna/DataFormats/interface/TGenEventInfo.hh"
 #include "BaconAna/DataFormats/interface/TGenParticle.hh"
 #include "BaconAna/DataFormats/interface/TMuon.hh"
+#include "BaconAna/DataFormats/interface/TPhoton.hh"
+#include "BaconAna/DataFormats/interface/TJet.hh"
 #include "BaconAna/Utils/interface/TTrigger.hh"
 
 #include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
 #include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
 #include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
 #include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
 
 // helper class to handle efficiency tables
 #include "MitEwk13TeV/Utils/AppEffSF.cc"
@@ -111,6 +114,12 @@ void computeAccSelWm(const TString conf, // input file
     //TFile* f_rw = TFile::Open("../Tools/pileup_rw_76X.root", "read");
     //TH1D* h_rw = (TH1D*)f_rw->Get("h_rw_golden");
 
+    // load trigger menu
+    const TString prefireEcalFileName = "/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
+    const TString prefireMuonFileName = "/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
+    PrefiringEfficiency pfire(prefireEcalFileName.Data(), (is13TeV ? "2017H" : "2017G"), prefireMuonFileName.Data());
+
+
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
     //==============================================================================================================
@@ -130,6 +139,8 @@ void computeAccSelWm(const TString conf, // input file
     TClonesArray* genPartArr = new TClonesArray("baconhep::TGenParticle");
     TClonesArray* muonArr = new TClonesArray("baconhep::TMuon");
     TClonesArray* vertexArr = new TClonesArray("baconhep::TVertex");
+    TClonesArray* scArr = new TClonesArray("baconhep::TPhoton");
+    TClonesArray* jetArr = new TClonesArray("baconhep::TJet");
 
     TFile* infile = 0;
     TTree* eventTree = 0;
@@ -151,6 +162,12 @@ void computeAccSelWm(const TString conf, // input file
     Double_t accCorrvFSR_I = 0, accCorrvMC_I = 0, accCorrvBkg_I = 0, accCorrvTag_I = 0; //, accCorrvStat_I;
     Double_t accCorrvFSR_S = 0, accCorrvMC_S = 0, accCorrvBkg_S = 0, accCorrvTag_S = 0; //, accCorrvStat_S;
     Double_t accErrCorrvFSR = 0, accErrCorrvMC = 0, accErrCorrvBkg = 0, accErrCorrvTag = 0; //, accErrCorrvStat;
+
+    Double_t nSelPfire = 0, nSelPfireUp = 0, nSelPfireDown = 0;
+    Double_t nSelPfireEcal = 0, nSelPfireEcalUp = 0, nSelPfireEcalDown = 0;
+    Double_t nSelPfirePhoton = 0, nSelPfirePhotonUp = 0, nSelPfirePhotonDown = 0;
+    Double_t nSelPfireJet = 0, nSelPfireJetUp = 0, nSelPfireJetDown = 0;
+    Double_t nSelPfireMuon = 0, nSelPfireMuonUp = 0, nSelPfireMuonDown = 0;
 
     const baconhep::TTrigger triggerMenu("../../BaconAna/DataFormats/data/HLT_50nsGRun");
 
@@ -187,14 +204,22 @@ void computeAccSelWm(const TString conf, // input file
             eventTree->SetBranchAddress("PV", &vertexArr);
             TBranch* vertexBr = eventTree->GetBranch("PV");
 
+            // jet and photon branches are 
+            // for the prefire weights
+            eventTree->SetBranchAddress("Photon", &scArr);
+            TBranch* scBr = eventTree->GetBranch("Photon");
+            eventTree->SetBranchAddress("AK4", &jetArr);
+            TBranch* jetBr = eventTree->GetBranch("AK4");
+
+
             //
             // loop over events
             //
             double frac = 0.05; // fraction of events to be used for calculation
-            if (isamp == 0) frac = 0.05;
-            if (isamp == 1) frac = 0.10;
-            if (isamp == 2) frac = 0.30;
-            if (is13TeV) frac = 0.30;
+            if (isamp == 0) frac = 0.01;
+            if (isamp == 1) frac = 0.01;
+            if (isamp == 2) frac = 0.01;
+            if (!is13TeV) frac = 0.30;
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
             // loop over the events first, to get the positive and negative frations of events,
@@ -292,6 +317,13 @@ void computeAccSelWm(const TString conf, // input file
                 
                 muonArr->Clear();
                 muonBr->GetEntry(ientry);
+
+                scArr->Clear();
+                scBr->GetEntry(ientry);
+
+                jetArr->Clear();
+                jetBr->GetEntry(ientry);
+
                 Int_t nLooseLep = 0;
                 const baconhep::TMuon* goodMuon = 0;
                 Bool_t passSel = kFALSE;
@@ -444,6 +476,40 @@ void computeAccSelWm(const TString conf, // input file
                         nSelECorrv += weight * corr;
                         nSelECorrVarv += weight * weight * corr * corr;
                     }
+
+                    // prefire weights
+                    float prefireEcal = 1, prefireEcalUp = 1, prefireEcalDown = 1;
+                    float prefirePhoton = 1, prefirePhotonUp = 1, prefirePhotonDown = 1;
+                    float prefireJet = 1, prefireJetUp = 1, prefireJetDown = 1;
+                    float prefireMuon = 1, prefireMuonUp = 1, prefireMuonDown = 1, prefireMuonStatUp = 1, prefireMuonStatDown = 1, prefireMuonSystUp = 1, prefireMuonSystDown = 1;
+                    pfire.setObjects(scArr, jetArr, muonArr);
+                    pfire.computePhotonsOnly(prefirePhoton, prefirePhotonUp, prefirePhotonDown);
+                    pfire.computeJetsOnly(prefireJet, prefireJetUp, prefireJetDown);
+                    pfire.computeEcalsOnly(prefireEcal, prefireEcalUp, prefireEcalDown);
+                    pfire.computeMuonsOnly(prefireMuon, prefireMuonUp, prefireMuonDown, prefireMuonStatUp, prefireMuonStatDown, prefireMuonSystUp, prefireMuonSystDown);
+                    double prefireWeight = prefireEcal * prefireMuon;
+                    double prefireUp = prefireEcalUp * prefireMuonUp;
+                    double prefireDown = prefireEcalDown * prefireMuonDown;
+
+                    nSelPfire         += weight * corr * prefireWeight;
+                    nSelPfireUp       += weight * corr * prefireUp;
+                    nSelPfireDown     += weight * corr * prefireDown;
+                    // ecal-prefire-related
+                    nSelPfireEcal     += weight * corr * prefireEcal;
+                    nSelPfireEcalUp   += weight * corr * prefireEcalUp;
+                    nSelPfireEcalDown += weight * corr * prefireEcalDown;
+                    // muon-prefire-related
+                    nSelPfireMuon     += weight * corr * prefireMuon;
+                    nSelPfireMuonUp   += weight * corr * prefireMuonUp;
+                    nSelPfireMuonDown += weight * corr * prefireMuonDown;
+                    // photon-prefire-related
+                    nSelPfirePhoton   += weight * corr * prefirePhoton;
+                    nSelPfirePhotonUp += weight * corr * prefirePhotonUp;
+                    nSelPfirePhotonDown += weight * corr * prefirePhotonDown;
+                    // jet-prefire-related
+                    nSelPfireJet      += weight * corr * prefireJet;
+                    nSelPfireJetUp    += weight * corr * prefireJetUp;
+                    nSelPfireJetDown  += weight * corr * prefireJetDown;
                 }
             }
 
@@ -624,15 +690,23 @@ void computeAccSelWm(const TString conf, // input file
         cout << "  ==total efficiency==> " << setw(4) << accCorrv / accv << endl;
         cout << "     SF corrected: " << accCorrv << " +/- " << accErrCorrv << endl;
         cout << "          stat: " << 100 * accErrCorrv / accCorrv << endl;
-        cout << "          stat pos: " << accErrCorrv_pos / accCorrv << endl;
-        cout << "          stat neg: " << accErrCorrv_neg / accCorrv << endl;
-        cout << "          FSR unc: " << accCorrvFSR / accCorrv - 1.0 << " / Sel: " << accCorrvFSR_I << " / Sta: " << accCorrvFSR_S << endl;
-        cout << "           MC unc: " << accCorrvMC / accCorrv - 1.0 << " / Sel: " << accCorrvMC_I << " / Sta: " << accCorrvMC_S << endl;
-        cout << "          Bkg unc: " << accCorrvBkg / accCorrv - 1.0 << " / Sel: " << accCorrvBkg_I << " / Sta: " << accCorrvBkg_S << endl;
-        cout << "          Tag unc: " << accCorrvTag / accCorrv - 1.0 << " / Sel: " << accCorrvTag_I << " / Sta: " << accCorrvTag_S << endl;
-        cout << "          Total: " << acc_sys << endl;
+        cout << "          stat pos: " << 100 * accErrCorrv_pos / accCorrv << endl;
+        cout << "          stat neg: " << 100 * accErrCorrv_neg / accCorrv << endl;
+        cout << "          FSR unc: " << 100 * (accCorrvFSR / accCorrv - 1.0) << " / Sel: " << accCorrvFSR_I << " / Sta: " << accCorrvFSR_S << endl;
+        cout << "           MC unc: " << 100 * (accCorrvMC / accCorrv - 1.0) << " / Sel: " << accCorrvMC_I << " / Sta: " << accCorrvMC_S << endl;
+        cout << "          Bkg unc: " << 100 * (accCorrvBkg / accCorrv - 1.0) << " / Sel: " << accCorrvBkg_I << " / Sta: " << accCorrvBkg_S << endl;
+        cout << "          Tag unc: " << 100 * (accCorrvTag / accCorrv - 1.0) << " / Sel: " << accCorrvTag_I << " / Sta: " << accCorrvTag_S << endl;
+        cout << "          Total: " << 100 * acc_sys << endl;
         cout << "Acc (FSR/MC/Bkg/Tag): " << accCorrvFSR << ", " << accCorrvMC << ", " << accCorrvBkg << ", " << accCorrvTag << endl;
         cout << "  fraction passing gen cut: " << nEvtsv << " / " << nAllv << " = " << nEvtsv / nAllv << endl;
+
+        cout << endl << endl;
+        cout << " Prefire Correction " << nSelPfire / nSelCorrv << " + " << fabs(nSelPfireUp - nSelPfire) / nSelPfire << " - " << fabs(nSelPfireDown - nSelPfire) / nSelPfire << endl;
+        cout << " Prefire ECAL Correction " << nSelPfireEcal / nSelCorrv << " + " << fabs(nSelPfireEcalUp - nSelPfireEcal) / nSelPfireEcal << " - " << fabs(nSelPfireEcalDown - nSelPfireEcal) / nSelPfireEcal << endl;
+        cout << " Prefire Muon Correction " << nSelPfireMuon / nSelCorrv << " + " << fabs(nSelPfireMuonUp - nSelPfireMuon) / nSelPfireMuon << " - " << fabs(nSelPfireMuonDown - nSelPfireMuon) / nSelPfireMuon << endl;
+        cout << " Prefire Photon Correction " << nSelPfirePhoton / nSelCorrv << " + " << fabs(nSelPfirePhotonUp - nSelPfirePhoton) / nSelPfirePhoton << " - " << fabs(nSelPfirePhotonDown - nSelPfirePhoton) / nSelPfirePhoton << endl;
+        cout << " Prefire Jet Correction " << nSelPfireJet / nSelCorrv << " + " << fabs(nSelPfireJetUp - nSelPfireJet) / nSelPfireJet << " - " << fabs(nSelPfireJetDown - nSelPfireJet) / nSelPfireJet << endl;
+
         cout << endl;
     }
 

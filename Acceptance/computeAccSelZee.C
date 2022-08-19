@@ -34,6 +34,9 @@
 #include "BaconAna/DataFormats/interface/TGenEventInfo.hh"
 #include "BaconAna/DataFormats/interface/TGenParticle.hh"
 #include "BaconAna/DataFormats/interface/TVertex.hh"
+#include "BaconAna/DataFormats/interface/TMuon.hh"
+#include "BaconAna/DataFormats/interface/TPhoton.hh"
+#include "BaconAna/DataFormats/interface/TJet.hh"
 #include "BaconAna/Utils/interface/TTrigger.hh"
 
 #include "MitEwk13TeV/EleScale/EnergyScaleCorrection.h" //EGMSmear
@@ -43,6 +46,7 @@
 #include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
 #include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
 #include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
 
 // helper class to handle efficiency tables
 #include "MitEwk13TeV/Utils/CEffUser1D.hh"
@@ -102,6 +106,11 @@ void computeAccSelZee(const TString conf, // input file
     const TString corrFiles = "/uscms_data/d3/yfeng/WpT/CMSSW_9_4_19/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
     EnergyScaleCorrection eleCorr(corrFiles.Data(), EnergyScaleCorrection::ECALELF); // eleCorr.doScale= true; eleCorr.doSmearings =true;
 
+    // load trigger menu
+    const TString prefireEcalFileName = "/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
+    const TString prefireMuonFileName = "/uscms/home/yfeng/nobackup/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
+    PrefiringEfficiency pfire(prefireEcalFileName.Data(), (is13TeV ? "2017H" : "2017G"), prefireMuonFileName.Data());
+
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
     //==============================================================================================================
@@ -130,19 +139,28 @@ void computeAccSelZee(const TString conf, // input file
     TClonesArray* genPartArr = new TClonesArray("baconhep::TGenParticle");
     TClonesArray* electronArr = new TClonesArray("baconhep::TElectron");
     TClonesArray* vertexArr = new TClonesArray("baconhep::TVertex");
+    TClonesArray* muonArr = new TClonesArray("baconhep::TMuon");
+    TClonesArray* scArr = new TClonesArray("baconhep::TPhoton");
+    TClonesArray* jetArr = new TClonesArray("baconhep::TJet");
 
     TFile* infile = 0;
     TTree* eventTree = 0;
 
     // Variables to store acceptances and uncertainties (per input file)
-    vector<Double_t> nEvtsv, nSelv;
-    vector<Double_t> nSelCorrv, nSelCorrVarv, nSelCorrVarvPos, nSelCorrVarvNeg;
-    vector<Double_t> accv, accCorrv;
-    vector<Double_t> accErrv, accErrCorrv, accErrCorrv_pos, accErrCorrv_neg;
-    vector<Double_t> nSelCorrvFSR, nSelCorrvMC, nSelCorrvBkg, nSelCorrvTag;
-    vector<Double_t> nSelCorrVarvFSR, nSelCorrVarvMC, nSelCorrVarvBkg, nSelCorrVarvTag;
-    vector<Double_t> accCorrvFSR, accCorrvMC, accCorrvBkg, accCorrvTag;
-    vector<Double_t> accErrCorrvFSR, accErrCorrvMC, accErrCorrvBkg, accErrCorrvTag;
+    Double_t nEvtsv = 0, nSelv = 0;
+    Double_t nSelCorrv = 0, nSelCorrVarv = 0, nSelCorrVarvPos = 0, nSelCorrVarvNeg = 0;
+    Double_t accv = 0, accCorrv = 0;
+    Double_t accErrv = 0, accErrCorrv = 0, accErrCorrv_pos = 0, accErrCorrv_neg = 0;
+    Double_t nSelCorrvFSR = 0, nSelCorrvMC = 0, nSelCorrvBkg = 0, nSelCorrvTag = 0;
+    Double_t nSelCorrVarvFSR = 0, nSelCorrVarvMC = 0, nSelCorrVarvBkg = 0, nSelCorrVarvTag = 0;
+    Double_t accCorrvFSR = 0, accCorrvMC = 0, accCorrvBkg = 0, accCorrvTag = 0;
+    Double_t accErrCorrvFSR = 0, accErrCorrvMC = 0, accErrCorrvBkg = 0, accErrCorrvTag = 0;
+
+    Double_t nSelPfire = 0, nSelPfireUp = 0, nSelPfireDown = 0;
+    Double_t nSelPfireEcal = 0, nSelPfireEcalUp = 0, nSelPfireEcalDown = 0;
+    Double_t nSelPfirePhoton = 0, nSelPfirePhotonUp = 0, nSelPfirePhotonDown = 0;
+    Double_t nSelPfireJet = 0, nSelPfireJetUp = 0, nSelPfireJetDown = 0;
+    Double_t nSelPfireMuon = 0, nSelPfireMuonUp = 0, nSelPfireMuonDown = 0;
 
     const baconhep::TTrigger triggerMenu("../../BaconAna/DataFormats/data/HLT_50nsGRun");
 
@@ -172,26 +190,21 @@ void computeAccSelZee(const TString conf, // input file
         eventTree->SetBranchAddress("PV", &vertexArr);
         TBranch* vertexBr = eventTree->GetBranch("PV");
 
-        nEvtsv.push_back(0);
-        nSelv.push_back(0);
-        nSelCorrv.push_back(0);
-        nSelCorrVarv.push_back(0);
-        nSelCorrVarvPos.push_back(0);
-        nSelCorrVarvNeg.push_back(0);
-        nSelCorrvFSR.push_back(0);
-        nSelCorrVarvFSR.push_back(0);
-        nSelCorrvMC.push_back(0);
-        nSelCorrVarvMC.push_back(0);
-        nSelCorrvBkg.push_back(0);
-        nSelCorrVarvBkg.push_back(0);
-        nSelCorrvTag.push_back(0);
-        nSelCorrVarvTag.push_back(0);
+        // jet and photon branches are 
+        // for the prefire weights
+        eventTree->SetBranchAddress("Photon", &scArr);
+        TBranch* scBr = eventTree->GetBranch("Photon");
+        eventTree->SetBranchAddress("AK4", &jetArr);
+        TBranch* jetBr = eventTree->GetBranch("AK4");
+        eventTree->SetBranchAddress("Muon", &muonArr);
+        TBranch* muonBr = eventTree->GetBranch("Muon");
+
 
         //
         // loop over events
         //
-        double frac = 0.10;
-        if (is13TeV)
+        double frac = 0.01;
+        if (!is13TeV)
             frac = 0.30;
         for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
             // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry+=15) {
@@ -201,6 +214,15 @@ void computeAccSelZee(const TString conf, // input file
             genPartArr->Clear();
             genPartBr->GetEntry(ientry);
             infoBr->GetEntry(ientry);
+
+            muonArr->Clear();
+            muonBr->GetEntry(ientry);
+
+            scArr->Clear();
+            scBr->GetEntry(ientry);
+
+            jetArr->Clear();
+            jetBr->GetEntry(ientry);
 
             Int_t glepq1 = -99;
             Int_t glepq2 = -99;
@@ -222,12 +244,11 @@ void computeAccSelZee(const TString conf, // input file
             double npv = vertexArr->GetEntries();
             Double_t weight = (gen->weight > 0) ? 1: -1;
 
-            nEvtsv[ifile] += weight;
+            nEvtsv += weight;
 
             // trigger requirement
             if (!isEleTrigger(triggerMenu, info->triggerBits, kFALSE, is13TeV))
                 continue;
-            // if (!isEleTrigger(triggerMenu, info->triggerBits, kFALSE)) continue;
 
             // good vertex requirement
             if (!(info->hasGoodPV))
@@ -366,18 +387,53 @@ void computeAccSelZee(const TString conf, // input file
                     var += effs.statUncHLT(&vEle2, q2, hHLTErr_pos,    hHLTErr_neg,    fabs(weight) * corr);
                     // cout << var1 << " " << var << endl;
                     // std::cout << "event " << info->evtNum << " weight " << corr << std::endl;
-                    nSelv[ifile] += weight;
-                    nSelCorrvFSR[ifile] += weight * corrFSR;
-                    nSelCorrvMC[ifile] += weight * corrMC;
-                    nSelCorrvBkg[ifile] += weight * corrBkg;
-                    nSelCorrvTag[ifile] += weight * corrTag;
-                    nSelCorrv[ifile] += weight * corr;
+                    nSelv += weight;
+                    nSelCorrvFSR += weight * corrFSR;
+                    nSelCorrvMC += weight * corrMC;
+                    nSelCorrvBkg += weight * corrBkg;
+                    nSelCorrvTag += weight * corrTag;
+                    nSelCorrv += weight * corr;
                     // std::cout << "corr " << corr << " corr FSR " << corrFSR << "  corr MC " << corrMC << "  corr Bkg " << corrBkg << std::endl;
-                    nSelCorrVarvFSR[ifile] += weight * weight * corrFSR * corrFSR;
-                    nSelCorrVarvMC[ifile] += weight * weight * corrMC * corrMC;
-                    nSelCorrVarvBkg[ifile] += weight * weight * corrBkg * corrBkg;
-                    nSelCorrVarvTag[ifile] += weight * weight * corrTag * corrTag;
-                    // nSelCorrVarv[ifile]+=weight*weight*corr*corr;
+                    nSelCorrVarvFSR += weight * weight * corrFSR * corrFSR;
+                    nSelCorrVarvMC += weight * weight * corrMC * corrMC;
+                    nSelCorrVarvBkg += weight * weight * corrBkg * corrBkg;
+                    nSelCorrVarvTag += weight * weight * corrTag * corrTag;
+                    // nSelCorrVarv+=weight*weight*corr*corr;
+
+                    // prefire weights
+                    float prefireEcal = 1, prefireEcalUp = 1, prefireEcalDown = 1;
+                    float prefirePhoton = 1, prefirePhotonUp = 1, prefirePhotonDown = 1;
+                    float prefireJet = 1, prefireJetUp = 1, prefireJetDown = 1;
+                    float prefireMuon = 1, prefireMuonUp = 1, prefireMuonDown = 1, prefireMuonStatUp = 1, prefireMuonStatDown = 1, prefireMuonSystUp = 1, prefireMuonSystDown = 1;
+                    pfire.setObjects(scArr, jetArr, muonArr);
+                    pfire.computePhotonsOnly(prefirePhoton, prefirePhotonUp, prefirePhotonDown);
+                    pfire.computeJetsOnly(prefireJet, prefireJetUp, prefireJetDown);
+                    pfire.computeEcalsOnly(prefireEcal, prefireEcalUp, prefireEcalDown);
+                    pfire.computeMuonsOnly(prefireMuon, prefireMuonUp, prefireMuonDown, prefireMuonStatUp, prefireMuonStatDown, prefireMuonSystUp, prefireMuonSystDown);
+                    double prefireWeight = prefireEcal * prefireMuon;
+                    double prefireUp = prefireEcalUp * prefireMuonUp;
+                    double prefireDown = prefireEcalDown * prefireMuonDown;
+
+                    nSelPfire         += weight * corr * prefireWeight;
+                    nSelPfireUp       += weight * corr * prefireUp;
+                    nSelPfireDown     += weight * corr * prefireDown;
+                    // ecal-prefire-related
+                    nSelPfireEcal     += weight * corr * prefireEcal;
+                    nSelPfireEcalUp   += weight * corr * prefireEcalUp;
+                    nSelPfireEcalDown += weight * corr * prefireEcalDown;
+                    // muon-prefire-related
+                    nSelPfireMuon     += weight * corr * prefireMuon;
+                    nSelPfireMuonUp   += weight * corr * prefireMuonUp;
+                    nSelPfireMuonDown += weight * corr * prefireMuonDown;
+                    // photon-prefire-related
+                    nSelPfirePhoton   += weight * corr * prefirePhoton;
+                    nSelPfirePhotonUp += weight * corr * prefirePhotonUp;
+                    nSelPfirePhotonDown += weight * corr * prefirePhotonDown;
+                    // jet-prefire-related
+                    nSelPfireJet      += weight * corr * prefireJet;
+                    nSelPfireJetUp    += weight * corr * prefireJetUp;
+                    nSelPfireJetDown  += weight * corr * prefireJetDown;
+
                 }
             }
         }
@@ -406,36 +462,36 @@ void computeAccSelZee(const TString conf, // input file
             }
         }
         std::cout << "blah  " << std::endl;
-        nSelCorrVarvFSR[ifile] += var;
-        nSelCorrVarvMC[ifile] += var;
-        nSelCorrVarvBkg[ifile] += var;
-        nSelCorrVarv[ifile] += var;
-        nSelCorrVarvPos[ifile] += var_pos;
-        nSelCorrVarvNeg[ifile] += var_neg;
+        nSelCorrVarvFSR += var;
+        nSelCorrVarvMC += var;
+        nSelCorrVarvBkg += var;
+        nSelCorrVarv += var;
+        nSelCorrVarvPos += var_pos;
+        nSelCorrVarvNeg += var_neg;
         cout << var << endl;
         std::cout << "comput acceptances" << std::endl;
 
         // compute acceptances
-        std::cout << nEvtsv[ifile] << " " << nSelv[ifile] << std::endl;
-        accv.push_back(nSelv[ifile] / nEvtsv[ifile]);
+        std::cout << nEvtsv << " " << nSelv << std::endl;
+        accv = (nSelv / nEvtsv);
 
-        accCorrvFSR.push_back(nSelCorrvFSR[ifile] / nEvtsv[ifile]);
-        accCorrvMC.push_back(nSelCorrvMC[ifile] / nEvtsv[ifile]);
-        accCorrvBkg.push_back(nSelCorrvBkg[ifile] / nEvtsv[ifile]);
-        accCorrvTag.push_back(nSelCorrvTag[ifile] / nEvtsv[ifile]);
-        accCorrv.push_back(nSelCorrv[ifile] / nEvtsv[ifile]);
+        accCorrvFSR = (nSelCorrvFSR / nEvtsv);
+        accCorrvMC = (nSelCorrvMC / nEvtsv);
+        accCorrvBkg = (nSelCorrvBkg / nEvtsv);
+        accCorrvTag = (nSelCorrvTag / nEvtsv);
+        accCorrv = (nSelCorrv / nEvtsv);
 
-        accErrv.push_back(sqrt(accv[ifile] * (1. + accv[ifile]) / nEvtsv[ifile]));
-        accErrCorrvFSR.push_back(accCorrvFSR[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvFSR[ifile] * nSelCorrvFSR[ifile]) + 1. / nEvtsv[ifile]));
-        accErrCorrvMC.push_back(accCorrvMC[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvMC[ifile] * nSelCorrvMC[ifile]) + 1. / nEvtsv[ifile]));
-        accErrCorrvBkg.push_back(accCorrvBkg[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvBkg[ifile] * nSelCorrvBkg[ifile]) + 1. / nEvtsv[ifile]));
-        accErrCorrvTag.push_back(accCorrvTag[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrvTag[ifile] * nSelCorrvTag[ifile]) + 1. / nEvtsv[ifile]));
-        //accErrCorrv.push_back(accCorrv[ifile] * sqrt((nSelCorrVarv[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
-        //accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvPos[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
-        //accErrCorrv_neg.push_back(accCorrv[ifile] * sqrt((nSelCorrVarvNeg[ifile]) / (nSelCorrv[ifile] * nSelCorrv[ifile]) + 1. / nEvtsv[ifile]));
-        accErrCorrv.push_back(accCorrv[ifile] * sqrt(nSelCorrVarv[ifile]) / nSelCorrv[ifile] );
-        accErrCorrv_pos.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvPos[ifile]) / nSelCorrv[ifile] );
-        accErrCorrv_neg.push_back(accCorrv[ifile] * sqrt(nSelCorrVarvNeg[ifile]) / nSelCorrv[ifile] );
+        accErrv = (sqrt(accv * (1. + accv) / nEvtsv));
+        accErrCorrvFSR = (accCorrvFSR * sqrt((nSelCorrVarv) / (nSelCorrvFSR * nSelCorrvFSR) + 1. / nEvtsv));
+        accErrCorrvMC = (accCorrvMC * sqrt((nSelCorrVarv) / (nSelCorrvMC * nSelCorrvMC) + 1. / nEvtsv));
+        accErrCorrvBkg = (accCorrvBkg * sqrt((nSelCorrVarv) / (nSelCorrvBkg * nSelCorrvBkg) + 1. / nEvtsv));
+        accErrCorrvTag = (accCorrvTag * sqrt((nSelCorrVarv) / (nSelCorrvTag * nSelCorrvTag) + 1. / nEvtsv));
+        //accErrCorrv = (accCorrv * sqrt((nSelCorrVarv) / (nSelCorrv * nSelCorrv) + 1. / nEvtsv));
+        //accErrCorrv_pos = (accCorrv * sqrt((nSelCorrVarvPos) / (nSelCorrv * nSelCorrv) + 1. / nEvtsv));
+        //accErrCorrv_neg = (accCorrv * sqrt((nSelCorrVarvNeg) / (nSelCorrv * nSelCorrv) + 1. / nEvtsv));
+        accErrCorrv = (accCorrv * sqrt(nSelCorrVarv) / nSelCorrv );
+        accErrCorrv_pos = (accCorrv * sqrt(nSelCorrVarvPos) / nSelCorrv );
+        accErrCorrv_neg = (accCorrv * sqrt(nSelCorrVarvNeg) / nSelCorrv );
 
         delete infile;
         infile = 0, eventTree = 0;
@@ -456,29 +512,29 @@ void computeAccSelZee(const TString conf, // input file
         sprintf(masterOutput, "%s/%s.txt", outputDir.Data(), outputName.Data());
         ofstream txtfile;
         txtfile.open(masterOutput);
-        txtfile << "acc " << accCorrv[ifile] << endl;
-        txtfile << "acc_stat " << accCorrv[ifile] + accErrCorrv[ifile] << endl;
-        txtfile << "acc_stat pos " << accCorrv[ifile] + accErrCorrv_pos[ifile] << endl;
-        txtfile << "acc_stat neg " << accCorrv[ifile] + accErrCorrv_neg[ifile] << endl;
+        txtfile << "acc " << accCorrv << endl;
+        txtfile << "acc_stat " << accCorrv + accErrCorrv << endl;
+        txtfile << "acc_stat pos " << accCorrv + accErrCorrv_pos << endl;
+        txtfile << "acc_stat neg " << accCorrv + accErrCorrv_neg << endl;
         txtfile << "sel_fsr"
-                << " " << accCorrvFSR[ifile] << endl;
+                << " " << accCorrvFSR << endl;
         txtfile << "sel_mc"
-                << " " << accCorrvMC[ifile] << endl;
+                << " " << accCorrvMC << endl;
         txtfile << "sel_bkg"
-                << " " << accCorrvBkg[ifile] << endl;
+                << " " << accCorrvBkg << endl;
         txtfile << "sel_tagpt"
-                << " " << accCorrvTag[ifile] << endl;
+                << " " << accCorrvTag << endl;
         txtfile.close();
     }
 
     double acc_sys = 0.;
     int ifile = 0;
-    acc_sys += TMath::Power(accErrCorrv_pos[ifile] / accCorrv[ifile], 2.0);
-    acc_sys += TMath::Power(accErrCorrv_neg[ifile] / accCorrv[ifile], 2.0);
-    acc_sys += TMath::Power(accCorrvFSR[ifile] / accCorrv[ifile] - 1.0, 2.0);
-    acc_sys += TMath::Power(accCorrvMC[ifile] / accCorrv[ifile] - 1.0, 2.0);
-    acc_sys += TMath::Power(accCorrvBkg[ifile] / accCorrv[ifile] - 1.0, 2.0);
-    acc_sys += TMath::Power(accCorrvTag[ifile] / accCorrv[ifile] - 1.0, 2.0);
+    acc_sys += TMath::Power(accErrCorrv_pos / accCorrv, 2.0);
+    acc_sys += TMath::Power(accErrCorrv_neg / accCorrv, 2.0);
+    acc_sys += TMath::Power(accCorrvFSR / accCorrv - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvMC / accCorrv - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvBkg / accCorrv - 1.0, 2.0);
+    acc_sys += TMath::Power(accCorrvTag / accCorrv - 1.0, 2.0);
     acc_sys = TMath::Sqrt(acc_sys);
 
     cout << "*" << endl;
@@ -492,20 +548,29 @@ void computeAccSelZee(const TString conf, // input file
 
     for (UInt_t ifile = 0; ifile < 1; ifile++) {
         cout << "    *** Acceptance ***" << endl;
-        cout << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
-        cout << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
-        cout << "     SF corrected pos: " << accCorrv[ifile] << " +/- " << accErrCorrv_pos[ifile] << endl;
-        cout << "     SF corrected neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
-        cout << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
-        cout << "          stat: " << 100 * accErrCorrv[ifile] / accCorrv[ifile] << endl;
-        cout << "          stat pos: " << accErrCorrv_pos[ifile] / accCorrv[ifile] << endl;
-        cout << "          stat neg: " << accErrCorrv_neg[ifile] / accCorrv[ifile] << endl;
-        cout << "          FSR unc: " << accCorrvFSR[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvFSR[ifile] << endl;
-        cout << "           MC unc: " << accCorrvMC[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvMC[ifile] << endl;
-        cout << "          Bkg unc: " << accCorrvBkg[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvBkg[ifile] << endl;
-        cout << "          Tag unc: " << accCorrvTag[ifile] / accCorrv[ifile] - 1.0 << " +/- " << accErrCorrvTag[ifile] << endl;
+        cout << "          nominal: " << setw(12) << nSelv << " / " << nEvtsv << " = " << accv << " +/- " << accErrv << endl;
+        cout << "     SF corrected: " << accCorrv << " +/- " << accErrCorrv << endl;
+        cout << "     SF corrected pos: " << accCorrv << " +/- " << accErrCorrv_pos << endl;
+        cout << "     SF corrected neg: " << accCorrv << " +/- " << accErrCorrv_neg << endl;
+        cout << "  ==total efficiency==> " << setw(4) << accCorrv / accv << endl;
+        cout << "          stat: " << 100 * accErrCorrv / accCorrv << endl;
+        cout << "          stat pos: " << 100 * accErrCorrv_pos / accCorrv << endl;
+        cout << "          stat neg: " << 100 * accErrCorrv_neg / accCorrv << endl;
+        cout << "          FSR unc: " << 100 * (accCorrvFSR / accCorrv - 1.0) << " +/- " << accErrCorrvFSR << endl;
+        cout << "           MC unc: " << 100 * (accCorrvMC / accCorrv - 1.0) << " +/- " << accErrCorrvMC << endl;
+        cout << "          Bkg unc: " << 100 * (accCorrvBkg / accCorrv - 1.0) << " +/- " << accErrCorrvBkg << endl;
+        cout << "          Tag unc: " << 100 * (accCorrvTag / accCorrv - 1.0) << " +/- " << accErrCorrvTag << endl;
         cout << "          Total: " << acc_sys << endl;
         cout << endl;
+
+        cout << endl << endl;
+        cout << " Prefire Correction " << nSelPfire / nSelCorrv << " + " << fabs(nSelPfireUp - nSelPfire) / nSelPfire << " - " << fabs(nSelPfireDown - nSelPfire) / nSelPfire << endl;
+        cout << " Prefire ECAL Correction " << nSelPfireEcal / nSelCorrv << " + " << fabs(nSelPfireEcalUp - nSelPfireEcal) / nSelPfireEcal << " - " << fabs(nSelPfireEcalDown - nSelPfireEcal) / nSelPfireEcal << endl;
+        cout << " Prefire Muon Correction " << nSelPfireMuon / nSelCorrv << " + " << fabs(nSelPfireMuonUp - nSelPfireMuon) / nSelPfireMuon << " - " << fabs(nSelPfireMuonDown - nSelPfireMuon) / nSelPfireMuon << endl;
+        cout << " Prefire Photon Correction " << nSelPfirePhoton / nSelCorrv << " + " << fabs(nSelPfirePhotonUp - nSelPfirePhoton) / nSelPfirePhoton << " - " << fabs(nSelPfirePhotonDown - nSelPfirePhoton) / nSelPfirePhoton << endl;
+        cout << " Prefire Jet Correction " << nSelPfireJet / nSelCorrv << " + " << fabs(nSelPfireJetUp - nSelPfireJet) / nSelPfireJet << " - " << fabs(nSelPfireJetDown - nSelPfireJet) / nSelPfireJet << endl;
+
+
     }
 
     char txtfname[500];
@@ -523,15 +588,15 @@ void computeAccSelZee(const TString conf, // input file
 
     for (UInt_t ifile = 0; ifile < 1; ifile++) {
         txtfile << "    *** Acceptance ***" << endl;
-        txtfile << "          nominal: " << setw(12) << nSelv[ifile] << " / " << nEvtsv[ifile] << " = " << accv[ifile] << " +/- " << accErrv[ifile] << endl;
-        txtfile << "  ==total efficiency==> " << setw(4) << accCorrv[ifile] / accv[ifile] << endl;
-        txtfile << "     SF corrected: " << accCorrv[ifile] << " +/- " << accErrCorrv[ifile] << endl;
-        txtfile << "     SF corrected Pos: " << accCorrv[ifile] << " +/- " << accErrCorrv_pos[ifile] << endl;
-        txtfile << "     SF corrected Neg: " << accCorrv[ifile] << " +/- " << accErrCorrv_neg[ifile] << endl;
-        txtfile << "          FSR unc: " << accCorrvFSR[ifile] << " +/- " << accErrCorrvFSR[ifile] << endl;
-        txtfile << "           MC unc: " << accCorrvMC[ifile] << " +/- " << accErrCorrvMC[ifile] << endl;
-        txtfile << "          Bkg unc: " << accCorrvBkg[ifile] << " +/- " << accErrCorrvBkg[ifile] << endl;
-        txtfile << "          Bkg unc: " << accCorrvTag[ifile] << " +/- " << accErrCorrvTag[ifile] << endl;
+        txtfile << "          nominal: " << setw(12) << nSelv << " / " << nEvtsv << " = " << accv << " +/- " << accErrv << endl;
+        txtfile << "  ==total efficiency==> " << setw(4) << accCorrv / accv << endl;
+        txtfile << "     SF corrected: " << accCorrv << " +/- " << accErrCorrv << endl;
+        txtfile << "     SF corrected Pos: " << accCorrv << " +/- " << accErrCorrv_pos << endl;
+        txtfile << "     SF corrected Neg: " << accCorrv << " +/- " << accErrCorrv_neg << endl;
+        txtfile << "          FSR unc: " << accCorrvFSR << " +/- " << accErrCorrvFSR << endl;
+        txtfile << "           MC unc: " << accCorrvMC << " +/- " << accErrCorrvMC << endl;
+        txtfile << "          Bkg unc: " << accCorrvBkg << " +/- " << accErrCorrvBkg << endl;
+        txtfile << "          Bkg unc: " << accCorrvTag << " +/- " << accErrCorrvTag << endl;
         txtfile << endl;
     }
     txtfile.close();
@@ -542,12 +607,12 @@ void computeAccSelZee(const TString conf, // input file
     txtfile2.open(txtfname);
 
     for (UInt_t ifile = 0; ifile < 1; ifile++) {
-        txtfile2 << accCorrv[ifile] << " " << accErrCorrv[ifile] << endl;
-        txtfile2 << accCorrvFSR[ifile] << endl;
-        txtfile2 << accCorrvMC[ifile] << endl;
-        txtfile2 << accCorrvBkg[ifile] << endl;
-        txtfile2 << accCorrvTag[ifile] << endl;
-        // txtfile << accCorrvFSR[ifile]  << ", " << accCorrvMC[ifile] << ", " << accCorrvBkg[ifile] << ", " << accCorrvTag[ifile] << endl;
+        txtfile2 << accCorrv << " " << accErrCorrv << endl;
+        txtfile2 << accCorrvFSR << endl;
+        txtfile2 << accCorrvMC << endl;
+        txtfile2 << accCorrvBkg << endl;
+        txtfile2 << accCorrvTag << endl;
+        // txtfile << accCorrvFSR  << ", " << accCorrvMC << ", " << accCorrvBkg << ", " << accCorrvTag << endl;
 
         txtfile2 << endl;
     }
@@ -559,12 +624,12 @@ void computeAccSelZee(const TString conf, // input file
     txtfile3.open(txtfname);
 
     for (UInt_t ifile = 0; ifile < 1; ifile++) {
-        txtfile3 << accCorrv[ifile] << endl;
-        txtfile3 << accCorrvFSR[ifile] << endl;
-        txtfile3 << accCorrvMC[ifile] << endl;
-        txtfile3 << accCorrvBkg[ifile] << endl;
-        txtfile3 << accCorrvTag[ifile] << endl;
-        // txtfile << accCorrvFSR[ifile]  << ", " << accCorrvMC[ifile] << ", " << accCorrvBkg[ifile] << ", " << accCorrvTag[ifile] << endl;
+        txtfile3 << accCorrv << endl;
+        txtfile3 << accCorrvFSR << endl;
+        txtfile3 << accCorrvMC << endl;
+        txtfile3 << accCorrvBkg << endl;
+        txtfile3 << accCorrvTag << endl;
+        // txtfile << accCorrvFSR  << ", " << accCorrvMC << ", " << accCorrvBkg << ", " << accCorrvTag << endl;
 
         txtfile3 << endl;
     }
