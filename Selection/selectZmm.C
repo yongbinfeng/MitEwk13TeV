@@ -72,15 +72,17 @@ void selectZmm(const TString conf = "zmm.conf", // input file
     const Int_t BOSON_ID = 23;
     const Int_t LEPTON_ID = 13;
 
-    // load trigger menu
-    const baconhep::TTrigger triggerMenu("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/BaconAna/DataFormats/data/HLT_50nsGRun");
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
-    const TString prefireEcalFileName = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
-    const TString prefireMuonFileName = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
+    // load trigger menu
+    const baconhep::TTrigger triggerMenu((envStr + "BaconAna/DataFormats/data/HLT_50nsGRun").Data());
+
+    const TString prefireEcalFileName = envStr + "MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
+    const TString prefireMuonFileName = envStr + "MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
     PrefiringEfficiency pfire(prefireEcalFileName.Data(), (is13TeV ? "2017H" : "2017G"), prefireMuonFileName.Data());
 
     // load pileup reweighting file
-    TFile* f_rw = TFile::Open("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/Tools/puWeights_76x.root", "read");
+    TFile* f_rw = TFile::Open(envStr + "MitEwk13TeV/Tools/puWeights_76x.root", "read");
 
     TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
     TH1D* h_rw_up = (TH1D*)f_rw->Get("puWeightsUp");
@@ -112,8 +114,8 @@ void selectZmm(const TString conf = "zmm.conf", // input file
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
-    // const TString ntupDir = outputDir + TString("/ntuples");
-    const TString ntupDir = outputDir + TString("/ntuples_") + Form("%d", ITH) + TString("_") + Form("%d", NSEC);
+    const TString ntupDir = outputDir + TString("/ntuples");
+    //const TString ntupDir = outputDir + TString("/ntuples_") + Form("%d", ITH) + TString("_") + Form("%d", NSEC);
     gSystem->mkdir(ntupDir, kTRUE);
 
     //

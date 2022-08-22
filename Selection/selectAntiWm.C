@@ -104,8 +104,8 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
-    // const TString ntupDir = outputDir + TString("/ntuples");
-    const TString ntupDir = outputDir + TString("/ntuples_") + Form("%d", ITH) + TString("_") + Form("%d", NSEC);
+    const TString ntupDir = outputDir + TString("/ntuples");
+    //const TString ntupDir = outputDir + TString("/ntuples_") + Form("%d", ITH) + TString("_") + Form("%d", NSEC);
     gSystem->mkdir(ntupDir, kTRUE);
 
     //

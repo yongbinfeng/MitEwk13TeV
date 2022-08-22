@@ -13,6 +13,7 @@
         // }
 
         gSystem->Load("$CMSSW_BASE/lib/$SCRAM_ARCH/libBaconAnaDataFormats.so");
+        gSystem->Load("$CMSSW_BASE/lib/$SCRAM_ARCH/libBaconAnaUtils.so");
 
         //gROOT->Macro("$CMSSW_BASE/src/BaconAna/macros/setRootEnv.C++");
         // gSystem->SetMakeSharedLib(cmd);
@@ -21,8 +22,8 @@
 
     //gROOT->Macro("../Utils/CPlot.cc++");
     //gROOT->Macro("../Utils/MitStyleRemix.cc++");
-    gSystem->Load("$CMSSW_BASE/src/MitEwk13TeV/EleScale/EnergyScaleCorrection_cc.so");
-    //gROOT->Macro("../EleScale/EnergyScaleCorrection.cc+");
+    //gSystem->Load("$CMSSW_BASE/src/MitEwk13TeV/EleScale/EnergyScaleCorrection_cc.so");
+    gROOT->Macro("../EleScale/EnergyScaleCorrection.cc++");
     //gROOT->Macro("../Utils/CCorrUser2D.cc+");
 
     // {
