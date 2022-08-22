@@ -205,9 +205,9 @@ void computeAccSelWe(const TString conf, // input file
             // loop over events
             //
             double frac = 0.05; // fraction of events to be used for calculation
-            if (isamp == 0) frac = 0.01;
-            if (isamp == 1) frac = 0.01;
-            if (isamp == 2) frac = 0.01;
+            if (isamp == 0) frac = 0.05;
+            if (isamp == 1) frac = 0.10;
+            if (isamp == 2) frac = 0.20;
             if (!is13TeV) frac = 0.30;
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 

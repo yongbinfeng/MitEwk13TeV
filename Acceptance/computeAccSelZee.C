@@ -203,7 +203,7 @@ void computeAccSelZee(const TString conf, // input file
         //
         // loop over events
         //
-        double frac = 0.01;
+        double frac = 0.10;
         if (!is13TeV)
             frac = 0.30;
         for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {

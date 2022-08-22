@@ -33,6 +33,9 @@
 //  https://github.com/cms-sw/cmssw/blob/master/PhysicsTools/PatUtils/plugins/L1PrefiringWeightProducer.cc
 //  and the twiki page https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe
 //
+//  the statistical uncertainty seems to be correlated in the current setup (from CSMSW) though, thus
+//  the impacts might be overestimated.
+//
 
 class PrefiringEfficiency {
 public:
@@ -130,7 +133,7 @@ public:
         float uncTot = 0;
         for (Int_t ip = 0; ip < scArr->GetEntriesFast(); ip++) {
             const baconhep::TPhoton* photon = (baconhep::TPhoton*)((*scArr)[ip]);
-            if (photon->pt < 20.0)
+            if (photon->pt < 10.0)
                 continue;
             if (!etaCut(photon->eta))
                 continue;
@@ -171,7 +174,7 @@ public:
                 double pt_gam = photon->pt;
                 double eta_gam = photon->eta;
                 double phi_gam = photon->phi;
-                if (pt_gam < 20.)
+                if (pt_gam < 10.)
                     continue;
                 if (fabs(eta_gam) < 2.)
                     continue;
