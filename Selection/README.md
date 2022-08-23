@@ -1,5 +1,3 @@
-MitEwk13TeV/Selection/README.md - Stephanie Brandt .... February 10, 2020
-
 # Overview
 Skim a flat ntuple from the Bacon files. Current version compatible with CMSSW_9_4_X.
 
