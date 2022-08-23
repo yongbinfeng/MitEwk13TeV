@@ -3,6 +3,8 @@ MitEwk13TeV/Selection/README.md - Stephanie Brandt .... February 10, 2020
 # Overview
 Skim a flat ntuple from the Bacon files. Current version compatible with CMSSW_9_4_X.
 
+**Note the current version only works assuming one file for one sample.** The way to loop over samples and files need to be updated if we want to do multiple files per sample.
+
 ## Selection steps
 There are six macros that select events for each of the channels: select[We,Wm,Zee,Zmm].C for the signals and selectAnti[We,Wm].C for the control regions used for the W fits. 
 
