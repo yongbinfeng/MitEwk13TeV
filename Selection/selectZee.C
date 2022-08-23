@@ -199,16 +199,25 @@ void selectZee(const TString conf = "zee.conf", // input file
         Bool_t isWboson = (snamev[isam].Contains("wx"));
         Bool_t isWrongFlavor = (snamev[isam].Contains("zxx"));
         Bool_t isRecoil = (isWboson || isSignal || isWrongFlavor);
-        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww"));
+        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww") || snamev[isam].Contains("zz2l") || snamev[isam].Contains("zz4l"));
 
         CSample* samp = samplev[isam];
 
         //
         // Set up output ntuple
         //
-        TString outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.root");
+        TString outfilename = ntupDir + TString("/") + snamev[isam];
         if (isam != 0 && !doScaleCorr)
-            outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.raw.root");
+            // not data and no scale correction
+            outfilename += TString("_select.raw");
+        else
+            outfilename += TString("_select");
+        if (NSEC != 1) {
+            outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH);
+        }
+        outfilename += TString(".root");
+        cout << outfilename << endl;
+
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
         outTree->Branch("runNum", &runNum, "runNum/i"); // event run number

@@ -149,7 +149,7 @@ void selectWe(const TString conf = "we.conf", // input file
 
     // loop over samples
     for (UInt_t isam = 0; isam < samplev.size(); isam++) {
-        std::cout << "ISample" << ISample << std::endl;
+        //std::cout << "ISample " << ISample << std::endl;
         if ((ISample >= 0) && ((int)isam != ISample))
             // only run the ISample in the config
             continue;
@@ -169,14 +169,22 @@ void selectWe(const TString conf = "we.conf", // input file
         Bool_t isWrongFlavor = (snamev[isam].Contains("wx"));
 
         Bool_t isRecoil = (snamev[isam].Contains("zxx") || isSignal || isWrongFlavor);
-        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww"));
+        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww") || snamev[isam].Contains("zz2l") || snamev[isam].Contains("zz4l"));
         CSample* samp = samplev[isam];
 
         // Set up output ntuple
-        TString outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.root");
+        TString outfilename = ntupDir + TString("/") + snamev[isam];
         if (isam != 0 && !doScaleCorr)
-            outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.raw.root");
+            // not data and no scale correction
+            outfilename += TString("_select.raw");
+        else
+            outfilename += TString("_select");
+        if (NSEC != 1) {
+            outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH);
+        }
+        outfilename += TString(".root");
         cout << outfilename << endl;
+
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
         outTree->Branch("runNum", &runNum, "runNum/i"); // event run number
@@ -221,6 +229,7 @@ void selectWe(const TString conf = "we.conf", // input file
         outTree->Branch("sc", "TLorentzVector", &sc); // supercluster 4-vector
 
         TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
+
         //
         // loop through files
         //
@@ -273,9 +282,24 @@ void selectWe(const TString conf = "we.conf", // input file
             //
             // loop over events
             //
-            double frac = 1.0 / NSEC;
-            UInt_t IBEGIN = frac * ITH * eventTree->GetEntries();
-            UInt_t IEND = frac * (ITH + 1) * eventTree->GetEntries();
+            Long64_t nevents = eventTree->GetEntries();
+            Long64_t IBEGIN = 0;
+            Long64_t IEND = nevents;
+
+            if (NSEC!=1) {
+                cout << "n sections " << NSEC << " ith part " << ITH << endl;
+                Long64_t nevents_per_job = nevents / NSEC;
+                Long64_t remainder = nevents % NSEC;
+                IBEGIN = ITH * nevents_per_job;
+                IEND = (ITH + 1) * nevents_per_job;
+                if (ITH == NSEC - 1) {
+                    // for the last section, add the remaining into these;
+                    IEND = nevents;
+                }
+                cout << "start, end events: " << IBEGIN << " " << IEND << endl;
+            }
+
+            std::cout << "Number of Events = " << eventTree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
 
             Double_t nsel = 0, nselvar = 0;
             for (UInt_t ientry = IBEGIN; ientry < IEND; ientry++) {

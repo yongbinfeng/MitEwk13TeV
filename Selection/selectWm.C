@@ -192,17 +192,25 @@ void selectWm(const TString conf = "wm.conf", // input file
             isWrongFlavor = (snamev[isam].CompareTo("wx", TString::kIgnoreCase) == 0);
         }
         Bool_t isRecoil = (isSignal || (snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0) || isWrongFlavor);
-        Bool_t noGen = (snamev[isam].CompareTo("zz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("ww", TString::kIgnoreCase) == 0);
+        Bool_t noGen = (snamev[isam].CompareTo("zz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("ww", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("zz2l", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("zz4l", TString::kIgnoreCase) == 0);
 
         CSample* samp = samplev[isam];
 
         //
         // Set up output ntuple
         //
-        TString outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.root");
+        TString outfilename = ntupDir + TString("/") + snamev[isam];
         if (isData == 0 && !doScaleCorr)
-            outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.raw.root");
+            // not data and no scale correction
+            outfilename += TString("_select.raw");
+        else
+            outfilename += TString("_select");
+        if (NSEC != 1) {
+            outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH);
+        }
+        outfilename += TString(".root");
         cout << outfilename << endl;
+
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
         outTree->Branch("runNum", &runNum, "runNum/i"); // event run number
@@ -352,19 +360,30 @@ void selectWm(const TString conf = "wm.conf", // input file
             Double_t puWeightUp = 1;
             Double_t puWeightDown = 1;
 
-            cout << "n sections " << NSEC << endl;
-            double frac = 1.0 / NSEC;
-            cout << "n sections " << NSEC << "  frac " << frac << endl;
-            UInt_t IBEGIN = frac * ITH * eventTree->GetEntries();
-            UInt_t IEND = frac * (ITH + 1) * eventTree->GetEntries();
-            cout << "start, end " << IBEGIN << " " << IEND << endl;
+            Long64_t nevents = eventTree->GetEntries();
+            Long64_t IBEGIN = 0;
+            Long64_t IEND = nevents;
+
+            if (NSEC!=1) {
+                cout << "n sections " << NSEC << " ith part " << ITH << endl;
+                Long64_t nevents_per_job = nevents / NSEC;
+                Long64_t remainder = nevents % NSEC;
+                IBEGIN = ITH * nevents_per_job;
+                IEND = (ITH + 1) * nevents_per_job;
+                if (ITH == NSEC - 1) {
+                    // for the last section, add the remaining into these;
+                    IEND = nevents;
+                }
+                cout << "start, end events: " << IBEGIN << " " << IEND << endl;
+            }
+
+            std::cout << "Number of Events = " << eventTree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
+
             //
             // loop over events
             //
             Double_t nsel = 0, nselvar = 0;
             for (UInt_t ientry = IBEGIN; ientry < IEND; ientry++) {
-                // for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-                // for(UInt_t ientry=0; ientry<(uint)(0.001*eventTree->GetEntries()); ientry++) {
                 infoBr->GetEntry(ientry);
 
                 int printIndex = (int)(eventTree->GetEntries() * 0.01);
