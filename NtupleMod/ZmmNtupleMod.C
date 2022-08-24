@@ -39,7 +39,7 @@ void orderByLepPt(TLorentzVector& mu1, TLorentzVector& mu2, Int_t& q1, Int_t& q2
 
 //=== MAIN MACRO =================================================================================================
 
-void ZmmNTupleMod(
+void ZmmNtupleMod(
     const TString outputDir, // output directory
     const TString inputDir, // input directory
     const TString sqrts,
@@ -110,29 +110,22 @@ void ZmmNTupleMod(
     //
     // Fit options
     //
-    const Int_t NBINS = 60;
     const Double_t MASS_LOW = 60;
     const Double_t MASS_HIGH = 120;
     const Double_t PT_CUT = 25;
     const Double_t ETA_CUT = 2.4;
 
     const bool doRoch = true;
-    // efficiency files
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
-    // new eff SF helper code
-    // constructor-> construct and intialize the main file path
-    // add
-    //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zmm/";
+    // efficiency files
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Zmm/";
     AppEffSF effs(baseDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
 
-    //
-    // Warning: this needs to be updated for 5TeV
-    //
-    TString sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/";
+    TString sysDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Systematics/";
     TString sysFileSIT = sysDir + "SysUnc_MuSITEff.root";
     TString sysFileSta = sysDir + "SysUnc_MuStaEff.root";
     effs.loadUncSel(sysFileSIT);
@@ -141,7 +134,7 @@ void ZmmNTupleMod(
     
     Bool_t isRecoil = (fileName.CompareTo("zmm_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zmm_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
 
-    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+    const TString directory((envStr + "Corrections/Recoil").Data());
 
     RecoilCorrector* rcMainZ = new RecoilCorrector("", "");
     rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
@@ -151,8 +144,8 @@ void ZmmNTupleMod(
     //
     // Warning: this might need to be updated for 5TeV
     //
-    METXYCorrector* metcorXY = new METXYCorrector("", "");
-    metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+    //METXYCorrector* metcorXY = new METXYCorrector("", "");
+    //metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 
 
     //--------------------------------------------------------------------------------------------------------------
@@ -196,14 +189,14 @@ void ZmmNTupleMod(
     UInt_t npv;
 
     // Loading the Rochster Corrections
-    RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
+    RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
 
     TFile* infile = 0;
     TTree* intree = 0;
 
     // Read input file and get the TTrees
     cout << "Processing " << fileName.Data() << "..." << endl;
-    infile = new TFile((inputDir + TString("/") + fileName).Data());
+    infile = TFile::Open((inputDir + TString("/") + fileName).Data());
     assert(infile);
     intree = (TTree*)infile->Get("Events");
     assert(intree);
@@ -355,8 +348,8 @@ void ZmmNTupleMod(
             // correct MET XY for data
             metVars[cxy] = met;
             metVarsPhi[cxy] = metPhi;
-            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
-            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1_postXY, pU2_postXY);
+            //metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
+            //metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1_postXY, pU2_postXY);
 
         } else {
 
@@ -424,22 +417,24 @@ void ZmmNTupleMod(
 
 
             double var = 0.;
-            var += effs.statUncSta(&mu1, q1, hErr, hErr, 1.0);
-            var += effs.statUncSta(&mu2, q2, hErr, hErr, 1.0);
-            var += effs.statUncSel(&mu1, q1, hErr, hErr, 1.0);
-            var += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0);
-            var += effs.statUncHLTDilep(&mu1, q1, &mu2, q2);
+            var += effs.statUncSta(&mu1, q1, hErr, hErr, 1.0, true);
+            var += effs.statUncSta(&mu2, q2, hErr, hErr, 1.0, true);
+            var += effs.statUncSel(&mu1, q1, hErr, hErr, 1.0, true);
+            var += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0, true);
+            //var += effs.statUncHLTDilep(&mu1, q1, &mu2, q2);
+            var += effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0);
+            var += effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0);
 
             double var_lep1 = 0.;
-            var_lep1 += effs.statUncSta(&mu1, q1, hErr, hErr, 1.0);
-            var_lep1 += effs.statUncSel(&mu1, q1, hErr, hErr, 1.0);
-            //var_lep1 += effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0);
+            var_lep1 += effs.statUncSta(&mu1, q1, hErr, hErr, 1.0, true);
+            var_lep1 += effs.statUncSel(&mu1, q1, hErr, hErr, 1.0, true);
+            var_lep1 += effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0);
 
             double var_lep2 = 0.;
-            var_lep2 += effs.statUncSta(&mu2, q2, hErr, hErr, 1.0);
-            var_lep2 += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0);
-            //var_lep2 += effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0);
-            //
+            var_lep2 += effs.statUncSta(&mu2, q2, hErr, hErr, 1.0, true);
+            var_lep2 += effs.statUncSel(&mu2, q2, hErr, hErr, 1.0, true);
+            var_lep2 += effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0);
+
             //std::cout << "stational stat unc " << effs.statUncSta(&mu1, q1, hErr, hErr, 1.0) << " and " << effs.statUncSta(&mu2, q2, hErr, hErr, 1.0) << std::endl;
             //std::cout << "selection stat unc " << effs.statUncSel(&mu1, q1, hErr, hErr, 1.0) << " and " << effs.statUncSel(&mu2, q2, hErr, hErr, 1.0) << std::endl;
             //std::cout << "hlt stat unc " << effs.statUncHLTDilep(&mu1, q1, &mu2, q2) << " lep1 " << effs.statUncHLT(&mu1, q1, hErr, hErr, 1.0) << " lep2 " << effs.statUncHLT(&mu2, q2, hErr, hErr, 1.0) << std::endl;
@@ -481,8 +476,8 @@ void ZmmNTupleMod(
             // XY correction on MC
             metVars[cxy] =  metVars[cent];
             metVarsPhi[cxy] = metVarsPhi[cent];
-            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
-            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
+            //metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
+            //metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree

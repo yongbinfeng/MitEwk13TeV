@@ -116,19 +116,18 @@ void eleNtupleMod(const TString outputDir, // output directory
     const Double_t PT_CUT = 25;
     const Double_t ETA_CUT = 2.4;
 
-    // const Double_t mu_MASS = 0.1057;
     const Double_t ELE_MASS = 0.000511;
 
-    //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    //TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" +sqrts + "/results/Zee/";
-    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zee/";
-    AppEffSF effs(effDir);
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Zee/";
+    AppEffSF effs(baseDir);
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
     //
     // Warning: this needs to be updated for 5TeV
     //
-    TString SysFileGSFSel = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_EleGSFSelEff.root";
+    TString SysFileGSFSel = envStr + "Corrections/Efficiency/" + sqrts + "/results/Systematics/SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
@@ -155,8 +154,7 @@ void eleNtupleMod(const TString outputDir, // output directory
     //   Load the Recoil Correction Files
     // ------------------------------------------------------------------------------------------------------------------------------------------
     // ===================== Recoil correction files ============================
-    //const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
-    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+    const TString directory((envStr + "Corrections/Recoil").Data());
 
     // New Recoil Correctors for everything
     RecoilCorrector* rcMainWp = new RecoilCorrector("", "");
@@ -243,7 +241,7 @@ void eleNtupleMod(const TString outputDir, // output directory
 
     // Read input file and get the TTrees
     cout << "Processing " << fileName.Data() << "..." << endl;
-    infile = new TFile((inputDir + TString("/") + fileName).Data());
+    infile = TFile::Open((inputDir + TString("/") + fileName).Data());
     assert(infile);
     intree = (TTree*)infile->Get("Events");
     assert(intree);
@@ -370,7 +368,13 @@ void eleNtupleMod(const TString outputDir, // output directory
         Double_t corr = 1, corrdu = 1, corrdd = 1, corrmu = 1, corrmd = 1;
         Double_t corrFSR = 1, corrMC = 1, corrBkg = 1, corrTag = 1;
 
+        if (fabs(lep->Pt()) < PT_CUT)
+            continue;
+
         if (fabs(lep->Eta()) > ETA_CUT)
+            continue;
+
+        if (fabs(lep->Eta()) >= ECAL_GAP_LOW && fabs(lep->Eta()) <= ECAL_GAP_HIGH)
             continue;
 
         TVector2 vLepCor((lep->Pt()) * cos(lep->Phi()), (lep->Pt()) * sin(lep->Phi()));
@@ -406,6 +410,7 @@ void eleNtupleMod(const TString outputDir, // output directory
 
             double var = 0.;
             var += effs.statUncHLT(&vEle, q, hErr, hErr, 1.0);
+            var += effs.statUncSel(&vEle, q, hErr, hErr, 1.0, true);
 
             evtWeight[main] = corr * scale1fb * prefireWeight;
             evtWeight[fsr] = corrFSR * scale1fb * prefireWeight;

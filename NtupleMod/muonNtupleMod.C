@@ -133,22 +133,19 @@ void muonNtupleMod(const TString outputDir, // output directory
     // -----------------------------------------------------------
     //   Point to the Efficiency SF
     // -----------------------------------------------------------
-    //TString effDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zmm/";
-    //TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_" + sqrts + "/results/Zmm/";
-    TString effDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zmm/";
-    AppEffSF effs(effDir);
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Zmm/";
+    AppEffSF effs(baseDir);
     effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
     effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
 
-    // Warning: this needs to be updated for 5TeV
-    //TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuSITEff.root";
-    //TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Efficiency/lowpu_13TeV/Systematics/SysUnc_MuStaEff.root";
-    TString sysFileSIT = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_MuSITEff.root";
-    TString sysFileSta = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/SysUnc_MuStaEff.root";
-
+    TString sysDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Systematics/";
+    TString sysFileSIT = sysDir + "SysUnc_MuSITEff.root";
+    TString sysFileSta = sysDir + "SysUnc_MuStaEff.root";
     effs.loadUncSel(sysFileSIT);
     effs.loadUncSta(sysFileSta);
+
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
     Bool_t isData = (fileName.CompareTo("data_select.root") == 0);
@@ -177,8 +174,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     //   Load the Recoil Correction Files
     // ------------------------------------------------------------------------------------------------------------------------------------------
     // ===================== Recoil correction files ============================
-    //const TString directory("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Recoil");
-    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+    const TString directory((envStr + "Corrections/Recoil").Data());
 
     // New Recoil Correctors for everything
     RecoilCorrector* rcMainWp = new RecoilCorrector("", "");
@@ -252,8 +248,8 @@ void muonNtupleMod(const TString outputDir, // output directory
     
     // this might need to be updated for 5TeV
     // load the MET XY correction file
-    METXYCorrector* metcorXY = new METXYCorrector("", "");
-    metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+    //METXYCorrector* metcorXY = new METXYCorrector("", "");
+    //metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -262,15 +258,14 @@ void muonNtupleMod(const TString outputDir, // output directory
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
 
-    //RoccoR rc("/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
-    RoccoR rc("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/MitEwk13TeV/RochesterCorr/RoccoR2017.txt");
+    RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
 
     TFile* infile = 0;
     TTree* intree = 0;
 
     // Read input file and get the TTrees
     cout << "Processing " << fileName.Data() << "..." << endl;
-    infile = new TFile((inputDir + TString("/") + fileName).Data());
+    infile = TFile::Open((inputDir + TString("/") + fileName).Data());
     assert(infile);
     intree = (TTree*)infile->Get("Events");
     assert(intree);
@@ -452,7 +447,7 @@ void muonNtupleMod(const TString outputDir, // output directory
             Double_t corrMetWithLeptonXY = corrMetWithLepton;
             Double_t corrMetPhiLeptonXY = corrMetPhiLepton;
             // apply the XY correction
-            metcorXY->CorrectMETXY(corrMetWithLeptonXY, corrMetPhiLeptonXY, npv, 1);
+            //metcorXY->CorrectMETXY(corrMetWithLeptonXY, corrMetPhiLeptonXY, npv, 1);
             mt = sqrt(2.0 * (mu1.Pt()) * (corrMetWithLeptonXY) * (1.0 - cos(toolbox::deltaPhi(mu1.Phi(), corrMetPhiLeptonXY))));
 
             metVars[no] = corrMetWithLeptonXY;
@@ -485,8 +480,8 @@ void muonNtupleMod(const TString outputDir, // output directory
 
             double var = 0.;
             // var += effs.statUncSta(&l1, q) + effs.statUncSta(&l2, q2);
-            var += effs.statUncSta(&mu1, q, hErr, hErr, 1.0);
-            var += effs.statUncSel(&mu1, q, hErr, hErr, 1.0);
+            var += effs.statUncSta(&mu1, q, hErr, hErr, 1.0, true);
+            var += effs.statUncSel(&mu1, q, hErr, hErr, 1.0, true);
             var += effs.statUncHLT(&mu1, q, hErr, hErr, 1.0);
 
             evtWeight[main] = corr * scale1fb * prefireWeight;
@@ -553,7 +548,7 @@ void muonNtupleMod(const TString outputDir, // output directory
             // XY correction
             Double_t corrMetXY = corrMet;
             Double_t corrMetXYPhi = corrMetPhi;
-            metcorXY->CorrectMETXY(corrMetXY, corrMetXYPhi, npv, 0);
+            //metcorXY->CorrectMETXY(corrMetXY, corrMetXYPhi, npv, 0);
             TVector2 vMetCorrXY((corrMetXY)*cos(corrMetXYPhi), (corrMetXY)*sin(corrMetXYPhi));
 
             metVars[no] = corrMetXY;
@@ -572,7 +567,7 @@ void muonNtupleMod(const TString outputDir, // output directory
                 if (q > 0) {
                     if (doKeys) {
                         rcKeysWp->CorrectInvCdf(metVars[keys], metVarsPhi[keys], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kTRUE, kFALSE);
-                        metcorXY->CorrectMETXY(metVars[keys], metVarsPhi[keys], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[keys], metVarsPhi[keys], npv, 0);
                     }
                     if (doEta) {
                         if (fabs(genVy) < 0.5)
@@ -581,7 +576,7 @@ void muonNtupleMod(const TString outputDir, // output directory
                             rcEta051Wp->CorrectInvCdf(metVars[eta], metVarsPhi[eta], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
                         else
                             rcEta1Wp->CorrectInvCdf(metVars[eta], metVarsPhi[eta], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
-                        metcorXY->CorrectMETXY(metVars[eta], metVarsPhi[eta], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[eta], metVarsPhi[eta], npv, 0);
                     }
                     if (doInclusive) {
                         rcMainWp->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
@@ -589,20 +584,20 @@ void muonNtupleMod(const TString outputDir, // output directory
                         rcMainWp->CorrectInvCdf(metVars[rd], metVarsPhi[rd], genVPt, genVPhi, mu1d.Pt(), mu1d.Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
                         metVars[woxy] = metVars[cent];
                         metVarsPhi[woxy] = metVarsPhi[cent];
-                        metcorXY->CorrectMETXY(metVars[cent], metVarsPhi[cent], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[cent], metVarsPhi[cent], npv, 0);
                     }
                     if (doStat) {
                         for (int i = 0; i < nNV; i++) {
                             int ofs = i + ns;
                             rcStatW[i]->CorrectInvCdf(metVars[ofs], metVarsPhi[ofs], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kTRUE);
-                            metcorXY->CorrectMETXY(metVars[ofs], metVarsPhi[ofs], npv, 0);
+                            //metcorXY->CorrectMETXY(metVars[ofs], metVarsPhi[ofs], npv, 0);
                         }
                     }
 
                 } else {
                     if (doKeys) {
                         rcKeysWm->CorrectInvCdf(metVars[keys], metVarsPhi[keys], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kTRUE, kFALSE);
-                        metcorXY->CorrectMETXY(metVars[keys], metVarsPhi[keys], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[keys], metVarsPhi[keys], npv, 0);
                     }
                     if (doEta) {
                         if (fabs(genVy) < 0.5)
@@ -611,7 +606,7 @@ void muonNtupleMod(const TString outputDir, // output directory
                             rcEta051Wm->CorrectInvCdf(metVars[eta], metVarsPhi[eta], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
                         else
                             rcEta1Wm->CorrectInvCdf(metVars[eta], metVarsPhi[eta], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
-                        metcorXY->CorrectMETXY(metVars[eta], metVarsPhi[eta], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[eta], metVarsPhi[eta], npv, 0);
                     }
                     if (doInclusive) {
                         rcMainWm->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
@@ -619,13 +614,13 @@ void muonNtupleMod(const TString outputDir, // output directory
                         rcMainWm->CorrectInvCdf(metVars[rd], metVarsPhi[rd], genVPt, genVPhi, mu1d.Pt(), mu1d.Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
                         metVars[woxy] = metVars[cent];
                         metVarsPhi[woxy] = metVarsPhi[cent];
-                        metcorXY->CorrectMETXY(metVars[cent], metVarsPhi[cent], npv, 0);
+                        //metcorXY->CorrectMETXY(metVars[cent], metVarsPhi[cent], npv, 0);
                     }
                     if (doStat) {
                         for (int i = 0; i < nNV; i++) {
                             int ofs = i + ns;
                             rcStatW[i]->CorrectInvCdf(metVars[ofs], metVarsPhi[ofs], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kTRUE);
-                            metcorXY->CorrectMETXY(metVars[ofs], metVarsPhi[ofs], npv, 0);
+                            //metcorXY->CorrectMETXY(metVars[ofs], metVarsPhi[ofs], npv, 0);
                         }
                     }
                 }

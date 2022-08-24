@@ -38,7 +38,7 @@
 
 //=== MAIN MACRO =================================================================================================
 
-void ZeeNTupleMod(
+void ZeeNtupleMod(
     const TString outputDir, // output directory
     const TString inputDir, // input directory
     const TString sqrts,
@@ -70,8 +70,10 @@ void ZeeNTupleMod(
         pfireecalu,
         pfireecald,
         pfiremuu,
-        pfiremud };
-    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud" };
+        pfiremud,
+        effstat_lepPos,
+        effstat_lepNeg};
+    const string vWeight[] = { "eff", "mc", "fsr", "bkg", "tagpt", "effstat", "pfireu", "pfired", "pfireecalu", "pfireecald", "pfiremuu", "pfiremud", "effstat_lepPos", "effstat_lepNeg"};
     int nWeight = sizeof(vWeight) / sizeof(vWeight[0]);
 
     //--------------------------------------------------------------------------------------------------------------
@@ -106,9 +108,11 @@ void ZeeNTupleMod(
 
     Bool_t isRecoil = (fileName.CompareTo("zee_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zee_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
 
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+
     // apply the muon channel information for electrons
     // the assumption is electron channel is similar to muon channel
-    const TString directory("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_data/Recoil");
+    const TString directory((envStr + "Corrections/Recoil").Data());
     RecoilCorrector* rcMainZ = new RecoilCorrector("", "");
     rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
     rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
@@ -117,41 +121,33 @@ void ZeeNTupleMod(
     //
     // warning: this might need to be updated
     //
-    METXYCorrector* metcorXY = new METXYCorrector("", "");
-    metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+    //METXYCorrector* metcorXY = new METXYCorrector("", "");
+    //metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
 
     //
     // Fit options
     //
-    // const Int_t    NBINS     = 120;
-    const Int_t NBINS = 60;
     const Double_t MASS_LOW = 60;
     const Double_t MASS_HIGH = 120;
     const Double_t PT_CUT = 25;
-    // const Double_t PT_CUT    = 30;
-    // const Double_t ETA_CUT   = 1.444;
     const Double_t ETA_CUT = 2.4; //4;
 
-    // const Double_t ECAL_GAP_LOW  = 1.4442;
-    // const Double_t ECAL_GAP_HIGH = 1.566;
-    const Double_t ECAL_GAP_LOW = 10.;
-    const Double_t ECAL_GAP_HIGH = 10.;
+    const Double_t ECAL_GAP_LOW  = 1.4442;
+    const Double_t ECAL_GAP_HIGH = 1.566;
+    //const Double_t ECAL_GAP_LOW = 10.;
+    //const Double_t ECAL_GAP_HIGH = 10.;
 
     // efficiency files
 
-    //TString baseDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_" + sqrts + "/results/Zee/";
-    TString baseDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Zee/";
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Zee/";
     AppEffSF effs(baseDir);
-    // effs.loadHLT("EleHLTEff_aMCxPythia","Combined","Combined");
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
-    // effs.loadSel("EleGSFSelEff_aMCxPythia","Positive","Negative");
-    //string sysDir = "/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/Efficiency/LowPU2017ID_13TeV/Systematics/";
     
     //
     // Warning: this would need to be updated for 5TeV
     //
-    TString sysDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrts + "/results/Systematics/";
+    TString sysDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Systematics/";
     TString SysFileGSFSel = sysDir + "SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
@@ -200,7 +196,7 @@ void ZeeNTupleMod(
 
     // Read input file and get the TTrees
     cout << "Processing " << fileName.Data() << "..." << endl;
-    infile = new TFile((inputDir + TString("/") + fileName).Data());
+    infile = TFile::Open((inputDir + TString("/") + fileName).Data());
     assert(infile);
     intree = (TTree*)infile->Get("Events");
     assert(intree);
@@ -390,8 +386,8 @@ void ZeeNTupleMod(
             // correct MET XY for data
             metVars[cxy] = met;
             metVarsPhi[cxy] = metPhi;
-            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
-            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1_postXY, pU2_postXY);
+            //metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
+            //metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1_postXY, pU2_postXY);
         } else {
             Double_t lp1 = lep1->Pt();
             Double_t lp2 = lep2->Pt();
@@ -410,14 +406,6 @@ void ZeeNTupleMod(
             l2.SetPtEtaPhiM(lep2->Pt(), lep2->Eta(), lep2->Phi(), ELE_MASS);
 
             double mll = (l1 + l2).M();
-            Double_t effdata, effmc;
-            Double_t corrUp = 1;
-            Double_t corrDown = 1;
-            Double_t effSigShapedata;
-            Double_t corrSigShape = 1;
-            Double_t effBkgShapedata;
-            Double_t corrBkgShape = 1;
-
             //if (mll < MASS_LOW)
             //    continue;
             //if (mll > MASS_HIGH)
@@ -438,27 +426,37 @@ void ZeeNTupleMod(
             corrTag *= uncs_gsf[3] * effs.computeHLTSF(&l1, q1, &l2, q2); // alternate tag-pt model
 
             double var = 0.;
-            // var += effs.statUncSta(&l1, q1) + effs.statUncSta(&l2, q2);
-            var += effs.statUncSel(&l1, q1, hErr, hErr, 1.0);
-            var += effs.statUncSel(&l2, q2, hErr, hErr, 1.0);
-            var += effs.statUncHLTDilep(&l1, q1, &l2, q2);
-            // cout << var1 << " " << var << endl;
+            var += effs.statUncSel(&l1, q1, hErr, hErr, 1.0, true);
+            var += effs.statUncSel(&l2, q2, hErr, hErr, 1.0, true);
+            //var += effs.statUncHLTDilep(&l1, q1, &l2, q2);
+            var += effs.statUncHLT(&l1, q1, hErr, hErr, 1.0);
+            var += effs.statUncHLT(&l2, q2, hErr, hErr, 1.0);
 
-            corrUp = corr + sqrt(var);
-            corrDown = corr - sqrt(var);
+            double var_lep1 = 0.;
+            var_lep1 += effs.statUncSel(&l1, q1, hErr, hErr, 1.0, true);
+            var_lep1 += effs.statUncHLT(&l1, q1, hErr, hErr, 1.0);
+
+            double var_lep2 = 0.;
+            var_lep2 += effs.statUncSel(&l2, q2, hErr, hErr, 1.0, true);
+            var_lep2 += effs.statUncHLT(&l2, q2, hErr, hErr, 1.0);
 
             evtWeight[main] = corr * scale1fb * prefireWeight;
             evtWeight[fsr] = corrFSR * scale1fb * prefireWeight;
             evtWeight[mc] = corrMC * scale1fb * prefireWeight;
             evtWeight[bkg] = corrBkg * scale1fb * prefireWeight;
             evtWeight[tagpt] = corrTag * scale1fb * prefireWeight;
-            evtWeight[effstat] = var * scale1fb * prefireWeight * scale1fb * prefireWeight;
+            evtWeight[effstat] = (corr + sqrt(abs(var))) * scale1fb * prefireWeight;
             evtWeight[pfireu] = corr * scale1fb * prefireUp;
             evtWeight[pfired] = corr * scale1fb * prefireDown;
             evtWeight[pfireecalu] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalUp / prefireEcal) : 0.;
             evtWeight[pfireecald] = (prefireEcal > 0) ? (evtWeight[main] * prefireEcalDown / prefireEcal) : 0.;
             evtWeight[pfiremuu] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonUp / prefireMuon) : 0.;
             evtWeight[pfiremud] = (prefireMuon > 0) ? (evtWeight[main] * prefireMuonDown / prefireMuon) : 0.;
+
+            double corr_lep1 = (corr + sqrt(abs(var_lep1))) * scale1fb * prefireWeight;
+            double corr_lep2 = (corr + sqrt(abs(var_lep2))) * scale1fb * prefireWeight;
+            evtWeight[effstat_lepPos] = (q1 > 0) ? corr_lep1 : corr_lep2;
+            evtWeight[effstat_lepNeg] = (q1 < 0) ? corr_lep1 : corr_lep2;
 
             // corr=1;
             mass = (l1 + l2).M();
@@ -480,8 +478,8 @@ void ZeeNTupleMod(
             // XY correction on MC
             metVars[cxy] =  metVars[cent];
             metVarsPhi[cxy] = metVarsPhi[cent];
-            metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
-            metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
+            //metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
+            //metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree
