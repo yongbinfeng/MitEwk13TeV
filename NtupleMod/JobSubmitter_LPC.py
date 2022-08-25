@@ -26,7 +26,7 @@ def GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = False):
 
     idx = 0
     while idx < len(infiles):
-        nfiles_per_job = 15
+        nfiles_per_job = 10
         if idx % nfiles_per_job == 0:
             ijob = idx / nfiles_per_job
             jobname = dirname + "run_" + logsuffix + "_" + str(ijob) + "job"
@@ -87,8 +87,8 @@ queue 1\n
             outfile.write(job_desc)
             outfile.close()
 
-        #os.system("condor_submit " + jobname + ".condor")
-        #time.sleep(0.05)
+        os.system("condor_submit " + jobname + ".condor")
+        time.sleep(0.05)
 
 
 if __name__ == "__main__":
@@ -108,17 +108,17 @@ if __name__ == "__main__":
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix)
 
-    macro = "ZmmNTupleMod.C"
+    macro = "ZmmNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zmumu_pT20/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/NtupleMod/Zmumu/"
-    logsuffix = "ZmmNTupleMod_zmumu_13"
+    logsuffix = "ZmmNtupleMod_zmumu_13"
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix)
 
-    macro = "ZeeNTupleMod.C"
+    macro = "ZeeNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zee_pT20/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/NtupleMod/Zee/"
-    logsuffix = "ZeeNTupleMod_zee_13"
+    logsuffix = "ZeeNtupleMod_zee_13"
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix)
 
@@ -141,16 +141,16 @@ if __name__ == "__main__":
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix, True)
 
-    macro = "ZmmNTupleMod.C"
+    macro = "ZmmNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zmumu_pT20/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zmumu/"
-    logsuffix = "ZmmNTupleMod_zmumu_5"
+    logsuffix = "ZmmNtupleMod_zmumu_5"
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix, True)
 
-    macro = "ZeeNTupleMod.C"
+    macro = "ZeeNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zee_pT20/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zee/"
-    logsuffix = "ZeeNTupleMod_zee_5"
+    logsuffix = "ZeeNtupleMod_zee_5"
     if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix, True)

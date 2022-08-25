@@ -148,10 +148,11 @@ void muonNtupleMod(const TString outputDir, // output directory
 
     TH2D* hErr = new TH2D("hErr", "", 10, 0, 10, 20, 0, 20);
 
-    Bool_t isData = (fileName.CompareTo("data_select.root") == 0);
-    std::cout << "isData ? " << (fileName.CompareTo("data_select.root", TString::kIgnoreCase) == 0) << std::endl;
+    Bool_t isData = (fileName.Contains("data_select"));
+    std::cout << "isData ? " << isData << std::endl;
 
-    Bool_t isRecoil = (fileName.CompareTo("wm_select.raw.root") == 0 || fileName.CompareTo("wm0_select.raw.root") == 0 || fileName.CompareTo("wm1_select.raw.root") == 0 || fileName.CompareTo("wm2_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("wm_select.root") == 0 || fileName.CompareTo("wm0_select.root") == 0 || fileName.CompareTo("wm1_select.root") == 0 || fileName.CompareTo("wm2_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+    Bool_t isRecoil = (fileName.Contains("wm_select") || fileName.Contains("wm0_select") || fileName.Contains("wm1_select") || fileName.Contains("wm2_select") || fileName.Contains("wx_select") || fileName.Contains("wx0_select") || fileName.Contains("wx1_select") || fileName.Contains("wx2_select") || fileName.Contains("zxx_select"));
+    std::cout << "do Recoil " << isRecoil << std::endl;
 
     if (inputDir.Contains("Anti") && isRecoil) {
         doInclusive = true;
@@ -159,9 +160,6 @@ void muonNtupleMod(const TString outputDir, // output directory
         doEta = false;
         doStat = false;
     }
-
-    std::cout << "isData " << isData << std::endl;
-    std::cout << "isRecoil " << isRecoil << std::endl;
 
     if (isData || (!isRecoil)) {
         doInclusive = false;

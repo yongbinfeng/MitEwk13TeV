@@ -92,21 +92,23 @@ void ZeeNtupleMod(
         eZxx }; // data type enum
 
     int filetype = -1;
-    if (fileName.CompareTo("data_select.root") == 0) {
+    if (fileName.Contains("data_select")) {
         filetype = eData;
-    } else if (fileName.CompareTo("zee_select.root") == 0) {
+    } else if (fileName.Contains("zee_select")) {
         filetype = eZee;
-    } else if ((fileName.CompareTo("top_select.root") == 0) || (fileName.CompareTo("top1_select.root") == 0) || (fileName.CompareTo("top2_select.root") == 0) || (fileName.CompareTo("top3_select.root") == 0)) {
+    } else if (fileName.Contains("top_select") || fileName.Contains("top1_select") || fileName.Contains("top2_select") || fileName.Contains("top3_select")) {
         filetype = eTop;
-    } else if ((fileName.CompareTo("zz_select.root") == 0) || (fileName.CompareTo("ww_select.root") == 0) || (fileName.CompareTo("wz_select.root") == 0)) {
+    } else if (fileName.Contains("zz_select") || fileName.Contains("ww_select") || fileName.Contains("wz_select")) {
         filetype = eDib;
-    } else if (fileName.CompareTo("zxx_select.root") == 0) {
+    } else if (fileName.Contains("zxx_select")) {
         filetype = eZxx;
-    } else if ((fileName.CompareTo("wx_select.root") == 0) || (fileName.CompareTo("wx0_select.root") == 0) || (fileName.CompareTo("wx1_select.root") == 0) || (fileName.CompareTo("wx2_select.root") == 0)) {
+    } else if (fileName.Contains("wx_select") || fileName.Contains("wx0_select") || fileName.Contains("wx1_select") || fileName.Contains("wx2_select")) {
         filetype = eWx;
     }
+    std::cout << "data type " << filetype << std::endl;
 
-    Bool_t isRecoil = (fileName.CompareTo("zee_select.raw.root") == 0 || fileName.CompareTo("wx_select.raw.root") == 0 || fileName.CompareTo("wx0_select.raw.root") == 0 || fileName.CompareTo("wx1_select.raw.root") == 0 || fileName.CompareTo("wx2_select.raw.root") == 0 || fileName.CompareTo("zxx_select.raw.root") == 0 || fileName.CompareTo("zee_select.root") == 0 || fileName.CompareTo("wx_select.root") == 0 || fileName.CompareTo("wx0_select.root") == 0 || fileName.CompareTo("wx1_select.root") == 0 || fileName.CompareTo("wx2_select.root") == 0 || fileName.CompareTo("zxx_select.root") == 0);
+    Bool_t isRecoil = (fileName.Contains("zee_select")  || fileName.Contains("wx_select")  || fileName.Contains("wx0_select")  || fileName.Contains("wx1_select")  || fileName.Contains("wx2_select")  || fileName.Contains("zxx_select"));
+    std::cout << "do Recoil " << isRecoil << std::endl;
 
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 

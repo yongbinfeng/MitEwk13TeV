@@ -83,8 +83,8 @@ if __name__ == "__main__":
     confname = "zmm_13.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zmumu_pT20/"
     logsuffix = "selectZmm_zmm_13"
-    njobs = [20, 3, 3, 10, 3, 3, 3, 10, 3, 3, 10, 20]
-    if 0:
+    njobs = [20, 10, 3, 10, 3, 3, 3, 40, 3, 3, 10, 20]
+    if 1:
         for isamp in range(12):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp])
 
@@ -93,8 +93,8 @@ if __name__ == "__main__":
     confname = "wm_13.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Wmunu/"
     logsuffix = "selectWm_wm_13"
-    njobs = [20, 3, 3, 10, 3, 3, 3, 20, 3, 3, 10, 100, 20, 10]
-    if 1:
+    njobs = [20, 3, 3, 10, 3, 3, 3, 50, 3, 3, 10, 100, 20, 10]
+    if 0:
         for isamp in range(14):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp])
 
@@ -103,8 +103,8 @@ if __name__ == "__main__":
     confname = "zee_13.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zee_pT20/"
     logsuffix = "selectZee_zee_13"
-    njobs = [20, 3, 3, 10, 3, 3, 3, 10, 3, 3, 10, 20]
-    if 0:
+    njobs = [20, 10, 3, 10, 3, 3, 3, 40, 3, 3, 10, 20]
+    if 1:
         for isamp in range(12):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True)
 
@@ -113,8 +113,8 @@ if __name__ == "__main__":
     confname = "we_13.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Wenu/"
     logsuffix = "selectWe_we_13"
-    njobs = [20, 3, 3, 10, 3, 3, 3, 20, 3, 3, 10, 100, 20, 10]
-    if 1:
+    njobs = [20, 3, 3, 10, 3, 3, 3, 50, 3, 3, 10, 100, 20, 10]
+    if 0:
         for isamp in range(14):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True)
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     confname = "we_13.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/AntiWenu/"
     logsuffix = "selectAntiWe_we_13"
-    njobs = [20, 3, 3, 10, 3, 3, 3, 20, 3, 3, 10, 100, 20, 10]
+    njobs = [20, 3, 3, 10, 3, 3, 3, 50, 3, 3, 10, 100, 20, 10]
     if 0:
         for isamp in range(14):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True)
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zmumu_pT20/"
     logsuffix = "selectZmm_zmm_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
-    if 1:
+    if 0:
         for isamp in range(9):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], do5TeV = True)
 
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Wmunu/"
     logsuffix = "selectWm_wm_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
-    if 1:
+    if 0:
         for isamp in range(9):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], do5TeV = True)
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zee_pT20/"
     logsuffix = "selectZee_zee_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
-    if 1:
+    if 0:
         for isamp in range(9):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True, do5TeV = True)
 
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Wenu/"
     logsuffix = "selectWe_we_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
-    if 1:
+    if 0:
         for isamp in range(9):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True, do5TeV = True)
 
