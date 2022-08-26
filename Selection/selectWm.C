@@ -148,7 +148,6 @@ void selectWm(const TString conf = "wm.conf", // input file
     Float_t muNchi2;
     UInt_t nPixHits, nTkLayers, nValidHits, nMatch, typeBits;
     // Bool_t passHLT;
-    // Bool_t passVeto=kTRUE;
 
     // Data structures to store info from TTrees
     baconhep::TEventInfo* info = new baconhep::TEventInfo();
@@ -353,9 +352,6 @@ void selectWm(const TString conf = "wm.conf", // input file
 
             // Compute MC event weight per 1/fb
             const Double_t xsec = samp->xsecv[ifile];
-            Double_t totalWeight = 0;
-            Double_t totalWeightUp = 0;
-            Double_t totalWeightDown = 0;
             Double_t puWeight = 1;
             Double_t puWeightUp = 1;
             Double_t puWeightDown = 1;
@@ -427,22 +423,17 @@ void selectWm(const TString conf = "wm.conf", // input file
                     continue;
                 else if (isSignal && hasGen && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
                     continue;
-                // std::cout << "veto1" << std::endl;
                 // check for certified lumi (if applicable)
                 baconhep::RunLumiRangeMap::RunLumiPairType rl(info->runNum, info->lumiSec);
                 if (hasJSON && !rlrm.hasRunLumi(rl))
                     continue;
-                // std::cout << "veto2" << std::endl;
                 // trigger requirement
                 if (!isMuonTrigger(triggerMenu, info->triggerBits, isData, is13TeV))
                     continue;
-                // std::cout << "veto3" << std::endl;
                 // good vertex requirement
                 if (!(info->hasGoodPV))
                     continue;
-                // std::cout << "veto4" << std::endl;
 
-                //
                 // SELECTION PROCEDURE:
                 //  (1) Look for 1 good muon matched to trigger
                 //  (2) Reject event if another muon is present passing looser cuts
@@ -457,10 +448,8 @@ void selectWm(const TString conf = "wm.conf", // input file
                 if (hasJet)
                     jetBr->GetEntry(ientry);
 
-                // Int_t nLooseLep=0;
                 const baconhep::TMuon* goodMuon = 0;
                 Bool_t passSel = kFALSE;
-                // Bool_t passVeto=kTRUE;
 
                 Int_t nLooseLep = 0;
                 TLorentzVector vEle(0, 0, 0, 0);
@@ -471,7 +460,7 @@ void selectWm(const TString conf = "wm.conf", // input file
                     if ((ele->r9 < 1.)) {
                         float eleAbsEta = fabs(vEle.Eta());
                         double eTregress = ele->ecalEnergy / cosh(fabs(ele->eta));
-                        if (snamev[isam].CompareTo("data", TString::kIgnoreCase) == 0) { //Data
+                        if (snamev[isam].Contains("data")) { //Data
                             int runNumber = is13TeV ? info->runNum : 306936;
                             float eleScale = eleCorr.scaleCorr(runNumber, eTregress, eleAbsEta, ele->r9);
                             (vEle) *= eleScale;
@@ -491,7 +480,6 @@ void selectWm(const TString conf = "wm.conf", // input file
                         break;
                     }
                 }
-                // if(!passVeto) continue;
 
                 for (Int_t i = 0; i < muonArr->GetEntriesFast(); i++) {
                     const baconhep::TMuon* mu = (baconhep::TMuon*)((*muonArr)[i]);
@@ -505,25 +493,21 @@ void selectWm(const TString conf = "wm.conf", // input file
                         continue; // loose lepton |eta| cut
                     if (mupt_corr < VETO_PT)
                         continue; // loose lepton pT cut
-                    // std::cout << "veto5" << std::endl;
                     if (passMuonLooseID(mu))
                         nLooseLep++; // loose lepton selection
                     if (nLooseLep > 1) { // extra lepton veto
                         passSel = kFALSE;
                         break;
                     }
-                    // std::cout << "veto6" << std::endl;
 
                     if (fabs(mu->eta) > ETA_CUT)
                         continue; // lepton |eta| cut
                     if (mupt_corr < PT_CUT)
                         continue; // lepton pT cut
-                    // std::cout << "veto7" << std::endl;
                     if (!passMuonID(mu))
                         continue; // lepton selection
                     if (!isMuonTriggerObj(triggerMenu, mu->hltMatchBits, isData, is13TeV))
                         continue;
-                    // std::cout << "veto8" << std::endl;
 
                     passSel = kTRUE;
                     goodMuon = mu;

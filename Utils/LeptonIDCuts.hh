@@ -419,7 +419,10 @@ Bool_t passEleMediumID_noIPnoIso(const baconhep::TElectron* electron, const TLor
 //--------------------------------------------------------------------------------------------------
 
 Bool_t passAntiEleMediumID(const baconhep::TElectron* electron, const TLorentzVector tag, const Double_t rho)
-{ // Medium Electron ID from 2017
+{   
+    // anti isolated Medium Electron ID from 2017
+    // the cuts are the identical as passEleMediumID, 
+    // except flipping the isolation cut
 
     const Double_t ECAL_GAP_LOW = 1.4442;
     const Double_t ECAL_GAP_HIGH = 1.566;

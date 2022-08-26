@@ -1,6 +1,7 @@
 //================================================================================================
 //
-// Select W->enu candidates
+// Select W->enu candidates in the anti-isolated region
+//  the code should be the same as selectWe.C, except flipping the electron ID cut
 //
 //  * outputs ROOT files of events passing selection
 //
@@ -139,9 +140,9 @@ void selectAntiWe(const TString conf = "we.conf", // input file
     baconhep::TGenEventInfo* gen = new baconhep::TGenEventInfo();
     TClonesArray* genPartArr = new TClonesArray("baconhep::TGenParticle");
     TClonesArray* electronArr = new TClonesArray("baconhep::TElectron");
+    TClonesArray* muonArr = new TClonesArray("baconhep::TMuon");
     TClonesArray* scArr = new TClonesArray("baconhep::TPhoton");
     TClonesArray* vertexArr = new TClonesArray("baconhep::TVertex");
-    TClonesArray* muonArr = new TClonesArray("baconhep::TMuon");
     TClonesArray* jetArr = new TClonesArray("baconhep::TJet");
 
     TFile* infile = 0;
@@ -149,7 +150,7 @@ void selectAntiWe(const TString conf = "we.conf", // input file
 
     // loop over samples
     for (UInt_t isam = 0; isam < samplev.size(); isam++) {
-        std::cout << "ISample" << ISample << std::endl;
+        //std::cout << "ISample " << ISample << std::endl;
         if ((ISample >= 0) && ((int)isam != ISample))
             // only run the ISample in the config
             continue;
@@ -169,14 +170,22 @@ void selectAntiWe(const TString conf = "we.conf", // input file
         Bool_t isWrongFlavor = (snamev[isam].Contains("wx"));
 
         Bool_t isRecoil = (snamev[isam].Contains("zxx") || isSignal || isWrongFlavor);
-        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww"));
+        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww") || snamev[isam].Contains("zz2l") || snamev[isam].Contains("zz4l"));
         CSample* samp = samplev[isam];
 
         // Set up output ntuple
-        TString outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.root");
+        TString outfilename = ntupDir + TString("/") + snamev[isam];
         if (isam != 0 && !doScaleCorr)
-            outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.raw.root");
+            // not data and no scale correction
+            outfilename += TString("_select.raw");
+        else
+            outfilename += TString("_select");
+        if (NSEC != 1) {
+            outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH);
+        }
+        outfilename += TString(".root");
         cout << outfilename << endl;
+
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
         outTree->Branch("runNum", &runNum, "runNum/i"); // event run number
@@ -221,6 +230,7 @@ void selectAntiWe(const TString conf = "we.conf", // input file
         outTree->Branch("sc", "TLorentzVector", &sc); // supercluster 4-vector
 
         TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
+
         //
         // loop through files
         //
@@ -246,10 +256,10 @@ void selectAntiWe(const TString conf = "we.conf", // input file
             TBranch* infoBr = eventTree->GetBranch("Info");
             eventTree->SetBranchAddress("Electron", &electronArr);
             TBranch* electronBr = eventTree->GetBranch("Electron");
-            eventTree->SetBranchAddress("PV", &vertexArr);
-            TBranch* vertexBr = eventTree->GetBranch("PV");
             eventTree->SetBranchAddress("Muon", &muonArr);
             TBranch* muonBr = eventTree->GetBranch("Muon");
+            eventTree->SetBranchAddress("PV", &vertexArr);
+            TBranch* vertexBr = eventTree->GetBranch("PV");
             eventTree->SetBranchAddress("Photon", &scArr);
             TBranch* scBr = eventTree->GetBranch("Photon");
             if (hasJet)
@@ -273,9 +283,24 @@ void selectAntiWe(const TString conf = "we.conf", // input file
             //
             // loop over events
             //
-            double frac = 1.0 / NSEC;
-            UInt_t IBEGIN = frac * ITH * eventTree->GetEntries();
-            UInt_t IEND = frac * (ITH + 1) * eventTree->GetEntries();
+            Long64_t nevents = eventTree->GetEntries();
+            Long64_t IBEGIN = 0;
+            Long64_t IEND = nevents;
+
+            if (NSEC!=1) {
+                cout << "n sections " << NSEC << " ith part " << ITH << endl;
+                Long64_t nevents_per_job = nevents / NSEC;
+                Long64_t remainder = nevents % NSEC;
+                IBEGIN = ITH * nevents_per_job;
+                IEND = (ITH + 1) * nevents_per_job;
+                if (ITH == NSEC - 1) {
+                    // for the last section, add the remaining into these;
+                    IEND = nevents;
+                }
+                cout << "start, end events: " << IBEGIN << " " << IEND << endl;
+            }
+
+            std::cout << "Number of Events = " << eventTree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
 
             Double_t nsel = 0, nselvar = 0;
             for (UInt_t ientry = IBEGIN; ientry < IEND; ientry++) {
@@ -493,7 +518,7 @@ void selectAntiWe(const TString conf = "we.conf", // input file
                     delete genV;
                     delete genLep;
                     delete genNu;
-                    genV = 0, genLep = 0, lep = 0, genNu = 0, sc = 0;
+                    genV = 0, genLep = 0, lep = 0, lep_raw = 0, genNu = 0, sc = 0;
                     // reset everything to 1
                     prefirePhoton = 1;
                     prefirePhotUp = 1;

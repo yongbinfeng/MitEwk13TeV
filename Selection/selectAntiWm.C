@@ -1,6 +1,6 @@
 ////================================================================================================
 //
-// Select W->munu candidates
+// Select Anti W->munu candidates.
 //
 //  * outputs ROOT files of events passing selection
 //
@@ -37,14 +37,14 @@
 // lumi section selection with JSON files
 #include "BaconAna/Utils/interface/RunLumiRangeMap.hh"
 
-#include "../EleScale/EnergyScaleCorrection.h" //EGMSmear
-#include "../Utils/CSample.hh" // helper class to handle samples
-#include "../Utils/LeptonCorr.hh" // muon scale and resolution corrections
-#include "ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/EleScale/EnergyScaleCorrection.h" //EGMSmear
+#include "MitEwk13TeV/Selection/ConfParse.hh" // input conf file parser
+#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/LeptonCorr.hh" // muon scale and resolution corrections
 
-#include "../Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
-#include "../Utils/MyTools.hh" // various helper functions
-#include "../Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
+#include "MitEwk13TeV/Utils/LeptonIDCuts.hh" // helper functions for lepton ID selection
+#include "MitEwk13TeV/Utils/MyTools.hh" // various helper functions
+#include "MitEwk13TeV/Utils/PrefiringEfficiency.cc" // prefiring efficiency functions
 #endif
 
 //=== MAIN MACRO =================================================================================================
@@ -55,7 +55,8 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
     const Bool_t doPU = 0,
     const Bool_t is13TeV = 1,
     const Int_t NSEC = 1,
-    const Int_t ITH = 0)
+    const Int_t ITH = 0,
+    const Int_t ISample = -1)
 {
     gBenchmark->Start("selectAntiWm");
 
@@ -73,17 +74,21 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
 
     const Int_t BOSON_ID = 24;
     const Int_t LEPTON_ID = 13;
+
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+
     // load trigger menu
-    const baconhep::TTrigger triggerMenu("../../BaconAna/DataFormats/data/HLT_50nsGRun");
+    const baconhep::TTrigger triggerMenu((envStr + "BaconAna/DataFormats/data/HLT_50nsGRun").Data());
 
-    const TString prefireFileName = "../Utils/All2017Gand2017HPrefiringMaps.root";
-    PrefiringEfficiency pfire(prefireFileName.Data(), (is13TeV ? "2017H" : "2017G"));
+    const TString prefireEcalFileName = envStr + "MitEwk13TeV/Utils/All2017Gand2017HPrefiringMaps.root";
+    const TString prefireMuonFileName = envStr + "MitEwk13TeV/Utils/L1MuonPrefiringParametriations.root";
+    PrefiringEfficiency pfire(prefireEcalFileName.Data(), (is13TeV ? "2017H" : "2017G"), prefireMuonFileName.Data());
 
-    const TString corrFiles = "/afs/cern.ch/work/s/sabrandt/public/SM/LowPU/CMSSW_9_4_12/src/MitEwk13TeV/EleScale/Run2017_LowPU_v2";
+    const TString corrFiles = envStr + "MitEwk13TeV/EleScale/Run2017_LowPU_v2";
     EnergyScaleCorrection eleCorr(corrFiles.Data(), EnergyScaleCorrection::ECALELF);
 
     // load pileup reweighting file
-    TFile* f_rw = TFile::Open("../Tools/puWeights_76x.root", "read");
+    TFile* f_rw = TFile::Open(envStr + "MitEwk13TeV/Tools/puWeights_76x.root", "read");
 
     TH1D* h_rw = (TH1D*)f_rw->Get("puWeights");
     TH1D* h_rw_up = (TH1D*)f_rw->Get("puWeightsUp");
@@ -115,9 +120,13 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
     UInt_t npv, npu;
     TLorentzVector *genV = 0, *genLep = 0, *genNu = 0;
     Float_t scale1fb, scale1fbUp, scale1fbDown;
-    Float_t prefireWeight = 1, prefireUp = 1, prefireDown = 1;
+    // these are naming conventions
+    // actually the prefireWeight here should be the non-prefirable probability
+    Float_t prefireEcal = 1, prefireEcalUp = 1, prefireEcalDown = 1;
     Float_t prefirePhoton = 1, prefirePhotUp = 1, prefirePhotDown = 1;
     Float_t prefireJet = 1, prefireJetUp = 1, prefireJetDown = 1;
+    Float_t prefireMuon = 1, prefireMuonUp = 1, prefireMuonDown = 1, prefireMuonStatUp = 1, prefireMuonStatDown = 1, prefireMuonSystUp = 1, prefireMuonSystDown = 1;
+    Float_t prefireWeight = 1, prefireUp = 1, prefireDown = 1;
     Float_t met, metPhi; //, mt, u1, u2;
     Float_t puppiMet, puppiMetPhi; //, puppiMt, puppiU1, puppiU2;
     Int_t q;
@@ -142,29 +151,50 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
     // loop over samples
     //
     for (UInt_t isam = 0; isam < samplev.size(); isam++) {
+        if ((ISample >= 0) && ((int)isam != ISample))
+            // only run the ISample in the config
+            continue;
+        std::cout << "start running for isamp" << isam << std::endl;
 
         // Assume data sample is first sample in .conf file
         // If sample is empty (i.e. contains no ntuple files), skip to next sample
-        Bool_t isData = kFALSE;
-        if (isam == 0 && !hasData)
-            continue;
-        else if (isam == 0)
-            isData = kTRUE;
+        Bool_t isData = false;
+        //if (isam == 0 && !hasData)
+        //    continue;
+        //else if (isam == 0)
+        //    isData = kTRUE;
+        if (snamev[isam].CompareTo("data", TString::kIgnoreCase) == 0)
+            isData = true;
+        
+        Bool_t isSignal = false;
+        Bool_t isWrongFlavor = false;
+        if (is13TeV) {
+            isSignal = (snamev[isam].CompareTo("wm", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wm0", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wm1", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wm2", TString::kIgnoreCase) == 0);
+            isWrongFlavor = (snamev[isam].CompareTo("wx0", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wx1", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wx2", TString::kIgnoreCase) == 0);
+        } else {
+            isSignal = (snamev[isam].CompareTo("wm", TString::kIgnoreCase) == 0);
+            isWrongFlavor = (snamev[isam].CompareTo("wx", TString::kIgnoreCase) == 0);
+        }
+        Bool_t isRecoil = (isSignal || (snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0) || isWrongFlavor);
+        Bool_t noGen = (snamev[isam].CompareTo("zz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("wz", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("ww", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("zz2l", TString::kIgnoreCase) == 0 || snamev[isam].CompareTo("zz4l", TString::kIgnoreCase) == 0);
 
-        Bool_t isSignal = (snamev[isam].Contains("wm"));
-        Bool_t isWrongFlavor = (snamev[isam].Contains("wx"));
-
-        Bool_t isRecoil = (snamev[isam].Contains("zxx") || isSignal || isWrongFlavor);
-        Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww"));
         CSample* samp = samplev[isam];
 
         //
         // Set up output ntuple
         //
-        TString outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.root");
-        if (isam != 0 && !doScaleCorr)
-            outfilename = ntupDir + TString("/") + snamev[isam] + TString("_select.raw.root");
+        TString outfilename = ntupDir + TString("/") + snamev[isam];
+        if (isData == 0 && !doScaleCorr)
+            // not data and no scale correction
+            outfilename += TString("_select.raw");
+        else
+            outfilename += TString("_select");
+        if (NSEC != 1) {
+            outfilename += TString("_") + Form("%dSections", NSEC) + TString("_") + Form("%d", ITH);
+        }
+        outfilename += TString(".root");
         cout << outfilename << endl;
+
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
         outTree->Branch("runNum", &runNum, "runNum/i"); // event run number
@@ -175,15 +205,25 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
         outTree->Branch("genV", "TLorentzVector", &genV); // GEN boson 4-vector (signal MC)
         outTree->Branch("genLep", "TLorentzVector", &genLep); // GEN lepton 4-vector (signal MC)
         outTree->Branch("genNu", "TLorentzVector", &genNu); // GEN lepton 4-vector (signal MC)
-        outTree->Branch("prefireWeight", &prefireWeight, "prefireWeight/F");
-        outTree->Branch("prefireUp", &prefireUp, "prefireUp/F");
-        outTree->Branch("prefireDown", &prefireDown, "prefireDown/F");
+        outTree->Branch("prefireEcal", &prefireEcal, "prefireEcal/F");
+        outTree->Branch("prefireEcalUp", &prefireEcalUp, "prefireEcalUp/F");
+        outTree->Branch("prefireEcalDown", &prefireEcalDown, "prefireEcalDown/F");
         outTree->Branch("prefirePhoton", &prefirePhoton, "prefirePhoton/F");
         outTree->Branch("prefirePhotUp", &prefirePhotUp, "prefirePhotUp/F");
         outTree->Branch("prefirePhotDown", &prefirePhotDown, "prefirePhotDown/F");
         outTree->Branch("prefireJet", &prefireJet, "prefireJet/F");
         outTree->Branch("prefireJetUp", &prefireJetUp, "prefireJetUp/F");
         outTree->Branch("prefireJetDown", &prefireJetDown, "prefireJetDown/F");
+        outTree->Branch("prefireMuon", &prefireMuon, "prefireMuon/F");
+        outTree->Branch("prefireMuonUp", &prefireMuonUp, "prefireMuonUp/F");
+        outTree->Branch("prefireMuonDown", &prefireMuonDown, "prefireMuonDown/F");
+        outTree->Branch("prefireMuonStatUp", &prefireMuonStatUp, "prefireMuonStatUp/F");
+        outTree->Branch("prefireMuonStatDown", &prefireMuonStatDown, "prefireMuonStatDown/F");
+        outTree->Branch("prefireMuonSystUp", &prefireMuonSystUp, "prefireMuonSystUp/F");
+        outTree->Branch("prefireMuonSystDown", &prefireMuonSystDown, "prefireMuonSystDown/F");
+        outTree->Branch("prefireWeight", &prefireWeight, "prefireWeight/F");
+        outTree->Branch("prefireUp", &prefireUp, "prefireUp/F");
+        outTree->Branch("prefireDown", &prefireDown, "prefireDown/F");
         outTree->Branch("scale1fb", &scale1fb, "scale1fb/F"); // event weight per 1/fb (MC)
         outTree->Branch("scale1fbUp", &scale1fbUp, "scale1fbUp/F"); // event weight per 1/fb (MC)
         outTree->Branch("scale1fbDown", &scale1fbDown, "scale1fbDown/F"); // event weight per 1/fb (MC)
@@ -210,29 +250,31 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
 
             Bool_t hasJSON = kFALSE;
             baconhep::RunLumiRangeMap rlrm;
-            if (!samp->jsonv[ifile].Contains("NONE")) {
+            if (samp->jsonv[ifile].CompareTo("NONE") != 0) {
                 hasJSON = kTRUE;
                 rlrm.addJSONFile(samp->jsonv[ifile].Data());
             }
 
             eventTree = (TTree*)infile->Get("Events");
             assert(eventTree);
+
             Bool_t hasJet = eventTree->GetBranchStatus("AK4");
             eventTree->SetBranchAddress("Info", &info);
             TBranch* infoBr = eventTree->GetBranch("Info");
             eventTree->SetBranchAddress("Muon", &muonArr);
             TBranch* muonBr = eventTree->GetBranch("Muon");
-            eventTree->SetBranchAddress("PV", &vertexArr);
-            TBranch* vertexBr = eventTree->GetBranch("PV");
             eventTree->SetBranchAddress("Electron", &electronArr);
             TBranch* electronBr = eventTree->GetBranch("Electron");
+            eventTree->SetBranchAddress("PV", &vertexArr);
+            TBranch* vertexBr = eventTree->GetBranch("PV");
             eventTree->SetBranchAddress("Photon", &scArr);
             TBranch* scBr = eventTree->GetBranch("Photon");
             if (hasJet)
                 eventTree->SetBranchAddress("AK4", &jetArr);
             TBranch* jetBr = eventTree->GetBranch("AK4");
-            TBranch *genBr = 0, *genPartBr = 0;
+
             Bool_t hasGen = (eventTree->GetBranchStatus("GenEvtInfo") && !noGen);
+            TBranch *genBr = 0, *genPartBr = 0;
             if (hasGen) {
                 eventTree->SetBranchAddress("GenEvtInfo", &gen);
                 genBr = eventTree->GetBranch("GenEvtInfo");
@@ -242,11 +284,32 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
 
             // Compute MC event weight per 1/fb
             const Double_t xsec = samp->xsecv[ifile];
-            Double_t puWeight = 0, puWeightUp = 0, puWeightDown = 0;
+            Double_t puWeight = 1;
+            Double_t puWeightUp = 1;
+            Double_t puWeightDown = 1;
 
-            double frac = 1.0 / NSEC;
-            UInt_t IBEGIN = frac * ITH * eventTree->GetEntries();
-            UInt_t IEND = frac * (ITH + 1) * eventTree->GetEntries();
+            Long64_t nevents = eventTree->GetEntries();
+            Long64_t IBEGIN = 0;
+            Long64_t IEND = nevents;
+
+            if (NSEC!=1) {
+                cout << "n sections " << NSEC << " ith part " << ITH << endl;
+                Long64_t nevents_per_job = nevents / NSEC;
+                Long64_t remainder = nevents % NSEC;
+                IBEGIN = ITH * nevents_per_job;
+                IEND = (ITH + 1) * nevents_per_job;
+                if (ITH == NSEC - 1) {
+                    // for the last section, add the remaining into these;
+                    IEND = nevents;
+                }
+                cout << "start, end events: " << IBEGIN << " " << IEND << endl;
+            }
+
+            std::cout << "Number of Events = " << eventTree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
+
+            //
+            // loop over events
+            //
             Double_t nsel = 0, nselvar = 0;
             for (UInt_t ientry = IBEGIN; ientry < IEND; ientry++) {
                 infoBr->GetEntry(ientry);
@@ -255,11 +318,15 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                 if (ientry % printIndex == 0)
                     cout << "Processing event " << ientry << ". " << (int)(100 * (ientry / (double)eventTree->GetEntries())) << " percent done with this file." << endl;
 
-                Double_t weight = xsec, weightUp = xsec, weightDown = xsec;
+                Double_t weight = xsec;
+                Double_t weightUp = xsec;
+                Double_t weightDown = xsec;
+
                 if (hasGen) {
                     genPartArr->Clear();
                     genBr->GetEntry(ientry);
                     genPartBr->GetEntry(ientry);
+
                     puWeight = doPU ? h_rw->GetBinContent(h_rw->FindBin(info->nPUmean)) : 1.;
                     puWeightUp = doPU ? h_rw_up->GetBinContent(h_rw_up->FindBin(info->nPUmean)) : 1.;
                     puWeightDown = doPU ? h_rw_down->GetBinContent(h_rw_down->FindBin(info->nPUmean)) : 1.;
@@ -292,20 +359,21 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                 // SELECTION PROCEDURE:
                 //  (1) Look for 1 good muon matched to trigger
                 //  (2) Reject event if another muon is present passing looser cuts
+
                 muonArr->Clear();
                 muonBr->GetEntry(ientry);
+
+                electronArr->Clear();
+                electronBr->GetEntry(ientry);
 
                 jetArr->Clear();
                 if (hasJet)
                     jetBr->GetEntry(ientry);
 
-                electronArr->Clear();
-                electronBr->GetEntry(ientry);
-
-                Int_t nLooseLep = 0;
                 const baconhep::TMuon* goodMuon = 0;
                 Bool_t passSel = kFALSE;
 
+                Int_t nLooseLep = 0;
                 TLorentzVector vEle(0, 0, 0, 0);
                 // Set up the electron veto...
                 for (Int_t i = 0; i < electronArr->GetEntriesFast(); i++) {
@@ -356,6 +424,7 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                         continue; // lep anti-selection
                     if (!isMuonTriggerObj(triggerMenu, mu->hltMatchBits, isData, is13TeV))
                         continue;
+
                     passSel = kTRUE;
                     goodMuon = mu;
                 }
@@ -366,10 +435,14 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                     nselvar += isData ? 1 : weight * weight;
 
                     if (!isData) {
-                        pfire.setObjects(scArr, jetArr);
+                        pfire.setObjects(scArr, jetArr, muonArr);
                         pfire.computePhotonsOnly(prefirePhoton, prefirePhotUp, prefirePhotDown);
                         pfire.computeJetsOnly(prefireJet, prefireJetUp, prefireJetDown);
-                        pfire.computeFullPrefire(prefireWeight, prefireUp, prefireDown);
+                        pfire.computeEcalsOnly(prefireEcal, prefireEcalUp, prefireEcalDown);
+                        pfire.computeMuonsOnly(prefireMuon, prefireMuonUp, prefireMuonDown, prefireMuonStatUp, prefireMuonStatDown, prefireMuonSystUp, prefireMuonSystDown);
+                        prefireWeight = prefireEcal * prefireMuon;
+                        prefireUp = prefireEcalUp * prefireMuonUp;
+                        prefireDown = prefireEcalDown * prefireMuonDown;
                     }
 
                     TLorentzVector vLep;
@@ -448,6 +521,16 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                     prefireJet = 1;
                     prefireJetUp = 1;
                     prefireJetDown = 1;
+                    prefireEcal = 1;
+                    prefireEcalUp = 1;
+                    prefireEcalDown = 1;
+                    prefireMuon = 1;
+                    prefireMuonUp = 1;
+                    prefireMuonDown = 1;
+                    prefireMuonStatUp = 1;
+                    prefireMuonStatDown = 1;
+                    prefireMuonSystUp = 1;
+                    prefireMuonSystDown = 1;
                     prefireWeight = 1;
                     prefireUp = 1;
                     prefireDown = 1;
