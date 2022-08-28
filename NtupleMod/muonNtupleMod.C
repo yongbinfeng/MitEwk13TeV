@@ -155,6 +155,8 @@ void muonNtupleMod(const TString outputDir, // output directory
     std::cout << "do Recoil " << isRecoil << std::endl;
 
     if (inputDir.Contains("Anti") && isRecoil) {
+        // anti isolated region is for QCD bkg estimations
+        // no need to do recoil uncertainties
         doInclusive = true;
         doKeys = false;
         doEta = false;
@@ -269,6 +271,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     assert(intree);
 
     TH1D* hGenWeights = (TH1D*)infile->Get("hGenWeights");
+
     // Variables to get some of the branches out of the tree
     Float_t genVPt, genVPhi, genVy;
     Float_t genLepPt, genLepPhi;
@@ -281,11 +284,11 @@ void muonNtupleMod(const TString outputDir, // output directory
     Float_t genMuonPt = 0;
     Float_t pfCombIso;
     UInt_t npv;
-    intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
-    intree->SetBranchAddress("genVPhi", &genVPhi); // GEN W boson phi (signal MC)
-    intree->SetBranchAddress("genVy", &genVy); // GEN W boson phi (signal MC)
-    intree->SetBranchAddress("genLepPt", &genLepPt); // GEN lepton pT (signal MC)
-    intree->SetBranchAddress("genLepPhi", &genLepPhi); // GEN lepton phi (signal MC)
+    //intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
+    //intree->SetBranchAddress("genVPhi", &genVPhi); // GEN W boson phi (signal MC)
+    //intree->SetBranchAddress("genVy", &genVy); // GEN W boson phi (signal MC)
+    //intree->SetBranchAddress("genLepPt", &genLepPt); // GEN lepton pT (signal MC)
+    //intree->SetBranchAddress("genLepPhi", &genLepPhi); // GEN lepton phi (signal MC)
     intree->SetBranchAddress("prefireWeight", &prefireWeight); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireUp", &prefireUp); // event weight per 1/fb (MC)
     intree->SetBranchAddress("prefireDown", &prefireDown); // event weight per 1/fb (MC)
@@ -300,15 +303,15 @@ void muonNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("scale1fbDown", &scale1fbDown); // event weight per 1/fb (MC)
     intree->SetBranchAddress(met_name.c_str(), &met); // MET
     intree->SetBranchAddress(metPhi_name.c_str(), &metPhi); // phi(MET)
-    intree->SetBranchAddress(u1_name.c_str(), &u1); // parallel component of recoil
-    intree->SetBranchAddress(u2_name.c_str(), &u2); // perpendicular component of recoil
+    //intree->SetBranchAddress(u1_name.c_str(), &u1); // parallel component of recoil
+    //intree->SetBranchAddress(u2_name.c_str(), &u2); // perpendicular component of recoil
     intree->SetBranchAddress("q", &q); // lepton charge
     intree->SetBranchAddress("lep", &lep); // lepton 4-vector
     intree->SetBranchAddress("genLep", &genLep); // lepton 4-vector
     intree->SetBranchAddress("genV", &genV); // lepton 4-vector
     intree->SetBranchAddress("pfCombIso", &pfCombIso); // lepton 4-vector
     intree->SetBranchAddress("nTkLayers", &nTkLayers); // lepton 4-vector
-    intree->SetBranchAddress("genMuonPt", &genMuonPt); // lepton 4-vector
+    //intree->SetBranchAddress("genMuonPt", &genMuonPt); // lepton 4-vector
     intree->SetBranchAddress("npv", &npv);
 
     Long64_t nevents = intree->GetEntries();
@@ -500,6 +503,7 @@ void muonNtupleMod(const TString outputDir, // output directory
 
             double rand = gRandom->Uniform(1);
             double mcSF1 = 1;
+            genMuonPt = genLep->Pt();
             if (genMuonPt > 0) {
                 mcSF1 = rc.kSpreadMC(q, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt);
             } else {
@@ -561,6 +565,9 @@ void muonNtupleMod(const TString outputDir, // output directory
             }
 
             if (isRecoil) {
+                genVPt = genV->Pt();
+                genVPhi = genV->Phi();
+                genVy = genV->Rapidity();
 
                 if (q > 0) {
                     if (doKeys) {

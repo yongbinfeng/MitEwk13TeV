@@ -138,6 +138,8 @@ void eleNtupleMod(const TString outputDir, // output directory
     std::cout << "do Recoil " << isRecoil << std::endl;
 
     if (inputDir.Contains("Anti") && isRecoil) {
+        // Anti isolated region is for QCD bkg estimations
+        // no need to do recoil uncertainties
         doInclusive = true;
         doKeys = false;
         doEta = false;
