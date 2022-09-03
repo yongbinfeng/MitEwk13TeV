@@ -38,7 +38,7 @@ def GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs, doElect
 
             cmd = "root -l -q -b "
             cmd += macro
-            cmd += '+\(\\"' + confname + '\\",\\"./' 
+            cmd += '++\(\\"' + confname + '\\",\\"./' 
             if not do5TeV:
                 if doElectron:
                     # for electrons, do scale variations, with 1 sigma
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Wenu/"
     logsuffix = "selectWe_we_13"
     njobs = [20, 3, 3, 10, 3, 3, 3, 80, 3, 3, 10, 100, 20, 10]
-    if 0:
+    if 1:
         for isamp in range(14):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True)
 
@@ -175,19 +175,19 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Wenu/"
     logsuffix = "selectWe_we_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
-    if 0:
+    if 1:
         for isamp in range(9):
             GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True, do5TeV = True)
 
     ### QCD control region (anti-isolated region) for W->munu
     macro = "selectAntiWm.C"
-    confname = "wm_13.conf"
+    confname = "wm_5.conf"
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/AntiWmunu/"
     logsuffix = "selectAntiWm_wm_5"
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
     if 1:
         for isamp in range(9):
-            GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp])
+            GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], do5TeV = True)
 
     ## QCD control region (anti-isolated region) for W->enu
     macro = "selectAntiWe.C"
@@ -197,4 +197,4 @@ if __name__ == "__main__":
     njobs = [20, 10, 3, 3, 3, 3, 10, 10, 20]
     if 1:
         for isamp in range(9):
-            GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True)
+            GenerateExecutable(macro, confname, outdir, isamp, logsuffix, njobs[isamp], doElectron = True, do5TeV = True)
