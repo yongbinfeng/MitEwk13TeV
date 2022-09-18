@@ -68,7 +68,7 @@ def GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = False, moreMem 
 
                     cmd = "root -l -q -b "
                     cmd += macro
-                    cmd += '+\(\\"./ntuples/\\",\\"root://cmseos.fnal.gov/' + indir
+                    cmd += '++\(\\"./ntuples/\\",\\"root://cmseos.fnal.gov/' + indir
                     if not is5TeV:
                         cmd += '\\",\\"13TeV\\",\\"' + fname + '\\"'
                     else:
@@ -95,7 +95,8 @@ when_to_transfer_output = ON_EXIT\n
 """.format(jobname = jobname, here = pwd)
     
         if moreMem and need_more_mem:
-            job_desc += "request_memory = {}\n".format(8 * 1024)
+            # need about 3200MB memory to do recoil uncertainties
+            job_desc += "request_memory = {}\n".format(4 * 1000)
         job_desc += "queue 1\n"
 
         with open(jobname + ".condor", 'w') as outfile:
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     indir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/AntiWmunu/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/NtupleMod/AntiWmunu/"
     logsuffix = "muonNtupleMod_antiwm_13"
-    if 0:
+    if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix)
 
     ## Anti-isolated W -> enu
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     indir = "/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/AntiWenu/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/13TeV/NtupleMod/AntiWenu/"
     logsuffix = "eleNtupleMod_antiwe_13"
-    if 0:
+    if 1:
         GenerateExecutable(macro, indir, outdir, logsuffix)
 
     macro = "ZmmNtupleMod.C"
@@ -162,7 +163,7 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Wmunu/"
     logsuffix = "muonNtupleMod_wm_5"
     if 1:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True, moreMem = True)
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True, moreMem = True)
 
     ## W -> enu
     macro = "eleNtupleMod.C"
@@ -170,35 +171,34 @@ if __name__ == "__main__":
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Wenu/"
     logsuffix = "eleNtupleMod_we_5"
     if 1:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True, moreMem = True)
-
-    macro = "ZmmNtupleMod.C"
-    indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zmumu_pT20/"
-    outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zmumu/"
-    logsuffix = "ZmmNtupleMod_zmumu_5"
-    if 0:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True)
-
-    macro = "ZeeNtupleMod.C"
-    indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zee_pT20/"
-    outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zee/"
-    logsuffix = "ZeeNtupleMod_zee_5"
-    if 0:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True)
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True, moreMem = True)
 
     # Anti isolated W -> munu
     macro = "muonNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/AntiWmunu/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/AntiWmunu/"
     logsuffix = "muonNtupleMod_antiwm_5"
-    if 0:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True)
+    if 1:
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True)
 
     ## Anti isolated W -> enu
     macro = "eleNtupleMod.C"
     indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/AntiWenu/"
     outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/AntiWenu/"
     logsuffix = "eleNtupleMod_antiwe_5"
-    if 0:
-        GenerateExecutable(macro, indir, outdir, logsuffix, True)
+    if 1:
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True)
 
+    macro = "ZmmNtupleMod.C"
+    indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zmumu_pT20/"
+    outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zmumu/"
+    logsuffix = "ZmmNtupleMod_zmumu_5"
+    if 0:
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True)
+
+    macro = "ZeeNtupleMod.C"
+    indir = "/store/user/yofeng/Ntuples_LowPU/5TeV/Selections/Zee_pT20/"
+    outdir = "/store/user/yofeng/Ntuples_LowPU/5TeV/NtupleMod/Zee/"
+    logsuffix = "ZeeNtupleMod_zee_5"
+    if 0:
+        GenerateExecutable(macro, indir, outdir, logsuffix, is5TeV = True)
