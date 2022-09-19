@@ -80,6 +80,8 @@ void selectZee(const TString conf = "zee.conf", // input file
     const Int_t BOSON_ID = 23;
     const Int_t LEPTON_ID = 11;
 
+    const Int_t nTHEORYUNC = 109;
+
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
     // load trigger menu
@@ -157,6 +159,8 @@ void selectZee(const TString conf = "zee.conf", // input file
     Int_t glepq2 = -99;
     TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *lep1_raw = 0, *lep2_raw = 0;
     TLorentzVector *genlep1 = 0, *genlep2 = 0;
+    // qcd scale and pdf variations
+    vector<Double_t> lheweight(nTHEORYUNC, 1.0);
 
     ///// electron specific /////
     Float_t trkIso1, trkIso2, pfCombIso1, pfCombIso2;
@@ -217,6 +221,9 @@ void selectZee(const TString conf = "zee.conf", // input file
         }
         outfilename += TString(".root");
         cout << outfilename << endl;
+
+        for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++)
+            lheweight[itheory] = 1.0;
 
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
@@ -280,6 +287,7 @@ void selectZee(const TString conf = "zee.conf", // input file
         outTree->Branch("r92", &r92, "r92/F"); // transverse impact parameter of probe
         outTree->Branch("lep1error", &lep1error, "lep1error/F"); // scale and smear correction uncertainty for tag lepton
         outTree->Branch("lep2error", &lep2error, "lep2error/F"); // scale and smear correction uncertainty for probe leptom
+        outTree->Branch("lheweight", "vector<Double_t>", &lheweight); // LHE weights
 
         TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
         //
@@ -366,6 +374,9 @@ void selectZee(const TString conf = "zee.conf", // input file
                     weight *= gen->weight * puWeight;
                     weightUp *= gen->weight * puWeightUp;
                     weightDown *= gen->weight * puWeightDown;
+                    for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
+                        lheweight[itheory] = gen->lheweight[itheory];
+                    }
                 } else {
                     hGenWeights->Fill(0.0, 1.0);
                 }

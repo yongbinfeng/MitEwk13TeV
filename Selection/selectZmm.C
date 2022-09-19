@@ -157,10 +157,7 @@ void selectZmm(const TString conf = "zmm.conf", // input file
     Int_t glepq1 = -99;
     Int_t glepq2 = -99;
     // qcd scale and pdf variations
-    vector<Double_t> lheweight;
-    for (unsigned i = 0; i < nTHEORYUNC; i++) {
-        lheweight.push_back(0);
-    }
+    vector<Double_t> lheweight(nTHEORYUNC, 1.0);
 
     // Data structures to store info from TTrees
     baconhep::TEventInfo* info = new baconhep::TEventInfo();
@@ -215,6 +212,10 @@ void selectZmm(const TString conf = "zmm.conf", // input file
         }
         outfilename += TString(".root");
         cout << outfilename << endl;
+
+        for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
+            lheweight[itheory] = 1.0;
+        }
 
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
