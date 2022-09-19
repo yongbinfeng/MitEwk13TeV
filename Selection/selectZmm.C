@@ -72,6 +72,8 @@ void selectZmm(const TString conf = "zmm.conf", // input file
     const Int_t BOSON_ID = 23;
     const Int_t LEPTON_ID = 13;
 
+    const Int_t nTHEORYUNC = 109;
+
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
     // load trigger menu
@@ -154,6 +156,11 @@ void selectZmm(const TString conf = "zmm.conf", // input file
     TLorentzVector *sta1 = 0, *sta2 = 0;
     Int_t glepq1 = -99;
     Int_t glepq2 = -99;
+    // qcd scale and pdf variations
+    vector<Double_t> lheweight;
+    for (unsigned i = 0; i < nTHEORYUNC; i++) {
+        lheweight.push_back(0);
+    }
 
     // Data structures to store info from TTrees
     baconhep::TEventInfo* info = new baconhep::TEventInfo();
@@ -299,6 +306,7 @@ void selectZmm(const TString conf = "zmm.conf", // input file
         outTree->Branch("typeBits2", &typeBits2, "typeBits2/i"); // muon type of probe muon
         outTree->Branch("sta1", "TLorentzVector", &sta1); // tag standalone muon 4-vector
         outTree->Branch("sta2", "TLorentzVector", &sta2); // probe standalone muon 4-vector
+        outTree->Branch("lheweight", "vector<Double_t>", &lheweight);
 
         TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
         //
@@ -405,6 +413,9 @@ void selectZmm(const TString conf = "zmm.conf", // input file
                     weight *= gen->weight * puWeight;
                     weightUp *= gen->weight * puWeightUp;
                     weightDown *= gen->weight * puWeightDown;
+                    for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
+                        lheweight[itheory] = gen->lheweight[itheory];
+                    }
                 } else { // i guess should fix this if it needs PU weighting
                     hGenWeights->Fill(0.0, 1.0);
                 }
