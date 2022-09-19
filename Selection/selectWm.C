@@ -75,6 +75,8 @@ void selectWm(const TString conf = "wm.conf", // input file
     const Int_t BOSON_ID = 24;
     const Int_t LEPTON_ID = 13;
 
+    const Int_t nTHEORYUNC = 109;
+
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
     // load trigger menu
@@ -148,6 +150,8 @@ void selectWm(const TString conf = "wm.conf", // input file
     Float_t muNchi2;
     UInt_t nPixHits, nTkLayers, nValidHits, nMatch, typeBits;
     // Bool_t passHLT;
+    // qcd scale and pdf weights
+    vector<Double_t> lheweight(nTHEORYUNC, 1.0);
 
     // Data structures to store info from TTrees
     baconhep::TEventInfo* info = new baconhep::TEventInfo();
@@ -209,6 +213,10 @@ void selectWm(const TString conf = "wm.conf", // input file
         }
         outfilename += TString(".root");
         cout << outfilename << endl;
+
+        for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
+            lheweight[itheory] = 1.0;
+        }
 
         TFile* outFile = new TFile(outfilename, "RECREATE");
         TTree* outTree = new TTree("Events", "Events");
@@ -302,6 +310,7 @@ void selectWm(const TString conf = "wm.conf", // input file
         outTree->Branch("nMatch", &nMatch, "nMatch/i"); // number of matched segments of muon
         outTree->Branch("nValidHits", &nValidHits, "nValidHits/i"); // number of valid muon hits of muon
         outTree->Branch("typeBits", &typeBits, "typeBits/i"); // number of valid muon hits of muon
+        outTree->Branch("lheweight", "vector<Double_t>", &lheweight); // LHE weights
 
         TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
         //
@@ -645,6 +654,9 @@ void selectWm(const TString conf = "wm.conf", // input file
                         xPDF_2 = gen->xPDF_2;
                         scalePDF = gen->scalePDF;
                         weightPDF = gen->weight;
+                        for (unsigned itheory = 0; itheory < gen->nWeight; itheory++) {
+                            lheweight[itheory] = gen->lheweight[itheory];
+                        }
 
                         // Clean up
                         delete gvec;
