@@ -348,6 +348,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     Double_t mtCorr = 0;
     vector<Double_t> metVars, metVarsPhi;
     vector<Double_t> evtWeight;
+    Double_t lepError = 0;
 
     for (int i = 0; i < nMET; i++) {
         metVars.push_back(0);
@@ -365,6 +366,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     outTree->Branch("lep_raw", "TLorentzVector", &lep_raw, 99); // uncorrected lepton vector
     outTree->Branch("metVars", "vector<Double_t>", &metVars, 99); // uncorrected lepton vector
     outTree->Branch("metVarsPhi", "vector<Double_t>", &metVarsPhi, 99); // uncorrected lepton vector
+    outTree->Branch("lepError", &lepError, "lepError/d", 99); // muon momentum unc
 
     //
     // loop over events
@@ -394,6 +396,8 @@ void muonNtupleMod(const TString outputDir, // output directory
         Double_t corrBkg = 1;
         Double_t corrTag = 1;
 
+        lepError = 0.;
+
         if (fabs(lep->Eta()) > ETA_CUT)
             continue;
 
@@ -419,6 +423,7 @@ void muonNtupleMod(const TString outputDir, // output directory
             mu1u.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), mu_MASS);
             mu1d.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), mu_MASS);
             double dtSF1 = rc.kScaleDT(q, mu1.Pt(), mu1.Eta(), mu1.Phi()); //, s=0, m=0);
+            lepError = rc.kScaleDTerror(q, mu1.Pt(), mu1.Eta(), mu1.Phi());
             mu1 *= dtSF1;
             (*lep) *= dtSF1; // is this legit lol
 
@@ -520,6 +525,7 @@ void muonNtupleMod(const TString outputDir, // output directory
             }
             mu1u *= (1 + deltaMcSF);
             mu1d *= (1 - deltaMcSF);
+            lepError = deltaMcSF;
 
             TVector2 vLepCor((mu1.Pt()) * cos(mu1.Phi()), (mu1.Pt()) * sin(mu1.Phi()));
             TVector2 vLepCorU((mu1u.Pt()) * cos(mu1u.Phi()), (mu1u.Pt()) * sin(mu1u.Phi()));
