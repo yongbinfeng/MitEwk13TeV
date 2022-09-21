@@ -654,7 +654,7 @@ void selectWm(const TString conf = "wm.conf", // input file
                         xPDF_2 = gen->xPDF_2;
                         scalePDF = gen->scalePDF;
                         weightPDF = gen->weight;
-                        for (unsigned itheory = 0; itheory < gen->nWeight; itheory++) {
+                        for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
                             lheweight[itheory] = gen->lheweight[itheory];
                         }
 
