@@ -80,7 +80,10 @@ void selectZee(const TString conf = "zee.conf", // input file
     const Int_t BOSON_ID = 23;
     const Int_t LEPTON_ID = 11;
 
-    const Int_t nTHEORYUNC = 109;
+    // theory unc variations, taken from 
+    // https://github.com/yongbinfeng/BaconProd/blob/master/Ntupler/src/FillerGenInfo.cc#L45-L48
+    // 8 qcd scale + 1 default pdf +100 pdf + 2 alphaS
+    const Int_t nTHEORYUNC = 111;
 
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
@@ -289,7 +292,9 @@ void selectZee(const TString conf = "zee.conf", // input file
         outTree->Branch("lep2error", &lep2error, "lep2error/F"); // scale and smear correction uncertainty for probe leptom
         outTree->Branch("lheweight", "vector<Double_t>", &lheweight); // LHE weights
 
-        TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
+        TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 2, -1., 1.);
+        // save the sum of weights with different LHE weight variations (QCD scale, pdf, alphaS)
+        TH1D* hLHEWeightSum = new TH1D("hLHEWeightSum", "hLHEWeightSum", nTHEORYUNC, 0, nTHEORYUNC);
         //
         // loop through files
         //
@@ -370,12 +375,14 @@ void selectZee(const TString conf = "zee.conf", // input file
                     puWeight = doPU ? h_rw->GetBinContent(h_rw->FindBin(info->nPUmean)) : 1.;
                     puWeightUp = doPU ? h_rw_up->GetBinContent(h_rw_up->FindBin(info->nPUmean)) : 1.;
                     puWeightDown = doPU ? h_rw_down->GetBinContent(h_rw_down->FindBin(info->nPUmean)) : 1.;
-                    hGenWeights->Fill(0.0, gen->weight);
-                    weight *= gen->weight * puWeight;
-                    weightUp *= gen->weight * puWeightUp;
-                    weightDown *= gen->weight * puWeightDown;
+                    int genweight = gen->weight > 0 ? 1 : -1;
+                    hGenWeights->Fill(0.0, genweight);
+                    weight *= genweight * puWeight;
+                    weightUp *= genweight * puWeightUp;
+                    weightDown *= genweight * puWeightDown;
                     for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
                         lheweight[itheory] = gen->lheweight[itheory];
+                        hLHEWeightSum->Fill(itheory, genweight * gen->lheweight[itheory]);
                     }
                 } else {
                     hGenWeights->Fill(0.0, 1.0);
@@ -804,6 +811,7 @@ void selectZee(const TString conf = "zee.conf", // input file
         }
         outFile->cd();
         hGenWeights->Write();
+        hLHEWeightSum->Write();
         outFile->Write();
         outFile->Close();
     }

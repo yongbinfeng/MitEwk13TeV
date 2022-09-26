@@ -75,7 +75,14 @@ void selectWm(const TString conf = "wm.conf", // input file
     const Int_t BOSON_ID = 24;
     const Int_t LEPTON_ID = 13;
 
-    const Int_t nTHEORYUNC = 109;
+    // theory unc variations, taken from
+    // https://github.com/yongbinfeng/BaconProd/blob/master/Ntupler/src/FillerGenInfo.cc#L45-L48
+    // 8 qcd scale + 1 default pdf +100 pdf + 2 alphaS
+    // for W's the weights are a bit different. there are
+    // one extra redundant qcd scale variation (always 1)
+    // so it becomes 9 qcd scale + 1 default pdf + 100 pdf + 1alphaS
+    // the other alphaS is not saved in the ntuples.
+    const Int_t nTHEORYUNC = 111;
 
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
@@ -312,7 +319,9 @@ void selectWm(const TString conf = "wm.conf", // input file
         outTree->Branch("typeBits", &typeBits, "typeBits/i"); // number of valid muon hits of muon
         outTree->Branch("lheweight", "vector<Double_t>", &lheweight); // LHE weights
 
-        TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 10, -10., 10.);
+        TH1D* hGenWeights = new TH1D("hGenWeights", "hGenWeights", 2, -1., 1.);
+        // save the sum of weights with different LHE weight variations (QCD scale, pdf, alphaS)
+        TH1D* hLHEWeightSum = new TH1D("hLHEWeightSum", "hLHEWeightSum", nTHEORYUNC, 0, nTHEORYUNC);
         //
         // loop through files
         //
@@ -407,10 +416,15 @@ void selectWm(const TString conf = "wm.conf", // input file
                     puWeight = doPU ? h_rw->GetBinContent(h_rw->FindBin(info->nPUmean)) : 1.;
                     puWeightUp = doPU ? h_rw_up->GetBinContent(h_rw_up->FindBin(info->nPUmean)) : 1.;
                     puWeightDown = doPU ? h_rw_down->GetBinContent(h_rw_down->FindBin(info->nPUmean)) : 1.;
-                    hGenWeights->Fill(0.0, gen->weight);
-                    weight *= gen->weight * puWeight;
-                    weightUp *= gen->weight * puWeightUp;
-                    weightDown *= gen->weight * puWeightDown;
+                    int genweight = gen->weight > 0 ? 1 : -1;
+                    hGenWeights->Fill(0.0, genweight);
+                    weight *= genweight * puWeight;
+                    weightUp *= genweight * puWeightUp;
+                    weightDown *= genweight * puWeightDown;
+                    for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
+                        lheweight[itheory] = gen->lheweight[itheory];
+                        hLHEWeightSum->Fill(itheory, genweight * gen->lheweight[itheory]);
+                    }
                 } else {
                     hGenWeights->Fill(0.0, 1.0);
                 }
@@ -418,13 +432,13 @@ void selectWm(const TString conf = "wm.conf", // input file
                 scBr->GetEntry(ientry);
 
                 /* Double_t weight=1;
-        if(xsec>0 && totalWeight>0) weight = xsec/totalWeight;
-	if(hasGen) {
-	  genPartArr->Clear();
-	  genBr->GetEntry(ientry);
-          genPartBr->GetEntry(ientry);
-	  weight*=gen->weight;
-	}*/
+                if(xsec>0 && totalWeight>0) weight = xsec/totalWeight;
+	            if(hasGen) {
+            	    genPartArr->Clear();
+	                genBr->GetEntry(ientry);
+                    genPartBr->GetEntry(ientry);
+	                weight*=gen->weight;
+	            }*/
 
                 // veto w -> xv decays for signal and w -> mv for bacground samples (needed for inclusive WToLNu sample)
                 // std::cout << "isWrongFlavor " << isWrongFlavor << " isSignal " << isSignal << " hasGen " << hasGen << " flav " <<  fabs(toolbox::flavor(genPartArr, BOSON_ID)) << std::endl;
@@ -654,9 +668,6 @@ void selectWm(const TString conf = "wm.conf", // input file
                         xPDF_2 = gen->xPDF_2;
                         scalePDF = gen->scalePDF;
                         weightPDF = gen->weight;
-                        for (unsigned itheory = 0; itheory < nTHEORYUNC; itheory++) {
-                            lheweight[itheory] = gen->lheweight[itheory];
-                        }
 
                         // Clean up
                         delete gvec;
@@ -740,6 +751,7 @@ void selectWm(const TString conf = "wm.conf", // input file
         }
         outFile->cd();
         hGenWeights->Write();
+        hLHEWeightSum->Write();
         outFile->Write();
         outFile->Close();
     }
