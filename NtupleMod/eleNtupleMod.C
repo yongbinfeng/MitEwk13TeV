@@ -250,6 +250,7 @@ void eleNtupleMod(const TString outputDir, // output directory
     assert(intree);
 
     TH1D* hGenWeights = (TH1D*)infile->Get("hGenWeights");
+    TH1D* hLHEWeightSum = (TH1D*)infile->Get("hLHEWeightSum");
 
     // Variables to get some of the branches out of the tree
     Float_t genVPt, genVPhi, genVy;
@@ -543,6 +544,7 @@ void eleNtupleMod(const TString outputDir, // output directory
 
     outFile->cd();
     hGenWeights->Write();
+    hLHEWeightSum->Write();
     outFile->Write();
     std::cout << "wrote outfile" << std::endl;
 
