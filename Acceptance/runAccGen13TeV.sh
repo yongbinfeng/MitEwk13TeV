@@ -116,6 +116,3 @@ root -l -q computeAccGenZll.C+\(\"zee13_photos.conf\",\"${OUTDIR}/GEN_zee_13TeV_
 root -l -q computeAccGenZll.C+\(\"zee13_pythia.conf\",\"${OUTDIR}/GEN_zee_13TeV_powPythia_dressed\",\"ACC_zee_13_powPythia_dressed\",1,0,0,${FRAC}\)
 
 # rm *.so *.d
-
-./scripts/makeAcceptance.sh 13TeV Z test TestGEN
-./scripts/makeAcceptance.sh 13TeV W test TestGEN
