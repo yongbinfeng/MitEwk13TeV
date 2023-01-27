@@ -243,8 +243,8 @@ void ZeeNtupleMod(
     intree->SetBranchAddress("lep1error", &lep1error); // sc2 4-vector
     intree->SetBranchAddress("lep2error", &lep2error); // sc2 4-vector
 
-    TH1D* hGenWeights;
-    hGenWeights = (TH1D*)infile->Get("hGenWeights");
+    TH1D* hGenWeights = (TH1D*)infile->Get("hGenWeights");
+    TH1D* hLHEWeightSum = (TH1D*)infile->Get("hLHEWeightSum");
 
     Long64_t nevents = intree->GetEntries();
     Long64_t IBEGIN = 0;
@@ -489,6 +489,7 @@ void ZeeNtupleMod(
 
     outFile->cd();
     hGenWeights->Write();
+    hLHEWeightSum->Write();
     outFile->Write();
     std::cout << "wrote outfile" << std::endl;
 

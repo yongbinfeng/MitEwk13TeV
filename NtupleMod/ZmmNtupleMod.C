@@ -231,8 +231,8 @@ void ZmmNtupleMod(
     intree->SetBranchAddress("nTkLayers2", &nTkLayers2);
     intree->SetBranchAddress("npv", &npv);
 
-    TH1D* hGenWeights;
-    hGenWeights = (TH1D*)infile->Get("hGenWeights");
+    TH1D* hGenWeights = (TH1D*)infile->Get("hGenWeights");
+    TH1D* hLHEWeightSum = (TH1D*)infile->Get("hLHEWeightSum");
 
     Long64_t nevents = intree->GetEntries();
     Long64_t IBEGIN = 0;
@@ -267,6 +267,7 @@ void ZmmNtupleMod(
     Double_t mass = 0;
     Double_t effSFweight = 1;
     Double_t pU1 = 0, pU2 = 0, pU1_postXY = 0, pU2_postXY = 0;
+    Double_t lep1error, lep2error;
     vector<Double_t> evtWeight;
     vector<Double_t> metVars, metVarsPhi;
 
@@ -288,6 +289,8 @@ void ZmmNtupleMod(
     outTree->Branch("pU2", &pU2, "pU2/d", 99); // u2 after recoil correction
     outTree->Branch("pU1_postXY", &pU1_postXY, "pU1_postXY/d", 99); // u1 after recoil and metxy correction
     outTree->Branch("pU2_postXY", &pU2_postXY, "pU2_postXY/d", 99); // u2 after recoil and metxy correction
+    outTree->Branch("lep1error", &lep1error, "lep1error/d", 99);
+    outTree->Branch("lep2error", &lep2error, "lep2error/d", 99);
 
     //
     // loop over events
@@ -301,6 +304,9 @@ void ZmmNtupleMod(
 
         Double_t corr = 1;
         Double_t corrFSR = 1, corrMC = 1, corrBkg = 1, corrTag = 1;
+
+        lep1error = 0;
+        lep2error = 0;
 
         // fill Z events passing selection
         if (!(category == eMuMu2HLT) && !(category == eMuMu1HLT) && !(category == eMuMu1HLT1mu1))
@@ -321,6 +327,8 @@ void ZmmNtupleMod(
                 mu2 *= dtSF2;
                 (*lep1) *= dtSF1;
                 (*lep2) *= dtSF2; 
+                lep1error = rc.kScaleDTerror(q1, mu1.Pt(), mu1.Eta(), mu1.Phi());
+                lep2error = rc.kScaleDTerror(q2, mu2.Pt(), mu2.Eta(), mu2.Phi());
             }
 
             if (mu1.Pt() < PT_CUT) 
@@ -370,15 +378,19 @@ void ZmmNtupleMod(
             double mcSF2 = 1;
             if (genMuonPt1 > 0) {
                 mcSF1 = rc.kSpreadMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt1);
+                lep1error = rc.kSpreadMCerror(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt1);
             } else {
                 double rand = gRandom->Uniform(1);
                 mcSF1 = rc.kSmearMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), nTkLayers1, rand);
+                lep1error = rc.kSmearMCerror(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), nTkLayers1, rand);
             }
             if (genMuonPt2 > 0) {
                 mcSF2 = rc.kSpreadMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), genMuonPt2);
+                lep2error = rc.kSpreadMCerror(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), genMuonPt2);
             } else {
                 double rand = gRandom->Uniform(1);
                 mcSF2 = rc.kSmearMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), nTkLayers2, rand);
+                lep2error = rc.kSmearMCerror(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), nTkLayers2, rand);
             }
             mu1 *= mcSF1;
             (*lep1) *= mcSF1;
@@ -487,6 +499,7 @@ void ZmmNtupleMod(
 
     outFile->cd();
     hGenWeights->Write();
+    hLHEWeightSum->Write();
     outFile->Write();
     std::cout << "wrote outfile" << std::endl;
 
