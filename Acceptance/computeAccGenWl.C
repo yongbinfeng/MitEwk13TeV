@@ -1,7 +1,6 @@
 //================================================================================================
-// Not used for 13 TeV measurement.
 //
-// Compute W->enu acceptance at generator level
+// Compute W->lnu acceptance at generator level
 //
 //  * outputs results summary text file
 //
@@ -9,38 +8,41 @@
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
 #include <TBenchmark.h> // class to track macro running statistics
+#include <TCanvas.h>
 #include <TClonesArray.h> // ROOT array class
-#include <TFile.h> // file handle class
-#include <TH1D.h> // histogram class
-#include <TLorentzVector.h>
-#include <TROOT.h> // access to gROOT, entry point to ROOT system
-#include <TSystem.h> // interface to OS
-#include <TTree.h> // class to access ntuples
-#include <fstream> // functions for file I/O
-#include <iomanip> // functions to format standard I/O
-#include <iostream> // standard I/O
-#include <sstream> // class for parsing strings
-#include <string> // C++ string class
-#include <vector> // STL vector class
+#include <TFile.h>        // file handle class
+#include <TH1D.h>         // histogram class
+#include <TROOT.h>        // access to gROOT, entry point to ROOT system
+#include <TSystem.h>      // interface to OS
+#include <TTree.h>        // class to access ntuples
+#include <fstream>        // functions for file I/O
+#include <iomanip>        // functions to format standard I/O
+#include <iostream>       // standard I/O
+#include <sstream>        // class for parsing strings
+#include <string>         // C++ string class
+#include <vector>         // STL vector class
 
 // define structures to read in ntuple
 #include "BaconAna/DataFormats/interface/TGenEventInfo.hh"
 #include "BaconAna/DataFormats/interface/TGenParticle.hh"
-#include "MitEwk13TeV/Utils/CSample.hh" // helper class to handle samples
+#include "MitEwk13TeV/Utils/CSample.hh"   // helper class to handle samples
 #include "MitEwk13TeV/Utils/ConfParse.hh" // input conf file parser
 #include "MitEwk13TeV/Utils/MyTools.hh"
 #endif
 
 //=== MAIN MACRO =================================================================================================
 
-void computeAccGenWe(const TString conf, // input file
-    const TString outputDir, // output directory
-    const TString outputName, // output filename
-    const bool doDressed = 0,
-    const Int_t charge = 0, // 0 = inclusive, +1 = W+, -1 = W-
-    const bool doborn = 0)
+void computeAccGenWl(const TString conf,       // input file
+                     const TString outputDir,  // output directory
+                     const TString outputName, // output filename
+                     const bool doDressed = 0,
+                     const Int_t charge = 0, // 0 = inclusive, +1 = W+, -1 = W-
+                     const bool doborn = 0,  // use born level
+                     const bool doMuon = 0,  // muon channel
+                     const float frac = 0.1  // fraction of events to be used for calculation
+)
 {
-    gBenchmark->Start("computeAccGenWe");
+    gBenchmark->Start("computeAccGenWl");
 
     //--------------------------------------------------------------------------------------------------------------
     // Settings
@@ -48,11 +50,11 @@ void computeAccGenWe(const TString conf, // input file
 
     const Double_t PT_CUT = 25;
     const Double_t ETA_CUT = 2.4;
-    const Double_t ETA_BARREL = 1.4442;
-    const Double_t ETA_ENDCAP = 1.566;
+    const Double_t ETA_BARREL = 1.2;
+    const Double_t ETA_ENDCAP = 1.2;
 
     const Int_t BOSON_ID = 24;
-    const Int_t LEPTON_ID = 11;
+    Int_t LEPTON_ID = 13;
 
     const Int_t NPDF = 100;
     const Int_t NQCD = 6;
@@ -61,8 +63,8 @@ void computeAccGenWe(const TString conf, // input file
     // Main analysis code
     //==============================================================================================================
 
-    vector<TString> snamev; // sample name (for output files)
-    vector<CSample*> samplev; // data/MC samples
+    vector<TString> snamev;    // sample name (for output files)
+    vector<CSample *> samplev; // data/MC samples
 
     //
     // parse .conf file
@@ -73,14 +75,15 @@ void computeAccGenWe(const TString conf, // input file
     gSystem->mkdir(outputDir, kTRUE);
 
     // Data structures to store info from TTrees
-    baconhep::TGenEventInfo* gen = new baconhep::TGenEventInfo();
-    TClonesArray* genPartArr = new TClonesArray("baconhep::TGenParticle");
+    baconhep::TGenEventInfo *gen = new baconhep::TGenEventInfo();
+    TClonesArray *genPartArr = new TClonesArray("baconhep::TGenParticle");
 
-    TFile* infile = 0;
-    TTree* eventTree = 0;
+    TFile *infile = 0;
+    TTree *eventTree = 0;
 
     Double_t nEvtsv = 0, nSelv = 0, nSelBv = 0, nSelEv = 0;
-    Double_t nEntries = 0, nEvtsAfter1Lep = 0, nEvtsAfterMT = 0;
+    Double_t nEvtsAfter1Lep = 0, nEvtsAfterMT = 0;
+    Double_t nEvts_noWeight = 0;
 
     Double_t accv = 0, accBv = 0, accEv = 0;
     Double_t accErrv = 0, accErrBv = 0, accErrEv = 0;
@@ -93,15 +96,16 @@ void computeAccGenWe(const TString conf, // input file
     TString sqrts = "13TeV";
     if (conf.Contains("5"))
         sqrts = "5TeV";
-    //TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
-    //TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
+    // TFile* rf = new TFile("/afs/cern.ch/user/s/sabrandt/work/public/FilesSM2017GH/SignalExtraction/Z_pT/zPt_Normal" + sqrts + ".root");
+    // TH1D* hh_diff = (TH1D*)rf->Get("hZptRatio");
 
-    CSample* samp = 0;
+    CSample *samp = 0;
 
     //
     // loop over the processes
     //
-    for (UInt_t isamp = 0; isamp < samplev.size(); ++isamp) {
+    for (UInt_t isamp = 0; isamp < samplev.size(); ++isamp)
+    {
 
         //
         // loop through files
@@ -109,7 +113,8 @@ void computeAccGenWe(const TString conf, // input file
         samp = samplev[isamp];
         const UInt_t nfiles = samp->fnamev.size();
 
-        for (UInt_t ifile = 0; ifile < nfiles; ifile++) {
+        for (UInt_t ifile = 0; ifile < nfiles; ifile++)
+        {
 
             // Read input file and get the TTrees
             cout << "Processing " << samp->fnamev[ifile] << " [xsec = " << samp->xsecv[ifile] << " pb] ... ";
@@ -118,23 +123,23 @@ void computeAccGenWe(const TString conf, // input file
             infile = TFile::Open(samp->fnamev[ifile]);
             assert(infile);
 
-            eventTree = (TTree*)infile->Get("Events");
+            eventTree = (TTree *)infile->Get("Events");
             assert(eventTree);
             eventTree->SetBranchAddress("GenEvtInfo", &gen);
-            TBranch* genBr = eventTree->GetBranch("GenEvtInfo");
+            TBranch *genBr = eventTree->GetBranch("GenEvtInfo");
             eventTree->SetBranchAddress("GenParticle", &genPartArr);
-            TBranch* partBr = eventTree->GetBranch("GenParticle");
+            TBranch *partBr = eventTree->GetBranch("GenParticle");
 
             //
             // loop over events
             //
-            double frac = 0.05; // fraction of events to be used for calculation
             double nWgtSum = 0., nAbsSum = 0; // total number of events after reweighting
 
             // loop over the events first, to get the positive and negative frations of events,
             // used for scaling later
             std::cout << "Process events quickly first time for counting" << std::endl;
-            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
+            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++)
+            {
                 if (ientry % 100000 == 0)
                     cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
                 genBr->GetEntry(ientry);
@@ -143,7 +148,8 @@ void computeAccGenWe(const TString conf, // input file
             }
             std::cout << "Finished first loop. Total events " << nAbsSum << " after negative weight subtraction " << nWgtSum / nAbsSum << std::endl;
 
-            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++) {
+            for (UInt_t ientry = 0; ientry < (uint)(frac * eventTree->GetEntries()); ientry++)
+            {
                 if (ientry % 100000 == 0)
                     cout << "Processing event " << ientry << ". " << (double)ientry / (double)eventTree->GetEntries() * 100 << " percent done with this file." << endl;
                 genBr->GetEntry(ientry);
@@ -155,33 +161,34 @@ void computeAccGenWe(const TString conf, // input file
                 if (fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
                     continue;
                 if (charge == -1 && toolbox::flavor(genPartArr, BOSON_ID) != LEPTON_ID)
-                    continue; // check for a e- from W
+                    continue;
                 if (charge == 1 && toolbox::flavor(genPartArr, BOSON_ID) != -LEPTON_ID)
-                    continue; // check for a e+ from W
+                    continue;
                 if (charge == 0 && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
-                    continue; // check flavor
+                    continue;
 
-                TLorentzVector* vec = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* lep1 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* lep2 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* lep3 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* lep4 = new TLorentzVector(0, 0, 0, 0);
-                TLorentzVector* gph = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *vec = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *lep1 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *lep2 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *lep3 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *lep4 = new TLorentzVector(0, 0, 0, 0);
+                TLorentzVector *gph = new TLorentzVector(0, 0, 0, 0);
 
                 // the function returns: lep1, lep3 are the paricles, lep2, lep4 are the anti-particles
                 toolbox::fillGenBorn(genPartArr, BOSON_ID, vec, lep1, lep2, lep3, lep4);
 
                 double ptWeight = 1;
-                //for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
-                //    if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
-                //        ptWeight = hh_diff->GetBinContent(i);
-                //        break;
-                //    }
-                //}
+                // for (int i = 0; i <= hh_diff->GetNbinsX(); ++i) {
+                //     if (vec->Pt() > hh_diff->GetBinLowEdge(i) && vec->Pt() < hh_diff->GetBinLowEdge(i + 1)) {
+                //         ptWeight = hh_diff->GetBinContent(i);
+                //         break;
+                //     }
+                // }
 
-                if (charge == 1) {
-                    //For W+->e+vu decay, change things up so that lep1 and lep3 are the charged particles
-                    TLorentzVector* tmp = lep1;
+                if (charge == 1)
+                {
+                    // For W+->e+vu decay, change things up so that lep1 and lep3 are the charged particles
+                    TLorentzVector *tmp = lep1;
                     lep1 = lep2;
                     lep2 = tmp;
                     tmp = lep3;
@@ -189,18 +196,22 @@ void computeAccGenWe(const TString conf, // input file
                     lep4 = tmp;
                 }
 
-                if (doDressed) {
-                    for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++) {
-                        const baconhep::TGenParticle* genloop = (baconhep::TGenParticle*)((*genPartArr)[i]);
+                if (doDressed)
+                {
+                    for (Int_t i = 0; i < genPartArr->GetEntriesFast(); i++)
+                    {
+                        const baconhep::TGenParticle *genloop = (baconhep::TGenParticle *)((*genPartArr)[i]);
                         if (fabs(genloop->pdgId) != 22)
                             continue;
                         gph->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
-                        if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep3->Eta(), lep3->Phi()) < 0.1) {
+                        if (toolbox::deltaR(gph->Eta(), gph->Phi(), lep3->Eta(), lep3->Phi()) < 0.1)
+                        {
                             lep3->operator+=(*gph);
                         }
                     }
                 }
 
+                nEvts_noWeight += 1;
                 Double_t weight = (gen->weight > 0 ? 1 : -1) * samp->xsecv[ifile] / nWgtSum;
                 nEvtsv += weight;
                 nEvtsv_pT += weight * ptWeight;
@@ -216,23 +227,20 @@ void computeAccGenWe(const TString conf, // input file
                     nEvtsv_PDF[npdf] += weight * gen->lheweight[9 + npdf];
 
                 Bool_t isBarrel = kTRUE;
-                if (doborn) {
+                if (doborn)
+                {
                     if (lep1->Pt() < PT_CUT)
                         continue;
                     if (fabs(lep1->Eta()) > ETA_CUT)
                         continue;
-                    //if (fabs(lep1->Eta()) >= ETA_BARREL && fabs(lep1->Eta()) <= ETA_ENDCAP)
-                    //    // remove ecal gap
-                    //    continue;
                     isBarrel = (fabs(lep1->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
-                } else {
+                }
+                else
+                {
                     if (lep3->Pt() < PT_CUT)
                         continue;
                     if (fabs(lep3->Eta()) > ETA_CUT)
                         continue;
-                    //if (fabs(lep3->Eta()) >= ETA_BARREL && fabs(lep3->Eta()) < ETA_ENDCAP)
-                    //    // remove ecal gap
-                    //    continue;
                     isBarrel = (fabs(lep3->Eta()) < ETA_BARREL) ? kTRUE : kFALSE;
                 }
 
@@ -244,8 +252,8 @@ void computeAccGenWe(const TString conf, // input file
                 else
                     mtgen = sqrt(2.0 * (lep3->Pt()) * (lep4->Pt()) * (1.0 - cos(toolbox::deltaPhi(lep3->Phi(), lep4->Phi()))));
 
-                if (mtgen < 20)
-                    continue;
+                // if (mtgen < 20)
+                //     continue;
 
                 nEvtsAfterMT += weight;
 
@@ -271,23 +279,23 @@ void computeAccGenWe(const TString conf, // input file
                 delete lep3;
                 delete lep4;
                 delete gph;
-            } // loop events
-        } // loop files
+            }
+        }
 
         std::cout << "nselv " << nSelv << "  nevtsv " << nEvtsv << std::endl;
 
         delete infile;
         infile = 0, eventTree = 0;
         samp = 0;
-    } // loop samples
+    }
 
     // compute acceptances
     accv = nSelv / nEvtsv;
-    accErrv = sqrt(accv * (1. - accv) / nEvtsv);
+    accErrv = sqrt(accv * (1. - accv) / nEvts_noWeight);
     accBv = nSelBv / nEvtsv;
-    accErrBv = sqrt(accBv * (1. - accBv) / nEvtsv);
+    accErrBv = sqrt(accBv * (1. - accBv) / nEvts_noWeight);
     accEv = nSelEv / nEvtsv;
-    accErrEv = sqrt(accEv * (1. - accEv) / nEvtsv);
+    accErrEv = sqrt(accEv * (1. - accEv) / nEvts_noWeight);
 
     accv_pT = nSelv_pT / nEvtsv_pT;
 
@@ -314,12 +322,16 @@ void computeAccGenWe(const TString conf, // input file
     cout << "*" << endl;
     cout << "* SUMMARY" << endl;
     cout << "*--------------------------------------------------" << endl;
+    if (doMuon)
+        cout << "Muon channel" << endl;
+    else
+        cout << "Electron channel" << endl;
     if (charge == 0)
-        cout << " W -> e nu" << endl;
+        cout << " W -> l nu" << endl;
     if (charge == -1)
-        cout << " W- -> e nu" << endl;
+        cout << " W- -> l nu" << endl;
     if (charge == 1)
-        cout << " W+ -> e nu" << endl;
+        cout << " W+ -> l nu" << endl;
     cout << "  pT > " << PT_CUT << endl;
     cout << "  |eta| < " << ETA_CUT << endl;
     cout << "  Barrel definition: |eta| < " << ETA_BARREL << endl;
@@ -341,12 +353,16 @@ void computeAccGenWe(const TString conf, // input file
     txtfile1 << "*" << endl;
     txtfile1 << "* SUMMARY" << endl;
     txtfile1 << "*--------------------------------------------------" << endl;
+    if (doMuon)
+        txtfile1 << "Muon channel" << endl;
+    else
+        txtfile1 << "Electron channel" << endl;
     if (charge == 0)
-        txtfile1 << " W -> e nu" << endl;
+        txtfile1 << " W -> l nu" << endl;
     if (charge == -1)
-        txtfile1 << " W- -> e nu" << endl;
+        txtfile1 << " W- -> l nu" << endl;
     if (charge == 1)
-        txtfile1 << " W+ -> e nu" << endl;
+        txtfile1 << " W+ -> l nu" << endl;
     txtfile1 << "  pT > " << PT_CUT << endl;
     txtfile1 << "  |eta| < " << ETA_CUT << endl;
     txtfile1 << "  Barrel definition: |eta| < " << ETA_BARREL << endl;
@@ -368,11 +384,11 @@ void computeAccGenWe(const TString conf, // input file
     txtfile2.open(txtfname2);
     double ndiv = nEvtsv;
     if (charge == 1)
-        txtfile2 << "\\PW^{+}\\to e^{+}\\nu" << endl;
+        txtfile2 << "\\PW^{+}\\to\\l^{+}\\nu" << endl;
     else if (charge == -1)
-        txtfile2 << "\\PW^{-}\\to e^{-}\\nu" << endl;
+        txtfile2 << "\\PW^{-}\\to\\l^{-}\\nu" << endl;
     else
-        txtfile2 << "\\PW^{\\pm}\\to e^{\\pm}\\nu" << endl;
+        txtfile2 << "\\PW^{\\pm}\\to\\l^{\\pm}\\nu" << endl;
     txtfile2 << " Total " << setw(20) << nEvtsv << setw(20) << nEvtsv / ndiv << endl;
     txtfile2 << " After_lep1_cut " << setw(20) << nEvtsAfter1Lep << setw(20) << nEvtsAfter1Lep / ndiv << endl;
     txtfile2 << " After_MT_cut " << setw(20) << nEvtsAfterMT << setw(20) << nEvtsAfterMT / ndiv << endl;
@@ -383,5 +399,5 @@ void computeAccGenWe(const TString conf, // input file
     cout << "  <> Output saved in " << outputDir << "/" << endl;
     cout << endl;
 
-    gBenchmark->Show("computeAccGenWe_Sys");
+    gBenchmark->Show("computeAccGenWl");
 }
