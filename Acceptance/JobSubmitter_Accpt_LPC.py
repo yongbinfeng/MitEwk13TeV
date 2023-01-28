@@ -65,6 +65,7 @@ Output     = {jobname}.out
 Error      = {jobname}.error
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
+request_memory = 4000
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 

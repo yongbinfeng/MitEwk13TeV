@@ -55,6 +55,8 @@ void computeAccGenWl(const TString conf,       // input file
 
     const Int_t BOSON_ID = 24;
     Int_t LEPTON_ID = 13;
+    if (!doMuon)
+        LEPTON_ID = 11;
 
     const Int_t NPDF = 100;
     const Int_t NQCD = 6;
@@ -158,13 +160,14 @@ void computeAccGenWl(const TString conf,       // input file
 
                 Int_t lepq1 = -99;
                 Int_t lepq2 = -99;
-                if (fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
+                Int_t flav = toolbox::flavor(genPartArr, BOSON_ID);
+                if (fabs(flav) != LEPTON_ID)
                     continue;
-                if (charge == -1 && toolbox::flavor(genPartArr, BOSON_ID) != LEPTON_ID)
+                if (charge == -1 && flav != LEPTON_ID)
                     continue;
-                if (charge == 1 && toolbox::flavor(genPartArr, BOSON_ID) != -LEPTON_ID)
+                if (charge == 1 && flav != -LEPTON_ID)
                     continue;
-                if (charge == 0 && fabs(toolbox::flavor(genPartArr, BOSON_ID)) != LEPTON_ID)
+                if (charge == 0 && fabs(flav) != LEPTON_ID)
                     continue;
 
                 TLorentzVector *vec = new TLorentzVector(0, 0, 0, 0);
@@ -185,9 +188,9 @@ void computeAccGenWl(const TString conf,       // input file
                 //     }
                 // }
 
-                if (charge == 1)
+                if (flav == -LEPTON_ID)
                 {
-                    // For W+->e+vu decay, change things up so that lep1 and lep3 are the charged particles
+                    // For W+->l+vu decay, change things up so that lep1 and lep3 are the charged particles
                     TLorentzVector *tmp = lep1;
                     lep1 = lep2;
                     lep2 = tmp;

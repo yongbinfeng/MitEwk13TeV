@@ -1,7 +1,7 @@
 #! /bin/bash
 
 OUTDIR=${PWD}/ResultsGEN
-FRAC=0.3
+FRAC=0.5
 
 
 ########################################
@@ -64,15 +64,15 @@ root -l -b -q computeAccGenWl.C+\(\"we13_powheg.conf\",\"${OUTDIR}/GEN_we_13TeV_
 
 # ################################################################################
 ##########     Powheg+Photos for EWK
-root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_wep_13TeV_powPhotos_dressed\",\"ACC_wep_13_powPhotos_dressed\",1,1,0,0,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_wem_13TeV_powPhotos_dressed\",\"ACC_wem_13_powPhotos_dressed\",1,-1,0,0,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_we_13TeV_powPhotos_dressed\",\"ACC_we_13_powPhotos_dressed\",1,0,0,0,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_wep_13TeV_powLOPhotos_dressed\",\"ACC_wep_13_powLOPhotos_dressed\",1,1,0,0,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_wem_13TeV_powLOPhotos_dressed\",\"ACC_wem_13_powLOPhotos_dressed\",1,-1,0,0,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"we13_photos.conf\",\"${OUTDIR}/GEN_we_13TeV_powLOPhotos_dressed\",\"ACC_we_13_powLOPhotos_dressed\",1,0,0,0,${FRAC}\)
 
 # # ################################################################################
-# ##########     Powheg+Pythia for EWK
-root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_wep_13TeV_powPythia_dressed\",\"ACC_wep_13_powPythia_dressed\",1,1,0,0,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_wem_13TeV_powPythia_dressed\",\"ACC_wem_13_powPythia_dressed\",1,-1,0,0,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_we_13TeV_powPythia_dressed\",\"ACC_we_13_powPythia_dressed\",1,0,0,0,${FRAC}\)
+# ##########     powheg+Pythia for EWK
+root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_wep_13TeV_powLOPythia_dressed\",\"ACC_wep_13_powLOPythia_dressed\",1,1,0,0,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_wem_13TeV_powLOPythia_dressed\",\"ACC_wem_13_powLOPythia_dressed\",1,-1,0,0,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"we13_pythia.conf\",\"${OUTDIR}/GEN_we_13TeV_powLOPythia_dressed\",\"ACC_we_13_powLOPythia_dressed\",1,0,0,0,${FRAC}\)
 
 
 ########################################
@@ -90,10 +90,10 @@ root -l -b -q computeAccGenZll.C+\(\"z13.conf\",\"${OUTDIR}/GEN_zmm_13TeV_amcPyt
 root -l -b -q computeAccGenZll.C+\(\"zmm13_minlo.conf\",\"${OUTDIR}/GEN_zmm_13TeV_powPythia_dressed\",\"ACC_zmm_13_powPythia_dressed\",1,0,1,${FRAC}\)
 # # ################################################################################
 # # ##########            Powheg+Photos for EWK
-root -l -b -q computeAccGenZll.C+\(\"zmm13_photos.conf\",\"${OUTDIR}/GEN_zmm_13TeV_powPhotos_dressed\",\"ACC_zmm_13_powPhotos_dressed\",1,0,1,${FRAC}\)
+root -l -b -q computeAccGenZll.C+\(\"zmm13_photos.conf\",\"${OUTDIR}/GEN_zmm_13TeV_powLOPhotos_dressed\",\"ACC_zmm_13_powLOPhotos_dressed\",1,0,1,${FRAC}\)
 # # ################################################################################
-# # #########             Powheg+Pythia for EWK
-root -l -b -q computeAccGenZll.C+\(\"zmm13_pythia.conf\",\"${OUTDIR}/GEN_zmm_13TeV_powPythia_dressed\",\"ACC_zmm_13_powPythia_dressed\",1,0,1,${FRAC}\)
+# # #########             powheg+Pythia for EWK
+root -l -b -q computeAccGenZll.C+\(\"zmm13_pythia.conf\",\"${OUTDIR}/GEN_zmm_13TeV_powLOPythia_dressed\",\"ACC_zmm_13_powLOPythia_dressed\",1,0,1,${FRAC}\)
 
 
 ########################################
@@ -110,9 +110,9 @@ root -l -b -q computeAccGenZll.C+\(\"z13.conf\",\"${OUTDIR}/GEN_zee_13TeV_amcPyt
 root -l -b -q computeAccGenZll.C+\(\"zee13_minlo.conf\",\"${OUTDIR}/GEN_zee_13TeV_powPythia_dressed\",\"ACC_zee_13_powPythia_dressed\",1,0,0,${FRAC}\)
 ################################################################################
 # # ##########             Powheg+Photos for EWK
-root -l -b -q computeAccGenZll.C+\(\"zee13_photos.conf\",\"${OUTDIR}/GEN_zee_13TeV_powPhotos_dressed\",\"ACC_zee_13_powPhotos_dressed\",1,0,0,${FRAC}\)
+root -l -b -q computeAccGenZll.C+\(\"zee13_photos.conf\",\"${OUTDIR}/GEN_zee_13TeV_powLOPhotos_dressed\",\"ACC_zee_13_powLOPhotos_dressed\",1,0,0,${FRAC}\)
 ################################################################################
-# ##########             Powheg+Pythia for EWK
-root -l -b -q computeAccGenZll.C+\(\"zee13_pythia.conf\",\"${OUTDIR}/GEN_zee_13TeV_powPythia_dressed\",\"ACC_zee_13_powPythia_dressed\",1,0,0,${FRAC}\)
+# ##########             powheg+Pythia for EWK
+root -l -b -q computeAccGenZll.C+\(\"zee13_pythia.conf\",\"${OUTDIR}/GEN_zee_13TeV_powLOPythia_dressed\",\"ACC_zee_13_powLOPythia_dressed\",1,0,0,${FRAC}\)
 
 # rm *.so *.d
