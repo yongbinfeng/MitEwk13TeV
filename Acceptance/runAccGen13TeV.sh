@@ -28,16 +28,16 @@ root -l -b -q computeAccGenWl.C+\(\"wm13_powheg.conf\",\"${OUTDIR}/GEN_wm_13TeV_
 
 # # ################################################################################
 # ##########     Powheg+Photos for FSR
-root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wmp_13TeV_powPhotos_dressed\",\"ACC_wmp_13_powPhotos_dressed\",1,1,0,1,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wmm_13TeV_powPhotos_dressed\",\"ACC_wmm_13_powPhotos_dressed\",1,-1,0,1,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wm_13TeV_powPhotos_dressed\",\"ACC_wm_13_powPhotos_dressed\",1,0,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wmp_13TeV_powLOPhotos_dressed\",\"ACC_wmp_13_powLOPhotos_dressed\",1,1,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wmm_13TeV_powLOPhotos_dressed\",\"ACC_wmm_13_powLOPhotos_dressed\",1,-1,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_photos.conf\",\"${OUTDIR}/GEN_wm_13TeV_powLOPhotos_dressed\",\"ACC_wm_13_powLOPhotos_dressed\",1,0,0,1,${FRAC}\)
 
 
 # # ################################################################################
 # # ##########     Powheg+Pythia for EWK
-root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wmp_13TeV_powPythia_dressed\",\"ACC_wmp_13_powPythia_dressed\",1,1,0,1,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wmm_13TeV_powPythia_dressed\",\"ACC_wmm_13_powPythia_dressed\",1,-1,0,1,${FRAC}\)
-root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wm_13TeV_powPythia_dressed\",\"ACC_wm_13_powPythia_dressed\",1,0,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wmp_13TeV_powLOPythia_dressed\",\"ACC_wmp_13_powLOPythia_dressed\",1,1,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wmm_13TeV_powLOPythia_dressed\",\"ACC_wmm_13_powLOPythia_dressed\",1,-1,0,1,${FRAC}\)
+root -l -b -q computeAccGenWl.C+\(\"wm13_pythia.conf\",\"${OUTDIR}/GEN_wm_13TeV_powLOPythia_dressed\",\"ACC_wm_13_powLOPythia_dressed\",1,0,0,1,${FRAC}\)
 
 
 ########################################
