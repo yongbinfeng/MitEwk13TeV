@@ -93,72 +93,60 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     //--------------------------------------------------------------------------------------------------------------
     // Settings
     //==============================================================================================================
-
     bool doFootprint = false;
     CPlot::sOutDir = outputDir + TString("/plots");
     gSystem->mkdir(outputDir, kTRUE);
 
     // preserving the fine binning at low pT but the higher-pT bins (>75 GeV have been adjusted to be slightly wider)
-    Double_t ptbins[] = { 0, 5.0, 25, 100, 1000 };
+    Double_t ptbins[] = { 0, 5.0, 10.0, 15.0, 20.0, 25, 30.0, 40.0, 50.0, 70.0, 100, 200.0, 1000 };
     // Double_t ptbins[] = {0,1.0,2.0,3.0,4.0,5.0,6.0,7.5,10,12.5,15,17.5,20,22.5,25,27.5,30,32.5,35,37.5,40,42.5,45,47.5,50,52.5,55,57.5,60,65,70,75,80,90,100,125,150,1000};
     Int_t nbins = sizeof(ptbins) / sizeof(Double_t) - 1;
     TString infilename = indir + fname;
-
-    // Double_t corrbins[] = { 0, 10, 30, 50 };
-    // Int_t ncorrbins = sizeof(corrbins)/sizeof(Double_t)-1;
-
-    TString formulaPFu1mean("pol2");
-    TString formulaPFu2mean("pol2");
-    TString formulaPFu1meanScale("pol2");
-    TString formulaPFu2meanScale("pol2");
 
     vector<TString> fnamev;
     vector<Bool_t> isBkgv;
     fnamev.push_back(infilename);
     isBkgv.push_back(kFALSE);
 
-    // // comment this part out until we have the correct MC Samples for the background
-    // // 13 TeV low pu
-    // // not doin any of the backgrounds
     if (!do_5TeV) {
         if (doElectron) {
             // fnamev.push_back("/afs/cern.ch/work/s/sabrandt/public/LowPU_Fixed/Zee/ntuples/top_select.root"); isBkgv.push_back(kTRUE);
             // fnamev.push_back("/afs/cern.ch/work/s/sabrandt/public/LowPU_Fixed/Zee/ntuples/ewk_select.root"); isBkgv.push_back(kTRUE);
         } else {
-            fnamev.push_back(indir + "top1_select.raw.root");
+            fnamev.push_back(indir + "top1.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "top2_select.raw.root");
+            fnamev.push_back(indir + "top2.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "top3_select.raw.root");
+            fnamev.push_back(indir + "top3.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "zxx_select.raw.root");
+            fnamev.push_back(indir + "zxx.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx0_select.raw.root");
+            fnamev.push_back(indir + "wx0.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx1_select.raw.root");
+            fnamev.push_back(indir + "wx1.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx2_select.raw.root");
+            fnamev.push_back(indir + "wx2.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "ww_select.raw.root");
+            fnamev.push_back(indir + "ww.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wz_select.raw.root");
+            fnamev.push_back(indir + "wz.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "zz_select.raw.root");
+            fnamev.push_back(indir + "zz.root");
             isBkgv.push_back(kTRUE);
         }
     }
     if (do_5TeV) {
-        fnamev.push_back(indir + "top_select.raw.root");
+        fnamev.push_back(indir + "top.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "wx_select.raw.root");
+        fnamev.push_back(indir + "wx.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "zxx_select.raw.root");
+        fnamev.push_back(indir + "zxx.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "ww_select.raw.root");
+        fnamev.push_back(indir + "ww.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "zz_select.raw.root");
+        fnamev.push_back(indir + "zz.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "wz_select.raw.root");
+        fnamev.push_back(indir + "wz.root");
         isBkgv.push_back(kTRUE);
     }
 
@@ -188,19 +176,19 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     RooWorkspace pdfsU2("pdfsU2");
 
     for (Int_t ibin = 0; ibin < nbins; ibin++) {
-
-        // Puppi-PF
         int range = 100;
-        if (ptbins[ibin] > 80)
-            range = 125;
-        if (ptbins[ibin] > 150)
-            range = 150;
+        //if (ptbins[ibin] > 80)
+        //    range = 125;
+        //if (ptbins[ibin] > 150)
+        //    range = 150;
 
         sprintf(hname, "hPFu1_%i", ibin);
-        hPFu1v.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        //hPFu1v.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        hPFu1v.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu1v[ibin]->Sumw2();
         sprintf(hname, "hPFu1Bkg_%i", ibin);
-        hPFu1Bkgv.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        //hPFu1Bkgv.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        hPFu1Bkgv.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu1Bkgv[ibin]->Sumw2();
 
         sprintf(hname, "hPFu2_%i", ibin);
@@ -213,7 +201,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         std::stringstream name;
         name << "u_" << ibin;
 
-        RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range - ptbins[ibin], range - ptbins[ibin]);
+        //RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range - ptbins[ibin], range - ptbins[ibin]);
+        RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range, range);
         RooRealVar u2Var(name.str().c_str(), name.str().c_str(), 0, -range, range);
         u1Var.setBins(100);
         u2Var.setBins(100);
@@ -233,22 +222,19 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     TTree* intree = 0;
 
     UInt_t category;
-    Float_t genVPt, genVPhi, genVy, genVMass;
     Float_t scale1fb;
     Float_t met, metPhi;
     Int_t q1, q2;
-    TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *lep1_raw = 0, *lep2_raw = 0, *genlep1 = 0, *genlep2 = 0;
+    TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *lep1_raw = 0, *lep2_raw = 0, *genlep1 = 0, *genlep2 = 0, *genV = 0;
 
     for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++) {
+        if (ifile >= 1)
+            break;
         cout << "Processing " << fnamev[ifile] << "..." << endl;
         infile = new TFile(fnamev[ifile]);
         intree = (TTree*)infile->Get("Events");
 
         intree->SetBranchAddress("category", &category); // dilepton category
-        intree->SetBranchAddress("genVPt", &genVPt); // GEN boson pT (signal MC)
-        intree->SetBranchAddress("genVPhi", &genVPhi); // GEN boson phi (signal MC)
-        intree->SetBranchAddress("genVy", &genVy); // GEN boson rapidity (signal MC)
-        intree->SetBranchAddress("genVMass", &genVMass); // GEN boson mass (signal MC)
         intree->SetBranchAddress("scale1fb", &scale1fb); // event weight per 1/fb (MC)
         intree->SetBranchAddress(metVar.c_str(), &met); // Uncorrected PF MET
         intree->SetBranchAddress(metPhiVar.c_str(), &metPhi); // phi(MET)
@@ -259,6 +245,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         intree->SetBranchAddress("lep2", &lep2); // probe lepton 4-vector
         intree->SetBranchAddress("genlep1", &genlep1); // tag lepton 4-vector
         intree->SetBranchAddress("genlep2", &genlep2); // probe lepton 4-vector
+        intree->SetBranchAddress("genV", &genV); // generator Z boson
         if (doElectron)
             intree->SetBranchAddress("lep1_raw", &lep1_raw); // tag lepton 4-vector
         if (doElectron)
@@ -266,7 +253,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
         TH1D* hGenWeights;
         double totalNorm = 1.0;
-        cout << "Hello " << endl;
+        cout << "Start running recoil calibrations " << endl;
         if (!infilename.Contains("data_")) {
             hGenWeights = (TH1D*)infile->Get("hGenWeights");
             totalNorm = hGenWeights->Integral();
@@ -274,10 +261,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         //
         // Loop over events
         //
-        int iterator = 10;
-        // for(Int_t ientry=0; ientry<intree->GetEntries(); ientry++) {
+        int iterator = 1;
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator) {
-            // for(Int_t ientry=0; ientry<1000; ientry++) {
             intree->GetEntry(ientry);
 
             TLorentzVector mu1, mu2;
@@ -324,6 +309,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
             if (!isBkgv[ifile]) {
                 if (!infilename.Contains("data_")) {
+                    double genVy = genV->Rapidity();
                     if (etaBinCategory == 1 && fabs(genVy) > 0.5)
                         continue;
                     if (etaBinCategory == 2 && (fabs(genVy) <= 0.5 || fabs(genVy) >= 1))
@@ -375,6 +361,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             pU1 = pU * pCos; // U1 in data
             pU2 = pU * pSin; // U2 in data
 
+            pU1 = pU1 + ptll;
+
             if (isBkgv[ifile]) {
                 hPFu1Bkgv[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
                 hPFu2Bkgv[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
@@ -383,30 +371,28 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                     scale1fb = 1.0;
                     lumi = 1.0;
                 }
-
                 hPFu1v[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
                 hPFu2v[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
 
                 // this is the dataset for the RooKey
                 // clean the under/overflow
                 int range = 100;
-                if (ptbins[ipt] > 80)
-                    range = 125;
-                if (ptbins[ipt] > 150)
-                    range = 150;
+                //if (ptbins[ipt] > 80)
+                //    range = 125;
+                //if (ptbins[ipt] > 150)
+                //    range = 150;
 
-                if (pU1 < (-range - ptbins[ipt]))
+                //if (pU1 < (-range - ptbins[ipt]))
+                //    continue;
+                //if (pU1 > (range - ptbins[ipt]))
+                //    continue;
+                if (pU1 < -range || pU1 > range)
                     continue;
-                if (pU1 > (range - ptbins[ipt]))
-                    continue;
-                if (pU2 < (-range))
-                    continue;
-                if (pU2 > (range))
+                if (pU2 < -range || pU2 > range)
                     continue;
 
                 vu1Var[ipt].setVal(pU1);
                 vu2Var[ipt].setVal(pU2);
-
                 lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt])); // need to add the weights
                 lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]));
             }
@@ -437,7 +423,6 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     Double_t pfu1Frac2[nbins], pfu1Frac2Err[nbins];
     Double_t pfu1Frac3[nbins], pfu1Frac3Err[nbins];
     Double_t pfu1chi2[nbins], pfu1chi2Err[nbins];
-    ;
 
     Double_t pfu2Mean[nbins], pfu2MeanErr[nbins];
     Double_t pfu2Mean2[nbins], pfu2Mean2Err[nbins];
@@ -454,8 +439,6 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
     char outpdfname[50];
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU1");
-
-    // Fitting PF-MET u1
     performFit(hPFu1v, hPFu1Bkgv, ptbins, nbins, pfu1model, sigOnly,
         lDataSetU1, vu1Var,
         c, "pfu1", "u_{#parallel} [GeV]",
@@ -472,12 +455,9 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         &pdfsU1,
         outpdfname,
         etaBinCategory, do_keys);
-
     pdfsU1.writeToFile(outpdfname, kFALSE);
 
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU2");
-
-    // Fitting PF-MET u2
     performFit(hPFu2v, hPFu2Bkgv, ptbins, nbins, pfu2model, sigOnly,
         lDataSetU2, vu2Var,
         c, "pfu2", "u_{#perp  } [GeV/c]",
@@ -494,11 +474,11 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         &pdfsU2,
         outpdfname,
         etaBinCategory, do_keys);
-
     pdfsU2.writeToFile(outpdfname, kFALSE);
 
     cout << endl;
     cout << "  <> Output saved in " << outputDir << "/" << endl;
+    cout << "  Done " << endl;
     cout << endl;
 
     return;
@@ -861,8 +841,6 @@ void performFit(const vector<TH1D*> hv, const vector<TH1D*> hbkgv, const Double_
             c_like->Update();
             c_like->SaveAs(plotname);
 
-            ////
-            ////
             ////
             ////
 
