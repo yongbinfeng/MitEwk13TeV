@@ -28,6 +28,7 @@ CPlot::CPlot(TString name, TString title, TString xtitle, TString ytitle)
     , fStatsX(0.68)
     , fStatsY(0.90)
     , fRooPlot(0)
+    , fOutputDir("./")
 {
     sCount++;
 }
@@ -52,6 +53,7 @@ CPlot::CPlot(TString name, RooPlot* frame, TString title, TString xtitle, TStrin
     , fStatsX(0.68)
     , fStatsY(0.90)
     , fRooPlot(frame)
+    , fOutputDir("./")
 {
     fRooPlot->SetTitle(title);
     fRooPlot->GetXaxis()->SetTitle(xtitle);
@@ -541,8 +543,8 @@ void CPlot::Draw(TCanvas* c, bool doSave, TString format, Int_t subpad)
                 fTextBoxes[j]->Draw();
 
             if (doSave) {
-                gSystem->mkdir(sOutDir, true);
-                TString outname = sOutDir + TString("/") + fName + TString(".");
+                gSystem->mkdir(fOutputDir, true);
+                TString outname = fOutputDir + TString("/") + fName + TString(".");
                 if (format.CompareTo("all", TString::kIgnoreCase) == 0) {
                     c->SaveAs(outname + TString("pdf"));
                     c->SaveAs(outname + TString("png"));
@@ -873,8 +875,8 @@ void CPlot::Draw(TCanvas* c, bool doSave, TString format, Int_t subpad)
     // Save plot if necessary
     //
     if (doSave) {
-        gSystem->mkdir(sOutDir, true);
-        TString outname = sOutDir + TString("/") + fName + TString(".");
+        gSystem->mkdir(fOutputDir, true);
+        TString outname = fOutputDir + TString("/") + fName + TString(".");
         if (format.CompareTo("all", TString::kIgnoreCase) == 0) {
             c->SaveAs(outname + TString("png"));
             c->SaveAs(outname + TString("pdf"));

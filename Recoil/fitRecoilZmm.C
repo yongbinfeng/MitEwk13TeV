@@ -71,12 +71,13 @@ void performFit(const vector<TH1D*> hv, const vector<TH1D*> hbkgv, const Double_
     Double_t* chi2Arr, Double_t* chi2ErrArr,
     RooWorkspace* workspace,
     const char* outputname,
+    const char* outputDir,
     int etaBinCategory, bool do_keys);
 
 //=== MAIN MACRO =================================================================================================
 
 void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Ntuples2017GH/Production_13TeV", // input ntuple
-    TString fname = "data_select.root",
+    TString fname = "data.root",
     Int_t pfu1model = 2, // u1 model (1 => single Gaussian, 2 => double Gaussian, 3 => triple Gaussian)
     Int_t pfu2model = 2, // u2 model (1 => single Gaussian, 2 => double Gaussian, 3 => triple Gaussian)
     Bool_t sigOnly = 1, // signal event only?
@@ -93,12 +94,11 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     //--------------------------------------------------------------------------------------------------------------
     // Settings
     //==============================================================================================================
-    bool doFootprint = false;
-    CPlot::sOutDir = outputDir + TString("/plots");
     gSystem->mkdir(outputDir, kTRUE);
 
     // preserving the fine binning at low pT but the higher-pT bins (>75 GeV have been adjusted to be slightly wider)
-    Double_t ptbins[] = { 0, 5.0, 10.0, 15.0, 20.0, 25, 30.0, 40.0, 50.0, 70.0, 100, 200.0, 1000 };
+    //Double_t ptbins[] = { 0, 5.0, 10.0, 15.0, 20.0, 25, 30.0, 40.0, 50.0, 70.0, 100, 200.0, 1000 };
+    double ptbins[] = {0, 5.0};
     // Double_t ptbins[] = {0,1.0,2.0,3.0,4.0,5.0,6.0,7.5,10,12.5,15,17.5,20,22.5,25,27.5,30,32.5,35,37.5,40,42.5,45,47.5,50,52.5,55,57.5,60,65,70,75,80,90,100,125,150,1000};
     Int_t nbins = sizeof(ptbins) / sizeof(Double_t) - 1;
     TString infilename = indir + fname;
@@ -254,7 +254,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         TH1D* hGenWeights;
         double totalNorm = 1.0;
         cout << "Start running recoil calibrations " << endl;
-        if (!infilename.Contains("data_")) {
+        if (!infilename.Contains("data")) {
             hGenWeights = (TH1D*)infile->Get("hGenWeights");
             totalNorm = hGenWeights->Integral();
         }
@@ -265,6 +265,9 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator) {
             intree->GetEntry(ientry);
 
+            if (ientry % 10000 == 0)
+                cout << "Processing event " << ientry << endl;
+
             TLorentzVector mu1, mu2;
             if (doElectron)
                 mu_MASS = 0.000511;
@@ -272,7 +275,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             mu2.SetPtEtaPhiM(lep2->Pt(), lep2->Eta(), lep2->Phi(), mu_MASS);
 
             double SF1 = 1, SF2 = 1;
-            if (infilename.Contains("data_")) {
+            if (infilename.Contains("data")) {
                 SF1 = rc.kScaleDT(q1, mu1.Pt(), mu1.Eta(), mu1.Phi()); //, s=0, m=0);
                 SF2 = rc.kScaleDT(q2, mu2.Pt(), mu2.Eta(), mu2.Phi()); //s=0, m=0);
             } else if (!doElectron) {
@@ -308,7 +311,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 continue;
 
             if (!isBkgv[ifile]) {
-                if (!infilename.Contains("data_")) {
+                if (!infilename.Contains("data")) {
                     double genVy = genV->Rapidity();
                     if (etaBinCategory == 1 && fabs(genVy) > 0.5)
                         continue;
@@ -367,7 +370,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 hPFu1Bkgv[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
                 hPFu2Bkgv[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
             } else {
-                if (infilename.Contains("data_")) {
+                if (infilename.Contains("data")) {
                     scale1fb = 1.0;
                     lumi = 1.0;
                 }
@@ -382,10 +385,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 //if (ptbins[ipt] > 150)
                 //    range = 150;
 
-                //if (pU1 < (-range - ptbins[ipt]))
-                //    continue;
-                //if (pU1 > (range - ptbins[ipt]))
-                //    continue;
+                //if (pU1 < (-range - ptbins[ipt]) || pU1 > (range - ptbins[ipt])
                 if (pU1 < -range || pU1 > range)
                     continue;
                 if (pU2 < -range || pU2 > range)
@@ -406,6 +406,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         xval[ibin] = 0.5 * (ptbins[ibin + 1] + ptbins[ibin]);
         xerr[ibin] = 0.5 * (ptbins[ibin + 1] - ptbins[ibin]);
     }
+
 
     //
     // Arrays and graphs to store fit results
@@ -454,6 +455,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         pfu1chi2, pfu1chi2Err,
         &pdfsU1,
         outpdfname,
+        outputDir,
         etaBinCategory, do_keys);
     pdfsU1.writeToFile(outpdfname, kFALSE);
 
@@ -473,8 +475,20 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         pfu2chi2, pfu2chi2Err,
         &pdfsU2,
         outpdfname,
+        outputDir,
         etaBinCategory, do_keys);
     pdfsU2.writeToFile(outpdfname, kFALSE);
+
+    char outhistname[50];
+    sprintf(outhistname, "%s/%s.root", outputDir.Data(), "histos");
+    TFile* ofile = new TFile(outhistname, "recreate");
+    for (Int_t ibin = 0; ibin < nbins; ibin++) {
+        hPFu1v[ibin]->Write();
+        hPFu2v[ibin]->Write();
+        hPFu1Bkgv[ibin]->Write();
+        hPFu2Bkgv[ibin]->Write();
+    }
+    ofile->Close();
 
     cout << endl;
     cout << "  <> Output saved in " << outputDir << "/" << endl;
@@ -501,6 +515,7 @@ void performFit(const vector<TH1D*> hv, const vector<TH1D*> hbkgv, const Double_
     Double_t* chi2Arr, Double_t* chi2ErrArr,
     RooWorkspace* wksp,
     const char* outputname,
+    const char* outputDir,
     int etaBinCategory, bool do_keys)
 {
     char lumi[50];
@@ -933,10 +948,6 @@ void performFit(const vector<TH1D*> hv, const vector<TH1D*> hbkgv, const Double_
             c_like->SaveAs(plotname);
         }
 
-        /*
-  //// end the likelihood
-  */
-
         char rname[100];
         if (string(plabel) == string("pfu1"))
             sprintf(rname, "fitResultU1_%i", ibin);
@@ -1164,6 +1175,7 @@ void performFit(const vector<TH1D*> hv, const vector<TH1D*> hbkgv, const Double_
         cLin->cd(2)->SetTicky(1);
 
         CPlot plot(pname, frame, "", xlabel, ylabel);
+        plot.SetOutputDir(TString(outputDir) + "/plots");
         //    pad1->cd();
         plot.AddTextBox(lumi, 0.1, 0.92, 0.95, 0.97, 0, kBlack, -1);
         plot.AddTextBox(binlabel, 0.21, 0.80, 0.51, 0.85, 0, kBlack, -1);

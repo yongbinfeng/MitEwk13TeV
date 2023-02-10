@@ -62,10 +62,11 @@ public:
     CPlot(TString name, RooPlot* frame, TString title, TString xtitle, TString ytitle);
     ~CPlot() {}
 
-    static TString sOutDir; // output directory
-
     //  // Clear the plot by resetting all object properties
     //  void Clear(){}
+
+    // set output directory
+    void SetOutputDir(TString dir) { fOutputDir = dir; }
 
     // Draw the plot to a given canvas
     void Draw(TCanvas* c, bool doSave = false, TString format = "png", Int_t subpad = 0);
@@ -207,11 +208,11 @@ protected:
     vector<TLegendEntry*> fStackEntries; // pointer to legend entry objects for histograms in a stack
 
     RooPlot* fRooPlot;
+    TString fOutputDir; // output directory
 
     static int sCount; // number of CPlot instances
 };
 
 int CPlot::sCount = 0;
-TString CPlot::sOutDir = ".";
 
 #endif
