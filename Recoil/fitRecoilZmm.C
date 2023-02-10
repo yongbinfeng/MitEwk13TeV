@@ -93,7 +93,6 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     //--------------------------------------------------------------------------------------------------------------
     // Settings
     //==============================================================================================================
-
     bool doFootprint = false;
     CPlot::sOutDir = outputDir + TString("/plots");
     gSystem->mkdir(outputDir, kTRUE);
@@ -103,7 +102,6 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     // Double_t ptbins[] = {0,1.0,2.0,3.0,4.0,5.0,6.0,7.5,10,12.5,15,17.5,20,22.5,25,27.5,30,32.5,35,37.5,40,42.5,45,47.5,50,52.5,55,57.5,60,65,70,75,80,90,100,125,150,1000};
     Int_t nbins = sizeof(ptbins) / sizeof(Double_t) - 1;
     TString infilename = indir + fname;
-    std::cout << "infile name " << infilename << std::endl;
 
     vector<TString> fnamev;
     vector<Bool_t> isBkgv;
@@ -115,40 +113,40 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             // fnamev.push_back("/afs/cern.ch/work/s/sabrandt/public/LowPU_Fixed/Zee/ntuples/top_select.root"); isBkgv.push_back(kTRUE);
             // fnamev.push_back("/afs/cern.ch/work/s/sabrandt/public/LowPU_Fixed/Zee/ntuples/ewk_select.root"); isBkgv.push_back(kTRUE);
         } else {
-            fnamev.push_back(indir + "top1_select.raw.root");
+            fnamev.push_back(indir + "top1.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "top2_select.raw.root");
+            fnamev.push_back(indir + "top2.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "top3_select.raw.root");
+            fnamev.push_back(indir + "top3.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "zxx_select.raw.root");
+            fnamev.push_back(indir + "zxx.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx0_select.raw.root");
+            fnamev.push_back(indir + "wx0.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx1_select.raw.root");
+            fnamev.push_back(indir + "wx1.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wx2_select.raw.root");
+            fnamev.push_back(indir + "wx2.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "ww_select.raw.root");
+            fnamev.push_back(indir + "ww.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "wz_select.raw.root");
+            fnamev.push_back(indir + "wz.root");
             isBkgv.push_back(kTRUE);
-            fnamev.push_back(indir + "zz_select.raw.root");
+            fnamev.push_back(indir + "zz.root");
             isBkgv.push_back(kTRUE);
         }
     }
     if (do_5TeV) {
-        fnamev.push_back(indir + "top_select.raw.root");
+        fnamev.push_back(indir + "top.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "wx_select.raw.root");
+        fnamev.push_back(indir + "wx.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "zxx_select.raw.root");
+        fnamev.push_back(indir + "zxx.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "ww_select.raw.root");
+        fnamev.push_back(indir + "ww.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "zz_select.raw.root");
+        fnamev.push_back(indir + "zz.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "wz_select.raw.root");
+        fnamev.push_back(indir + "wz.root");
         isBkgv.push_back(kTRUE);
     }
 
