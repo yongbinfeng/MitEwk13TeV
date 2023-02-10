@@ -17,24 +17,43 @@
 #include "TSystem.h"
 
 #include "../../Utils/MitStyleRemix.hh" // style settings for drawing
+#include "../../Utils/CPlot.hh"
 
-TString mainDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/TOYS/";
+TString sqrtS = "13TeV";
+//TString sqrtS = "5TeV";
+
+TString mainDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/TOYS/";
 TString sigDirFSR = "_POWxPythia_POWxPhotos/";
 //TString sigDirMC = "_aMCxPythia_minloxPythia/";
 TString sigDirMC = "_aMCxPythia_POWxPythia/";
 TString bkgDir = "_aMCxPythia_POWBKG/"; // should be exp vs Powerlaw
 TString tagPtDir = "_aMCxPythia_aMCxPythia_tagPt/";
 
-TString effDirD = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Zmm/Data/";
-TString effDirM = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Zmm/MC/";
+TString effDirD = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Zmm/Data/";
+TString effDirM = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Zmm/MC/";
 TString fsr = "_POWxPhotos/";
 TString mc = "_POWxPythia/";
 TString bkg = "_POWBKG/";
 TString amc = "_aMCxPythia/";
 TString tagpt = "_aMCxPythia_tagPt/";
 
-TString outDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/5TeV/results/Systematics";
+TString outDir = "/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_9_4_19/src/lowpu_dataNew/" + sqrtS + "/results/Systematics";
 TString subf = "";
+
+void calcStat(TH2D* hsf_unc, TH2D* heff_data, TH2D* herr_up_data, TH2D* herr_dn_data, TH2D* heff_mc, TH2D* herr_up_mc, TH2D* herr_dn_mc) {
+    // calculate the statistical unc on the sf based on data and mc eff and uncs
+    for (int i = 0; i <= hsf_unc->GetNbinsX() + 1; ++i) {
+        for (int j = 0; j <= hsf_unc->GetNbinsY() + 1; ++j) {
+            double eff_data = heff_data->GetBinContent(i, j);
+            double eff_mc = heff_mc->GetBinContent(i, j);
+            double err_data = 0.5 * (herr_up_data->GetBinContent(i, j) + herr_dn_data->GetBinContent(i, j));
+            double err_mc = 0.5 * (herr_up_mc->GetBinContent(i, j) + herr_dn_mc->GetBinContent(i, j));
+            double errSta = (eff_data / eff_mc) * sqrt(err_data * err_data / eff_data / eff_data + err_mc * err_mc / eff_mc / eff_mc);
+
+            hsf_unc->SetBinContent(i, j, errSta);
+        }
+    }
+}
 
 const vector<TString> charges{ "Combined", "Combined" };
 
@@ -55,6 +74,13 @@ void makeHTML(TString suffix) {
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcPosDat.png\"><img src=\"effetapt_amcPosDat.png\" alt=\"effetapt_amcPosDat.png\" width=\"100%\"><figcaption>effetapt_Data</figcaption></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcPosMC.png\"><img src=\"effetapt_amcPosMC.png\" alt=\"effetapt_amcPosMC.png\" width=\"100%\"><figcaption>effetapt_MC</figcaption></a></td>" << endl;
     htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"effetapt_amcCorr.png\"><img src=\"effetapt_amcCorr.png\" alt=\"effetapt_amcCorr.png\" width=\"100%\"><figcaption>effetapt_MC</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"></td>" << endl;
+    htmlfile << "<td width=\"25%\"></td>" << endl;
+    htmlfile << "</tr>" << endl;
+
+    htmlfile << "<tr>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"uncetapt_amcPosDat.png\"><img src=\"uncetapt_amcPosDat.png\" alt=\"uncetapt_amcPosDat.png\" width=\"100%\"><figcaption>uncetapt_Data</figcaption></a></td>" << endl;
+    htmlfile << "<td width=\"25%\"><a target=\"_blank\" href=\"uncetapt_amcPosMC.png\"><img src=\"uncetapt_amcPosMC.png\" alt=\"uncetapt_amcPosMC.png\" width=\"100%\"><figcaption>uncetapt_MC</figcaption></a></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "<td width=\"25%\"></td>" << endl;
     htmlfile << "</tr>" << endl;
@@ -140,6 +166,12 @@ void makeTH2DMuMy(TString eType = "MuStaEff")
     sprintf(infilename, "%s%s%s%s%s/eff.root", effDirD.Data(), eType.Data(), amc.Data(), subf.Data(), charges[1].Data());
     TFile* amcNd = new TFile(infilename);
     TH2D* amcNegDat = (TH2D*)amcNd->Get("hEffEtaPt");
+    // data err
+    TH2D* amcPosDatL = (TH2D*)amcPd->Get("hErrlEtaPt");
+    TH2D* amcPosDatH = (TH2D*)amcPd->Get("hErrhEtaPt");
+    TH2D* amcNegDatL = (TH2D*)amcNd->Get("hErrlEtaPt");
+    TH2D* amcNegDatH = (TH2D*)amcNd->Get("hErrhEtaPt");
+
     // MC
     sprintf(infilename, "%s%s%s%s%s/eff.root", effDirM.Data(), eType.Data(), amc.Data(), subf.Data(), charges[0].Data());
     TFile* amcPm = new TFile(infilename);
@@ -147,6 +179,12 @@ void makeTH2DMuMy(TString eType = "MuStaEff")
     sprintf(infilename, "%s%s%s%s%s/eff.root", effDirM.Data(), eType.Data(), amc.Data(), subf.Data(), charges[1].Data());
     TFile* amcNm = new TFile(infilename);
     TH2D* amcNegMC = (TH2D*)amcNm->Get("hEffEtaPt");
+
+    // mc err
+    TH2D* amcPosMCL = (TH2D*)amcPm->Get("hErrlEtaPt");
+    TH2D* amcPosMCH = (TH2D*)amcPm->Get("hErrhEtaPt");
+    TH2D* amcNegMCL = (TH2D*)amcNm->Get("hErrlEtaPt");
+    TH2D* amcNegMCH = (TH2D*)amcNm->Get("hErrhEtaPt");
 
     // fsr systematic
     sprintf(infilename, "%s%s%s%s%s/eff.root", effDirD.Data(), eType.Data(), fsr.Data(), subf.Data(), charges[0].Data());
@@ -275,6 +313,15 @@ void makeTH2DMuMy(TString eType = "MuStaEff")
     TH2D* hTagNeg = new TH2D(histname, histname, NBeta, etarange, NBpt, ptrange);
     sprintf(histname, "hTagPos");
     TH2D* hTagPos = new TH2D(histname, histname, NBeta, etarange, NBpt, ptrange);
+
+    // histograms to save stat uncs
+    sprintf(histname, "hStatUncNeg");
+    TH2D* hstat_unc_Neg = new TH2D(histname, histname, NBeta, etarange, NBpt, ptrange);
+    sprintf(histname, "hStatUncPos");
+    TH2D* hstat_unc_Pos = new TH2D(histname, histname, NBeta, etarange, NBpt, ptrange);
+
+    calcStat(hstat_unc_Pos, amcPosDat, amcPosDatL, amcPosDatH, amcPosMC, amcPosMCL, amcPosMCH);
+    calcStat(hstat_unc_Neg, amcNegDat, amcNegDatL, amcNegDatH, amcNegMC, amcNegMCL, amcNegMCH);
 
     for (int ipt = 0; ipt < NBpt; ipt++) {
 
@@ -448,6 +495,17 @@ void makeTH2DMuMy(TString eType = "MuStaEff")
     plotEffEtaPt_amcPosRatio.SetLogy(doLogy);
     plotEffEtaPt_amcPosRatio.AddHist2D(amcPosDat, "COLZ,text");
     plotEffEtaPt_amcPosRatio.Draw(c, 1, "png");
+
+    // stat uncs
+    CPlot plotUncEtaPt_amcPosDat((outDir+"/plots_"+eType+"/uncetapt_amcPosDat").Data(), "", "probe #eta", "probe p_{T} [GeV/c]");
+    plotUncEtaPt_amcPosDat.SetLogy(doLogy);
+    plotUncEtaPt_amcPosDat.AddHist2D(hstat_unc_Pos, "COLZ,text");
+    plotUncEtaPt_amcPosDat.Draw(c, 1, "png");
+
+    CPlot plotUncEtaPt_amcPosMC((outDir+"/plots_"+eType+"/uncetapt_amcPosMC").Data(), "", "probe #eta", "probe p_{T} [GeV/c]");
+    plotUncEtaPt_amcPosMC.SetLogy(doLogy);
+    plotUncEtaPt_amcPosMC.AddHist2D(hstat_unc_Neg, "COLZ,text");
+    plotUncEtaPt_amcPosMC.Draw(c, 1, "png");
 
     makeHTML(eType);
 

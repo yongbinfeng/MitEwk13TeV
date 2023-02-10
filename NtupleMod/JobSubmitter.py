@@ -118,6 +118,32 @@ if __name__ == "__main__":
             for ijob in range(njobs[fname]):
                 GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob)
 
+    ## antiIsolated W -> enu
+    macro = "eleNtupleMod.C"
+    fnames = ["data_select.root",
+            "we0_select.root", "we1_select.root", "we2_select.root",
+            "wx0_select.root", "wx1_select.root", "wx2_select.root",
+            "zxx_select.root",
+            "ww_select.root", "wz_select.root", "zz_select.root",
+            "top1_select.root", "top2_select.root", "top3_select.root"]
+    njobs = OrderedDict()
+    for fname in fnames:
+        njobs[fname] = 3
+    njobs['data_select.root'] = 10
+    njobs['we0_select.root'] = 20
+    njobs['we1_select.root'] = 10
+    njobs['we2_select.root'] = 5
+    njobs['wx0_select.root'] = 2
+    njobs['wx1_select.root'] = 1
+    njobs['zxx_select.root'] = 5
+    indir = "/eos/user/y/yofeng/LowPU/Selection/AntiWenu/ntuples_0_1/"
+    outdir = "/eos/user/y/yofeng/LowPU/NTupleModTest4/AntiWenu/ntuples_0_1/"
+    logsuffix = "eleNtupleMod_awe_13"
+    if 0:
+        for fname in fnames:
+            for ijob in range(njobs[fname]):
+                GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob)
+
     macro = "ZmmNTupleMod.C"
     fnames = ["data_select.root",
             "zmm_select.raw.root",
@@ -137,7 +163,7 @@ if __name__ == "__main__":
     indir = "/eos/user/y/yofeng/LowPU/Selection_pT20/Zmumu/ntuples_0_1/"
     outdir = "/eos/user/y/yofeng/LowPU/NTupleModTest4/Zmumu/ntuples_0_1/"
     logsuffix = "ZmmNTupleMod_zmumu_13"
-    if 1:
+    if 0:
         for fname in fnames:
             for ijob in range(njobs[fname]):
                 GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob)
@@ -212,7 +238,31 @@ if __name__ == "__main__":
     indir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wenu/ntuples_0_1/"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/NTupleModTest4/Wenu/ntuples_0_1/"
     logsuffix = "eleNtupleMod_we_5"
-    if 0:
+    if 1:
+        for fname in fnames:
+            for ijob in range(njobs[fname]):
+                GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob, True)
+
+    ## Anti-Isolated W->enu
+    macro = "eleNtupleMod.C"
+    fnames = ["data_select.root",
+            "we_select.root",
+            "wx_select.root",
+            "zxx_select.root",
+            "ww_select.root", "wz_select.root", "zz_select.root",
+            "top_select.root", ]
+    njobs = OrderedDict()
+    for fname in fnames:
+        njobs[fname] = 3
+    njobs['data_select.root'] = 10
+    njobs['we_select.root'] = 20
+    njobs['wx_select.root'] = 5
+    njobs['zxx_select.root'] = 5
+    njobs['top_select.root'] = 4
+    indir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/AntiWenu/ntuples_0_1/"
+    outdir = "/eos/user/y/yofeng/LowPU_5TeV/NTupleModTest4/AntiWenu/ntuples_0_1/"
+    logsuffix = "eleNtupleMod_we_5"
+    if 1:
         for fname in fnames:
             for ijob in range(njobs[fname]):
                 GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob, True)
@@ -236,7 +286,7 @@ if __name__ == "__main__":
     indir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zmumu/ntuples_0_1/"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/NTupleModTest4/Zmumu/ntuples_0_1/"
     logsuffix = "ZmmNTupleMod_zmumu_5"
-    if 1:
+    if 0:
         for fname in fnames:
             for ijob in range(njobs[fname]):
                 GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob, True)
@@ -260,7 +310,7 @@ if __name__ == "__main__":
     indir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zee/ntuples_0_1/"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/NTupleModTest4/Zee/ntuples_0_1/"
     logsuffix = "ZeeNTupleMod_zee_5"
-    if 0:
+    if 1:
         for fname in fnames:
             for ijob in range(njobs[fname]):
                 GenerateExecutable(macro, indir, outdir, fname.replace(".root", ""), logsuffix, njobs[fname], ijob, True)

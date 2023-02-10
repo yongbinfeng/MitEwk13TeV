@@ -69,7 +69,7 @@ if __name__ == "__main__":
     confname = "zmm_13.conf"
     outdir = "/eos/user/y/yofeng/LowPU/Selection_pT20/Zmumu/"
     logsuffix = "selectZmm_zmm_13"
-    if 0:
+    if 1:
         for ijob in range(12):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     confname = "wm_13.conf"
     outdir = "/eos/user/y/yofeng/LowPU/Selection/Wmunu"
     logsuffix = "selectWm_wm_13"
-    if 0:
+    if 1:
         for ijob in range(14):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     confname = "zee_13.conf"
     outdir = "/eos/user/y/yofeng/LowPU/Selection_pT20/Zee"
     logsuffix = "selectZee_zee_13"
-    if 0:
+    if 1:
         for ijob in range(12):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     confname = "we_13.conf"
     outdir = "/eos/user/y/yofeng/LowPU/Selection/Wenu"
     logsuffix = "selectWe_we_13"
-    if 0:
+    if 1:
         for ijob in range(14):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     confname = "zmm_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zmumu"
     logsuffix = "selectZmm_zmm_5"
-    if 0:
+    if 1:
         for ijob in range(12):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     confname = "wm_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wmunu"
     logsuffix = "selectWm_wm_5"
-    if 0:
+    if 1:
         for ijob in range(14):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, do5TeV = True)
 
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     confname = "zee_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection_pT20/Zee"
     logsuffix = "selectZee_zee_5"
-    if 0:
+    if 1:
         for ijob in range(12):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     confname = "we_5.conf"
     outdir = "/eos/user/y/yofeng/LowPU_5TeV/Selection/Wenu"
     logsuffix = "selectWe_we_5"
-    if 0:
+    if 1:
         for ijob in range(10):
             GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
 
@@ -153,4 +153,4 @@ if __name__ == "__main__":
     logsuffix = "selectAntiWe_we_5"
     if 1:
         for ijob in range(10):
-            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True)
+            GenerateExecutable(macro, confname, outdir, ijob, logsuffix, doElectron = True, do5TeV = True)
