@@ -140,6 +140,7 @@ void selectWe(const TString conf = "we.conf", // input file
     Int_t q;
     TLorentzVector *lep = 0, *lep_raw = 0;
     Float_t lepError = 0;
+    Float_t pfChIso, pfGamIso, pfNeuIso;
     Float_t pfCombIso;
     TLorentzVector *sc = 0;
     vector<Double_t> lheweight(nTHEORYUNC, 1.0);
@@ -242,6 +243,9 @@ void selectWe(const TString conf = "we.conf", // input file
         outTree->Branch("lep", "TLorentzVector", &lep);                   // lepton 4-vector
         outTree->Branch("lep_raw", "TLorentzVector", &lep_raw);           // lepton 4-vector
         outTree->Branch("lepError", &lepError, "lepError/F");             // track isolation of tag lepton
+        outTree->Branch("pfChIso", &pfChIso, "pfChIso/F");                // PF charged hadron isolation of lepton
+        outTree->Branch("pfGamIso", &pfGamIso, "pfGamIso/F");             // PF photon isolation of lepton
+        outTree->Branch("pfNeuIso", &pfNeuIso, "pfNeuIso/F");             // PF neutral hadron isolation of lepton
         outTree->Branch("pfCombIso", &pfCombIso, "pfCombIso/F");          // PF combined isolation of electron
         outTree->Branch("sc", "TLorentzVector", &sc);                     // supercluster 4-vector
         outTree->Branch("lheweight", "vector<Double_t>", &lheweight);     // LHE weights
@@ -510,8 +514,6 @@ void selectWe(const TString conf = "we.conf", // input file
 
                     if (isRecoil && hasGen)
                     {
-                        Int_t glepq1 = -99;
-                        Int_t glepq2 = -99;
                         TLorentzVector *gvec = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glep1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glep2 = new TLorentzVector(0, 0, 0, 0);
@@ -538,13 +540,16 @@ void selectWe(const TString conf = "we.conf", // input file
                                 genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
                             }
                         }
-
                         delete gvec;
                         delete glep1;
                         delete glep2;
+                        delete glepB1;
+                        delete glepB2;
                         gvec = 0;
                         glep1 = 0;
                         glep2 = 0;
+                        glepB1 = 0;
+                        glepB2 = 0;
                     }
                     scale1fb = weight;
                     scale1fbUp = weightUp;
@@ -560,6 +565,9 @@ void selectWe(const TString conf = "we.conf", // input file
 
                     ///// electron specific /////
                     sc = &vSC;
+                    pfChIso = goodEle->chHadIso;
+                    pfGamIso = goodEle->gammaIso;
+                    pfNeuIso = goodEle->neuHadIso;
                     pfCombIso = goodEle->chHadIso + TMath::Max(goodEle->neuHadIso + goodEle->gammaIso - (info->rhoIso) * getEffAreaEl(goodEle->eta), 0.);
 
                     outTree->Fill();
