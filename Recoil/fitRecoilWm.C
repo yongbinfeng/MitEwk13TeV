@@ -1,6 +1,6 @@
 //================================================================================================
 //
-// Perform fits to recoil against Z->ee events
+// Perform fits to recoil against W->lnu events
 //
 //  * Outputs a ROOT file of functions parametrizing the distribution of recoil components
 //
@@ -65,11 +65,13 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                 Double_t *frac2Arr, Double_t *frac2ErrArr,
                 Double_t *frac3Arr, Double_t *frac3ErrArr,
                 RooWorkspace *workspace,
-                int etaBinCategory, bool do_keys);
+                const char *outputDir,
+                int etaBinCategory, bool do_keys,
+                bool do_5TeV);
 
 //=== MAIN MACRO =================================================================================================
 
-void fitRecoilWm(TString infoldername,             // input ntuple
+void fitRecoilWm(TString indir,                    // input ntuple
                  Int_t pfu1model,                  // u1 model (1 => single Gaussian, 2 => double Gaussian, 3 => triple Gaussian)
                  Int_t pfu2model,                  // u2 model (1 => single Gaussian, 2 => double Gaussian, 3 => triple Gaussian)
                  Bool_t sigOnly,                   // signal event only?
@@ -82,19 +84,16 @@ void fitRecoilWm(TString infoldername,             // input ntuple
                  Double_t lumi = 1,                // lumi value for the data fits
                  int etaBinCategory = 0,           // 0 is inclusive, 1 is fabs(eta)<=0.5,  2 is fabs(eta)=[0.5,1], 3 is fabs(eta)>=1
                  bool do_keys = 0,                 // 0 for regular function, 1 for RooKeysPDF
-                 bool do5TeV = 0                   // 0 for 13 TeV, 1 for 5 TeV
+                 bool do_5TeV = 0                  // 0 for 13 TeV, 1 for 5 TeV
 )
 {
 
     //--------------------------------------------------------------------------------------------------------------
     // Settings
     //==============================================================================================================
-
-    CPlot::sOutDir = outputDir + TString("/plots");
-
     // preserving the fine binning at low pT but the higher-pT bins (>75 GeV have been adjusted to be slightly wider)
-    // Double_t ptbins[] = {0,1.0,2.0,3.0,4.0,5.0,6.0,7.5,10,12.5,15,17.5,20,22.5,25,27.5,30,32.5,35,37.5,40,42.5,45,47.5,50,52.5,55,57.5,60,65,70,75,80,90,100,125,150,1000};
-    Double_t ptbins[] = {0, 25, 50, 75, 100, 125, 150, 1000};
+    Double_t ptbins[] = {0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60, 65, 70, 75, 80, 90, 100, 125, 150, 1000};
+    // Double_t ptbins[] = {0, 25, 50, 75, 100, 125, 150, 1000};
     Int_t nbins = sizeof(ptbins) / sizeof(Double_t) - 1;
 
     vector<TString> fnamev;
@@ -104,34 +103,34 @@ void fitRecoilWm(TString infoldername,             // input ntuple
     {
         if (doElectron)
         {
-            fnamev.push_back(infoldername + "/Wenu/ntuples/we0_select.root");
+            fnamev.push_back(indir + "/we0.root");
             isBkgv.push_back(kFALSE);
-            fnamev.push_back(infoldername + "/Wenu/ntuples/we1_select.root");
+            fnamev.push_back(indir + "/we1.root");
             isBkgv.push_back(kFALSE);
-            fnamev.push_back(infoldername + "/Wenu/ntuples/we2_select.root");
+            fnamev.push_back(indir + "/we2.root");
             isBkgv.push_back(kFALSE);
         }
         else
         {
-            if (!do5TeV)
+            if (!do_5TeV)
             {
-                fnamev.push_back(infoldername + "/Wmunu/ntuples/wm0_select.raw.root");
+                fnamev.push_back(indir + "/wm0.root");
                 isBkgv.push_back(kFALSE);
-                fnamev.push_back(infoldername + "/Wmunu/ntuples/wm1_select.raw.root");
+                fnamev.push_back(indir + "/wm1.root");
                 isBkgv.push_back(kFALSE);
-                fnamev.push_back(infoldername + "/Wmunu/ntuples/wm2_select.raw.root");
+                fnamev.push_back(indir + "/wm2.root");
                 isBkgv.push_back(kFALSE);
             }
             else
             {
-                fnamev.push_back(infoldername + "/Wmunu/ntuples/wm_select.raw.root");
+                fnamev.push_back(indir + "/wm.root");
                 isBkgv.push_back(kFALSE);
             }
         }
     }
     else if (useData == 1)
     {
-        fnamev.push_back(TString(infoldername) + TString("/Wmunu/ntuples/data_select.root"));
+        fnamev.push_back(TString(indir) + TString("/data.root"));
         isBkgv.push_back(kFALSE);
     }
     else
@@ -165,29 +164,34 @@ void fitRecoilWm(TString infoldername,             // input ntuple
     for (Int_t ibin = 0; ibin < nbins; ibin++)
     {
 
-        int range = 100;
+        int range = 60;
+        if (ptbins[ibin] > 50)
+            range = 80;
         if (ptbins[ibin] > 80)
-            range = 125;
+            range = 100;
         if (ptbins[ibin] > 150)
-            range = 150;
+            range = 120;
         sprintf(hname, "hPFu1_%i", ibin);
-        hPFu1v.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        // hPFu1v.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        hPFu1v.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu1v[ibin]->Sumw2();
         sprintf(hname, "hPFu1Bkg_%i", ibin);
-        hPFu1Bkgv.push_back(new TH1D(hname, "", 50, -range - ptbins[ibin], range - ptbins[ibin]));
+        // hPFu1Bkgv.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
+        hPFu1Bkgv.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu1Bkgv[ibin]->Sumw2();
 
         sprintf(hname, "hPFu2_%i", ibin);
         hPFu2v.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu2v[ibin]->Sumw2();
         sprintf(hname, "hPFu2Bkg_%i", ibin);
-        hPFu2Bkgv.push_back(new TH1D(hname, "", 50, -range, range));
+        hPFu2Bkgv.push_back(new TH1D(hname, "", 100, -range, range));
         hPFu2Bkgv[ibin]->Sumw2();
 
         std::stringstream name;
         name << "u_" << ibin;
 
-        RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range - ptbins[ibin], range - ptbins[ibin]);
+        // RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range - ptbins[ibin], range - ptbins[ibin]);
+        RooRealVar u1Var(name.str().c_str(), name.str().c_str(), 0, -range, range);
         RooRealVar u2Var(name.str().c_str(), name.str().c_str(), 0, -range, range);
 
         vu1Var.push_back(u1Var);
@@ -222,6 +226,8 @@ void fitRecoilWm(TString infoldername,             // input ntuple
 
     for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++)
     {
+        if (ifile != 0)
+            continue;
         cout << "Processing " << fnamev[ifile] << "..." << endl;
         infile = new TFile(fnamev[ifile]);
         intree = (TTree *)infile->Get("Events");
@@ -247,17 +253,21 @@ void fitRecoilWm(TString infoldername,             // input ntuple
         //
         // Loop over events
         //
-        int iterator = 20;
+        int iterator = 1;
         // for(Int_t ientry=0; ientry<intree->GetEntries(); ientry++) {
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator)
+        // for (Int_t ientry = 0; ientry < 1000; ientry++)
         {
             intree->GetEntry(ientry);
+
+            if (ientry % 10000 == 0)
+                cout << "Processing event " << ientry << endl;
 
             // apply rochester correction
             TLorentzVector mu;
             mu.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), mu_MASS);
             double SF1 = 1;
-            if (infoldername.Contains("data_"))
+            if (indir.Contains("data"))
             {
                 SF1 = rc.kScaleDT(q, mu.Pt(), mu.Eta(), mu.Phi());
             }
@@ -325,6 +335,7 @@ void fitRecoilWm(TString infoldername,             // input ntuple
             double pSin = (pUX * sin(genVPhi) - pUY * cos(genVPhi)) / pU;
             pU1 = pU * pCos; // U1 in data
             pU2 = pU * pSin; // U2 in data
+            pU1 = pU1 + genVPt;
 
             vu1Var[ipt].setVal(pU1);
             vu2Var[ipt].setVal(pU2);
@@ -345,13 +356,6 @@ void fitRecoilWm(TString infoldername,             // input ntuple
 
         delete infile;
         infile = 0, intree = 0;
-    }
-
-    Double_t xval[nbins], xerr[nbins];
-    for (Int_t ibin = 0; ibin < nbins; ibin++)
-    {
-        xval[ibin] = 0.5 * (ptbins[ibin + 1] + ptbins[ibin]);
-        xerr[ibin] = 0.5 * (ptbins[ibin + 1] - ptbins[ibin]);
     }
 
     Double_t pfu1Mean[nbins], pfu1MeanErr[nbins];
@@ -379,7 +383,7 @@ void fitRecoilWm(TString infoldername,             // input ntuple
     // Fitting PF-MET u1
     performFit(hPFu1v, hPFu1Bkgv, ptbins, nbins, pfu1model, sigOnly,
                lDataSetU1, vu1Var,
-               c, "pfu1", "u_{#parallel  } [GeV]",
+               c, "pfu1", "u_{#parallel  } + p^{W}_{T} [GeV]",
                pfu1Mean, pfu1MeanErr,
                pfu1Mean2, pfu1Mean2Err,
                pfu1Mean3, pfu1Mean3Err,
@@ -390,12 +394,10 @@ void fitRecoilWm(TString infoldername,             // input ntuple
                pfu1Frac2, pfu1Frac2Err,
                pfu1Frac3, pfu1Frac3Err,
                &pdfsU1,
-               etaBinCategory, do_keys);
-
-    std::cout << "writing" << std::endl;
-
+               outputDir,
+               etaBinCategory, do_keys,
+               do_5TeV);
     char outpdfname[50];
-
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU1");
     pdfsU1.writeToFile(outpdfname);
 
@@ -413,8 +415,9 @@ void fitRecoilWm(TString infoldername,             // input ntuple
                pfu2Frac2, pfu2Frac2Err,
                pfu2Frac3, pfu2Frac3Err,
                &pdfsU2,
-               etaBinCategory, do_keys);
-
+               outputDir,
+               etaBinCategory, do_keys,
+               do_5TeV);
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU2");
     pdfsU2.writeToFile(outpdfname);
 
@@ -441,7 +444,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                 Double_t *frac2Arr, Double_t *frac2ErrArr,
                 Double_t *frac3Arr, Double_t *frac3ErrArr,
                 RooWorkspace *wksp,
-                int etaBinCategory, bool do_keys)
+                const char *outputDir,
+                int etaBinCategory, bool do_keys,
+                bool do_5TeV)
 {
     char pname[50];
     char lumi[50];
@@ -450,6 +455,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
     char binYlabel[50];
     char nsigtext[50];
     char nbkgtext[50];
+    char chi2text[50];
+    char hmeantext[50];
+    char hrmstext[50];
 
     char mean1text[50];
     char mean2text[50];
@@ -458,6 +466,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
     char sig1text[50];
     char sig2text[50];
     char sig3text[50];
+    char frac2text[50];
+    char frac3text[50];
 
     for (Int_t ibin = 0; ibin < nbins; ibin++)
     {
@@ -515,7 +525,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         if (string(plabel) == string("pfu2"))
         {
-
             mean1.setVal(0);
             mean1.setConstant(kTRUE);
             mean2.setVal(0);
@@ -529,8 +538,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         RooGaussian gauss1(name.str().c_str(), name.str().c_str(), u, mean1, sigma1);
         name.str("");
         name << "gauss2_" << ibin;
-        RooGaussian gauss2(name.str().c_str(), name.str().c_str(), u, mean2, sigma2);
-        name.str("");
+        // RooGaussian gauss2(name.str().c_str(), name.str().c_str(), u, mean2, sigma2);
+        RooGaussian gauss2(name.str().c_str(), name.str().c_str(), u, mean1, sigma2);
         name.str("");
         name << "gauss3_" << ibin;
         RooGaussian gauss3(name.str().c_str(), name.str().c_str(), u, mean3, sigma3);
@@ -631,52 +640,50 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         fitResult = modelpdf.fitTo(dataHist,
                                    NumCPU(4),
                                    Minimizer("Minuit2", "minimize"),
-                                   ExternalConstraints(constGauss1), ExternalConstraints(constGauss2), ExternalConstraints(constGauss3),
-                                   // RooFit::Minos(),
+                                   ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
+                                   // ExternalConstraints(constGauss3),
+                                   RooFit::Minos(),
                                    RooFit::Strategy(2),
                                    RooFit::Save());
 
         int nTries = 0;
-
         do
         {
             // if(ibin==22||ibin==27)break;
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        Minimizer("Minuit2", "scan"),
-                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2), ExternalConstraints(constGauss3),
+                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
+                                       // ExternalConstraints(constGauss3),
                                        RooFit::Minos(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
-            // nTries++;
-
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        Minimizer("Minuit2", "migrad"),
-                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2), ExternalConstraints(constGauss3),
+                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
+                                       // ExternalConstraints(constGauss3),
                                        RooFit::Hesse(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        Minimizer("Minuit2", "improve"),
-                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2), ExternalConstraints(constGauss3),
+                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
+                                       // ExternalConstraints(constGauss3),
                                        RooFit::Minos(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        Minimizer("Minuit2", "minimize"),
-                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2), ExternalConstraints(constGauss3),
+                                       ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
+                                       // ExternalConstraints(constGauss3),
                                        RooFit::Minos(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
             nTries++;
-        } while ((fitResult->status() > 0 || fitResult->covQual() < 3) && nTries < 10);
+        } while ((fitResult->status() > 0 || fitResult->covQual() < 3) && nTries < 5);
 
         c->SetFillColor(kWhite);
         if (fitResult->status() > 0)
@@ -718,6 +725,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         RooPlot *frame = u.frame(Bins(100));
         dataHist.plotOn(frame, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
         modelpdf.plotOn(frame);
+        frame->GetYaxis()->SetTitleOffset(1.2);
+
         if (!sigOnly)
             modelpdf.plotOn(frame, Components("bkg"), LineStyle(kDotted), LineColor(kMagenta + 2));
         name.str("");
@@ -766,11 +775,69 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
             wksp->Print();
         }
 
-        sprintf(lumi, "CMS                               2.3 fb^{-1} (13 TeV)");
+        int sizeParam = 0;
+        if (string(plabel) == string("pfu1"))
+            // sizeParam = 8; // 3 means + 3 sigma + 2 frac
+            sizeParam = 4; // 1 means + 2 sigma + 1 frac
+        if (string(plabel) == string("pfu2"))
+            // sizeParam = 5; // 0 means + 3 sigma + 2 frac
+            sizeParam = 3; // 0 means + 2 sigma + 1 frac
+
+        TString nameRooHist = Form("h_%s", dataHist.GetName());
+        TString nameRooCurve = Form("sig_%d_Norm[u_%d]", ibin, ibin);
+
+        RooHist *hist = frame->getHist(nameRooHist.Data());
+        RooCurve *fitCurve = frame->getCurve(nameRooCurve.Data());
+
+        RooHist *hist_pull = hist->makePullHist(*fitCurve);
+        hist_pull->SetTitle("");
+        hist_pull->GetXaxis()->SetRangeUser(hv[ibin]->GetXaxis()->GetXmin(), hv[ibin]->GetXaxis()->GetXmax());
+        hist_pull->GetXaxis()->SetTitle(xlabel);
+        hist_pull->GetYaxis()->SetTitle("Pull");
+        hist_pull->GetYaxis()->CenterTitle();
+        hist_pull->GetYaxis()->SetRangeUser(-4.9, 4.9);
+        hist_pull->GetYaxis()->SetNdivisions(511);
+        hist_pull->SetMarkerColor(kAzure);
+        hist_pull->SetLineColor(kAzure);
+        hist_pull->SetFillColor(kAzure);
+        //    hist_pull->GetYaxis()->SetTitleFont(42);
+        //    hist_pull->GetXaxis()->SetTitleFont(42);
+        hist_pull->GetYaxis()->SetTitleSize(0.045 * 3);
+        hist_pull->GetYaxis()->SetTitleOffset(0.5);
+        hist_pull->GetYaxis()->SetLabelOffset(0.014);
+        hist_pull->GetYaxis()->SetLabelSize(0.040 * 3);
+        hist_pull->GetYaxis()->SetLabelFont(42);
+        hist_pull->GetXaxis()->SetTitleSize(0.045 * 3);
+        hist_pull->GetXaxis()->SetTitleOffset(1.0);
+        hist_pull->GetXaxis()->SetLabelOffset(0.014);
+        hist_pull->GetXaxis()->SetLabelSize(0.040 * 3);
+        hist_pull->GetXaxis()->SetLabelFont(42);
+
+        double chi2Arr = frame->chiSquare(nameRooCurve.Data(), nameRooHist.Data(), sizeParam);
+        double chi2ErrArr = 0;
+        if (chi2Arr > 10)
+        {
+            chi2Arr = 0;
+            chi2ErrArr = 200;
+        } // just a larger number so that is easy to notice on the plot
+        //    cout << " chi2Arr=" << chi2Arr << " chi2ErrArr=" << chi2ErrArr << endl;
+
+        if (sigOnly && do_5TeV)
+            sprintf(lumi, "CMS Simumation                                                                 (5 TeV)");
+        else if (sigOnly && !do_5TeV)
+            sprintf(lumi, "CMS Simulation                                                                (13 TeV)");
+        else if (!sigOnly && do_5TeV)
+            sprintf(lumi, "CMS                                                              298.0 pb^{-1} (5 TeV)");
+        else if (!sigOnly && !do_5TeV)
+            sprintf(lumi, "CMS                                                             200.9 pb^{-1} (13 TeV)");
         sprintf(pname, "%sfit_%i", plabel, ibin);
         sprintf(ylabel, "Events / %.1f GeV", hv[ibin]->GetBinWidth(1));
         //    sprintf(binlabel,"%i < p_{T}(W) < %i",(Int_t)ptbins[ibin],(Int_t)ptbins[ibin+1]);
         sprintf(binlabel, "p_{T}(W) = %.1f - %.1f GeV ", ptbins[ibin], ptbins[ibin + 1]);
+
+        sprintf(chi2text, "#chi^{2}/ndf = %.2f/%i", chi2Arr, (Int_t)hv[ibin]->GetNbinsX() - sizeParam);
+        sprintf(hmeantext, "Mean = %.2f", hv[ibin]->GetMean());
+        sprintf(hrmstext, "#sigma = %.2f", hv[ibin]->GetRMS());
 
         if (etaBinCategory == 1)
             sprintf(binYlabel, "|y| < 0.5");
@@ -780,7 +847,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
             sprintf(binYlabel, "|y| > 1");
         if (sigOnly)
         {
-            sprintf(nsigtext, "N_{evts} = %i", (Int_t)hv[ibin]->Integral());
+            // sprintf(nsigtext, "N_{evts} = %.1f", (Int_t)hv[ibin]->Integral());
+            sprintf(nsigtext, "N_{sig} = %.1f #pm %.1f", nsig.getVal(), nsig.getError());
         }
         else
         {
@@ -793,7 +861,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         {
             sprintf(mean2text, "#mu_{2} = %.1f #pm %.1f", mean2Arr[ibin], mean2ErrArr[ibin]);
             // sprintf(sig0text,"#sigma = %.1f #pm %.1f",sigma0Arr[ibin],sigma0ErrArr[ibin]);
-            sprintf(sig1text, "#sigma_{1} = %.1f #pm %.1f", sigma1Arr[ibin], sigma1ErrArr[ibin]);
+            sprintf(frac2text, "f_{2} = %.3f #pm %.3f", frac2Arr[ibin], frac2ErrArr[ibin]);
             sprintf(sig2text, "#sigma_{2} = %.1f #pm %.1f", sigma2Arr[ibin], sigma2ErrArr[ibin]);
         }
         if (model >= 3)
@@ -802,31 +870,99 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
             sprintf(sig3text, "#sigma_{3} = %.1f #pm %.1f", sigma3Arr[ibin], sigma3ErrArr[ibin]);
         }
 
+        TCanvas *cLin = MakeCanvas("cLin", "cLin", 800, 800);
+        cLin->Divide(1, 2, 0, 0);
+        cLin->cd(1)->SetPad(0, 0.3, 1.0, 1.0);
+        cLin->cd(1)->SetTopMargin(0.1);
+        cLin->cd(1)->SetBottomMargin(0.01);
+        cLin->cd(1)->SetLeftMargin(0.14);
+        cLin->cd(1)->SetRightMargin(0.07);
+        cLin->cd(1)->SetTickx(1);
+        cLin->cd(1)->SetTicky(1);
+        cLin->cd(2)->SetPad(0, 0, 1.0, 0.3);
+        cLin->cd(2)->SetTopMargin(0.05);
+        cLin->cd(2)->SetBottomMargin(0.40);
+        cLin->cd(2)->SetLeftMargin(0.14);
+        cLin->cd(2)->SetRightMargin(0.07);
+        cLin->cd(2)->SetTickx(1);
+        cLin->cd(2)->SetTicky(1);
+
         CPlot plot(pname, frame, "", xlabel, ylabel);
-        plot.AddTextBox(lumi, 0.05, 0.92, 0.95, 0.97, 0, kBlack, -1);
-        plot.AddTextBox(binlabel, 0.21, 0.80, 0.51, 0.85, 0, kBlack, -1);
+        plot.SetOutputDir(TString(outputDir) + "/plots");
+        //    pad1->cd();
+        plot.AddTextBox(lumi, 0.06, 0.92, 0.95, 0.97, 0, kBlack, -1);
+        plot.AddTextBox(binlabel, 0.18, 0.80, 0.51, 0.85, 0, kBlack, -1);
         if (etaBinCategory != 0)
-            plot.AddTextBox(binYlabel, 0.21, 0.85, 0.51, 0.9, 0, kBlack, -1);
+            plot.AddTextBox(binYlabel, 0.18, 0.71, 0.51, 0.66, 0, kBlack, -1);
         if (sigOnly)
-            plot.AddTextBox(nsigtext, 0.21, 0.78, 0.51, 0.73, 0, kBlack, -1);
+            plot.AddTextBox(nsigtext, 0.18, 0.78, 0.51, 0.73, 0, kBlack, -1);
+        //    else        plot.AddTextBox(0.18,0.78,0.51,0.68,0,kBlack,-1,2,nsigtext,nbkgtext);
         else
-            plot.AddTextBox(0.21, 0.78, 0.51, 0.68, 0, kBlack, -1, 2, nsigtext, nbkgtext);
+            plot.AddTextBox(nsigtext, 0.18, 0.78, 0.51, 0.73, 0, kBlack, -1); // this print the fraction now
+        plot.AddTextBox(chi2text, 0.18, 0.71, 0.51, 0.66, 0, kBlack, -1);
+        plot.AddTextBox(hmeantext, 0.18, 0.64, 0.51, 0.59, 0, kBlack, -1);
+        plot.AddTextBox(hrmstext, 0.18, 0.57, 0.51, 0.52, 0, kBlack, -1);
         if (model == 1)
-            plot.AddTextBox(0.70, 0.90, 0.95, 0.80, 0, kBlack, -1, 2, mean1text, sig1text);
+            plot.AddTextBox(0.70, 0.85, 0.95, 0.75, 0, kBlack, -1, 2, mean1text, sig1text);
         else if (model == 2)
-            plot.AddTextBox(0.70, 0.90, 0.95, 0.70, 0, kBlack, -1, 5, mean1text, mean2text, sig0text, sig1text, sig2text);
+            plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 4, mean1text, sig1text, sig2text, frac2text);
+        // plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 5, mean1text, mean2text, sig1text, sig2text, frac2text);
         //    else if(model==3) plot.AddTextBox(0.70,0.90,0.95,0.65,0,kBlack,-1,7,mean1text,mean2text,mean3text,sig0text,sig1text,sig2text,sig3text);
         else if (model == 3)
-            plot.AddTextBox(0.70, 0.90, 0.95, 0.65, 0, kBlack, -1, 6, mean1text, mean2text, mean3text, sig1text, sig2text, sig3text);
-        plot.Draw(c, kTRUE, "png");
-        plot.Draw(c, kTRUE, "pdf");
+            plot.AddTextBox(0.70, 0.85, 0.95, 0.60, 0, kBlack, -1, 6, mean1text, mean2text, mean3text, sig1text, sig2text, sig3text);
+        // plot.Draw(cLin, kFALSE, "png", 1);
+        plot.Draw(cLin, kFALSE, "pdf", 1);
+
+        cLin->cd(2);
+        hist_pull->Draw("A3 L ");
+        TLine *lineZero = new TLine(hv[ibin]->GetXaxis()->GetXmin(), 0, hv[ibin]->GetXaxis()->GetXmax(), 0);
+        lineZero->SetLineColor(kBlack);
+        lineZero->Draw("same");
+        TLine *lineZero1SigmaM = new TLine(hv[ibin]->GetXaxis()->GetXmin(), 0, hv[ibin]->GetXaxis()->GetXmax(), 0);
+        lineZero1SigmaM->SetLineColor(11);
+        lineZero1SigmaM->Draw("same");
+        TLine *lineZero1SigmaP = new TLine(hv[ibin]->GetXaxis()->GetXmin(), 0, hv[ibin]->GetXaxis()->GetXmax(), 0);
+        lineZero1SigmaP->SetLineColor(11);
+        lineZero1SigmaP->Draw("same");
+
+        // plot.Draw(cLin, kTRUE, "png", 1);
+        plot.Draw(cLin, kTRUE, "pdf", 1);
+
+        TCanvas *c1 = MakeCanvas("c1", "c1", 800, 800);
+        c1->Divide(1, 2, 0, 0);
+        c1->cd(1)->SetPad(0, 0.3, 1.0, 1.0);
+        c1->cd(1)->SetTopMargin(0.1);
+        c1->cd(1)->SetBottomMargin(0.01);
+        c1->cd(1)->SetLeftMargin(0.14);
+        c1->cd(1)->SetRightMargin(0.07);
+        c1->cd(1)->SetTickx(1);
+        c1->cd(1)->SetTicky(1);
+        c1->cd(2)->SetPad(0, 0, 1.0, 0.3);
+        c1->cd(2)->SetTopMargin(0.05);
+        c1->cd(2)->SetBottomMargin(0.40);
+        c1->cd(2)->SetLeftMargin(0.14);
+        c1->cd(2)->SetRightMargin(0.07);
+        c1->cd(2)->SetTickx(1);
+        c1->cd(2)->SetTicky(1);
 
         sprintf(pname, "%sfitlog_%i", plabel, ibin);
         plot.SetYRange(0.1, 10 * hv[ibin]->GetMaximum());
         plot.SetName(pname);
         plot.SetLogy();
-        plot.Draw(c, kTRUE, "png");
-        plot.Draw(c, kTRUE, "pdf");
+        // plot.Draw(c1, kFALSE, "png", 1);
+        plot.Draw(c1, kFALSE, "pdf", 1);
+
+        c1->cd(2);
+        hist_pull->SetTitle("");
+        hist_pull->Draw("A3 L ");
+        lineZero->SetLineColor(kBlack);
+        lineZero->Draw("same");
+        lineZero1SigmaM->SetLineColor(11);
+        lineZero1SigmaM->Draw("same");
+        lineZero1SigmaP->SetLineColor(11);
+        lineZero1SigmaP->Draw("same");
+        // plot.Draw(c1, kTRUE, "png", 1);
+        plot.Draw(c1, kTRUE, "pdf", 1);
 
         // reset color canvas
         c->SetFillColor(kWhite);
