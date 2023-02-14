@@ -429,13 +429,6 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         infile = 0, intree = 0;
     }
 
-    Double_t xval[nbins], xerr[nbins];
-    for (Int_t ibin = 0; ibin < nbins; ibin++)
-    {
-        xval[ibin] = 0.5 * (ptbins[ibin + 1] + ptbins[ibin]);
-        xerr[ibin] = 0.5 * (ptbins[ibin + 1] - ptbins[ibin]);
-    }
-
     //
     // Arrays and graphs to store fit results
     //
@@ -557,6 +550,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
     char binYlabel[50];
     char nsigtext[50];
     char nbkgtext[50];
+    char chi2text[50];
+    char hmeantext[50];
+    char hrmstext[50];
 
     char mean1text[50];
     char mean2text[50];
@@ -567,13 +563,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
     char sig3text[50];
     char frac2text[50];
     char frac3text[50];
-
-    double frac2_ini = 0;
-    double frac3_ini = 0;
-
-    double sigma1_ini = 0;
-    double sigma2_ini = 0;
-    double sigma3_ini = 0;
 
     for (Int_t ibin = 0; ibin < nbins; ibin++)
     {
@@ -624,7 +613,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         //
         RooDataHist bkgHist("bkgHist", "bkgHist", RooArgSet(u), hbkgv[ibin]);
         RooDataHist bkgHistLog("bkgHistLog", "bkgHistLog", RooArgSet(u), hbkgvLOG);
-        //    RooHistPdf bkg("bkg","bkg",u,bkgHist,0);
         name.str("");
         name << "bkg_" << ibin << std::endl;
         RooHistPdf bkg(name.str().c_str(), name.str().c_str(), u, bkgHist, 0);
@@ -700,7 +688,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         // RooGaussian gauss2(name.str().c_str(), name.str().c_str(), u, mean2, sigma2);
         RooGaussian gauss2(name.str().c_str(), name.str().c_str(), u, mean1, sigma2);
         name.str("");
-        name.str("");
         name << "gauss3_" << ibin;
         RooGaussian gauss3(name.str().c_str(), name.str().c_str(), u, mean3, sigma3);
         name.str("");
@@ -735,12 +722,12 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         // sig pdfsU1
         name.str("");
         name << "sig_" << ibin;
-        RooAddPdf sig(name.str().c_str(), name.str().c_str(), shapes, fracs);
+        // recursive: sig = frac2 * gauss2 + (1-frac2) * gauss1
+        RooAddPdf sig(name.str().c_str(), name.str().c_str(), shapes, fracs, true);
         name.str("");
 
         RooArgList parts;
         parts.add(sig);
-        //    if(!sigOnly) parts.add(bkg);
         if (!sigOnly && !doLog)
             parts.add(bkg);
         if (!sigOnly && doLog)
@@ -753,8 +740,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         RooRealVar nsig(name.str().c_str(), name.str().c_str(), 0.98 * (hv[ibin]->Integral()), 0., 1.1 * hv[ibin]->Integral()); // just to be sure that doesn't it the boundary
         name.str("");
         name << "nbkg_" << ibin;
-        RooRealVar nbkg(name.str().c_str(), name.str().c_str(), (hbkgv[ibin]->Integral()), 0., 0.25 * (hv[ibin]->Integral()));
-        RooRealVar *lAbkgFrac = new RooRealVar("AbkgFrac", "AbkgFrac", (hv[ibin]->Integral() / (hv[ibin]->Integral() + hbkgv[ibin]->Integral())), 0.9, 1.0);
+        RooRealVar nbkg(name.str().c_str(), name.str().c_str(), (hbkgv[ibin]->Integral()), 0., 1.25 * (hbkgv[ibin]->Integral()));
+        // RooRealVar *lAbkgFrac = new RooRealVar("AbkgFrac", "AbkgFrac", (hv[ibin]->Integral() / (hv[ibin]->Integral() + hbkgv[ibin]->Integral())), 0.9, 1.0);
 
         if (sigOnly)
         {
@@ -763,8 +750,10 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         }
         else
         {
-            RooFormulaVar *sigbkgFrac = new RooFormulaVar("bkgfrac", "@0", RooArgSet(*lAbkgFrac));
-            yields.add(*sigbkgFrac);
+            // RooFormulaVar *sigbkgFrac = new RooFormulaVar("bkgfrac", "@0", RooArgSet(*lAbkgFrac));
+            // yields.add(*sigbkgFrac);
+            yields.add(nsig);
+            yields.add(nbkg);
         }
 
         name.str("");
@@ -807,9 +796,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Minos(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
-            // nTries++;
-
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        // Minimizer("Minuit2","minimize"),
@@ -828,7 +814,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Minos(),
                                        RooFit::Strategy(2),
                                        RooFit::Save());
-
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
                                        Minimizer("Minuit2", "minimize"),
@@ -1012,12 +997,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         if (doLog)
             wksp->import(bkgLog);
 
-        frac2_ini = frac2.getVal();
-        frac3_ini = frac3.getVal();
-        sigma1_ini = sigma1.getVal();
-        sigma2_ini = sigma2.getVal();
-        sigma3_ini = sigma3.getVal();
-
         mean1Arr[ibin] = mean1.getVal();
         mean1ErrArr[ibin] = mean1.getError();
         sigma1Arr[ibin] = sigma1.getVal();
@@ -1122,9 +1101,11 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         int sizeParam = 0;
         if (string(plabel) == string("pfu1"))
-            sizeParam = 8; // 3 means + 3 sigma + 2 frac
+            // sizeParam = 8; // 3 means + 3 sigma + 2 frac
+            sizeParam = 4; // 1 means + 2 sigma + 1 frac
         if (string(plabel) == string("pfu2"))
-            sizeParam = 5; // 0 means + 3 sigma + 2 frac
+            // sizeParam = 5; // 0 means + 3 sigma + 2 frac
+            sizeParam = 3; // 0 means + 2 sigma + 1 frac
 
         TString nameRooHist = Form("h_%s", dataHist.GetName());
         TString nameRooCurve = Form("sig_%d_Norm[u_%d]", ibin, ibin);
@@ -1177,6 +1158,10 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         sprintf(ylabel, "Events / %.1f GeV", hv[ibin]->GetBinWidth(1));
         sprintf(binlabel, "p_{T}(Z) = %.1f - %.1f GeV/c", ptbins[ibin], ptbins[ibin + 1]);
 
+        sprintf(chi2text, "#chi^{2}/ndf = %.2f/%i", chi2Arr[ibin] * ((Int_t)hv[ibin]->GetNbinsX() - sizeParam), (Int_t)hv[ibin]->GetNbinsX() - sizeParam);
+        sprintf(hmeantext, "Mean = %.2f", hv[ibin]->GetMean());
+        sprintf(hrmstext, "RMS = %.2f", hv[ibin]->GetRMS());
+
         if (etaBinCategory == 1)
             sprintf(binYlabel, "|y| < 0.5");
         if (etaBinCategory == 2)
@@ -1186,13 +1171,14 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         if (sigOnly)
         {
-            sprintf(nsigtext, "N_{evts} = %i", (Int_t)hv[ibin]->Integral());
+            // sprintf(nsigtext, "N_{evts} = %i", (Int_t)hv[ibin]->Integral());
+            sprintf(nsigtext, "N_{sig} = %.1f #pm %.1f", nsig.getVal(), nsig.getError());
         }
         else
         {
-            sprintf(nsigtext, "N_{sig}/(N_{bkg}+N_{sig}) = %.3f #pm %.3f", lAbkgFrac->getVal(), lAbkgFrac->getError());
-            //      sprintf(nsigtext,"N_{sig} = %.1f #pm %.1f",nsig.getVal(),nsig.getError());
-            //      sprintf(nbkgtext,"N_{bkg} = %.1f #pm %.1f",nbkg.getVal(),nbkg.getError());
+            // sprintf(nsigtext, "N_{sig}/(N_{bkg}+N_{sig}) = %.3f #pm %.3f", lAbkgFrac->getVal(), lAbkgFrac->getError());
+            sprintf(nsigtext, "N_{sig} = %.1f #pm %.1f", nsig.getVal(), nsig.getError());
+            sprintf(nbkgtext, "N_{bkg} = %.1f #pm %.1f", nbkg.getVal(), nbkg.getError());
         }
         sprintf(mean1text, "#mu_{1} = %.1f #pm %.1f", mean1Arr[ibin], mean1ErrArr[ibin]);
         sprintf(sig1text, "#sigma_{1} = %.1f #pm %.1f", sigma1Arr[ibin], sigma1ErrArr[ibin]);
@@ -1232,20 +1218,26 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         CPlot plot(pname, frame, "", xlabel, ylabel);
         plot.SetOutputDir(TString(outputDir) + "/plots");
-        //    pad1->cd();
         plot.AddTextBox(lumi, 0.06, 0.92, 0.95, 0.97, 0, kBlack, -1);
-        plot.AddTextBox(binlabel, 0.21, 0.80, 0.51, 0.85, 0, kBlack, -1);
+        plot.AddTextBox(binlabel, 0.18, 0.80, 0.51, 0.85, 0, kBlack, -1);
         if (etaBinCategory != 0)
-            plot.AddTextBox(binYlabel, 0.21, 0.71, 0.51, 0.66, 0, kBlack, -1);
+            plot.AddTextBox(binYlabel, 0.18, 0.71, 0.51, 0.66, 0, kBlack, -1);
+        float ypos = 0.71;
         if (sigOnly)
-            plot.AddTextBox(nsigtext, 0.21, 0.78, 0.51, 0.73, 0, kBlack, -1);
-        //    else        plot.AddTextBox(0.21,0.78,0.51,0.68,0,kBlack,-1,2,nsigtext,nbkgtext);
+            plot.AddTextBox(nsigtext, 0.18, 0.78, 0.51, 0.73, 0, kBlack, -1);
         else
-            plot.AddTextBox(nsigtext, 0.21, 0.78, 0.51, 0.73, 0, kBlack, -1); // this print the fraction now
+        {
+            plot.AddTextBox(nsigtext, 0.18, 0.78, 0.51, 0.73, 0, kBlack, -1);
+            plot.AddTextBox(nbkgtext, 0.18, 0.71, 0.51, 0.66, 0, kBlack, -1);
+            ypos = 0.64;
+        }
+        plot.AddTextBox(chi2text, 0.18, ypos, 0.51, ypos - 0.05, 0, kBlack, -1);
+        plot.AddTextBox(hmeantext, 0.18, ypos - 0.07, 0.51, ypos - 0.12, 0, kBlack, -1);
+        plot.AddTextBox(hrmstext, 0.18, ypos - 0.14, 0.51, ypos - 0.19, 0, kBlack, -1);
         if (model == 1)
             plot.AddTextBox(0.70, 0.85, 0.95, 0.75, 0, kBlack, -1, 2, mean1text, sig1text);
         else if (model == 2)
-            plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 4, mean1text, sig1text, sig2text, frac2text);
+            plot.AddTextBox(0.65, 0.83, 0.92, 0.60, 0, kBlack, -1, 4, mean1text, sig1text, sig2text, frac2text);
         // plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 5, mean1text, mean2text, sig1text, sig2text, frac2text);
         //    else if(model==3) plot.AddTextBox(0.70,0.90,0.95,0.65,0,kBlack,-1,7,mean1text,mean2text,mean3text,sig0text,sig1text,sig2text,sig3text);
         else if (model == 3)

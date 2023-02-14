@@ -213,7 +213,6 @@ void fitRecoilWm(TString indir,                    // input ntuple
     //
     UInt_t runNum, lumiSec, evtNum;
     // UInt_t  npv, npu;
-    Float_t genVPt, genVPhi, genVy;
     Float_t genMuonPt;
     Float_t scale1fb, puWeight; //, scale1fbUp, scale1fbDown;
     Float_t met, metPhi;        //, mt, u1, u2;
@@ -226,22 +225,18 @@ void fitRecoilWm(TString indir,                    // input ntuple
 
     for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++)
     {
-        if (ifile != 0)
-            continue;
         cout << "Processing " << fnamev[ifile] << "..." << endl;
         infile = new TFile(fnamev[ifile]);
         intree = (TTree *)infile->Get("Events");
 
-        intree->SetBranchAddress("genMuonPt", &genMuonPt);    // GEN W boson pT (signal MC)
-        intree->SetBranchAddress("genVPt", &genVPt);          // GEN W boson pT (signal MC)
-        intree->SetBranchAddress("genVPhi", &genVPhi);        // GEN W boson phi (signal MC)
-        intree->SetBranchAddress("genVy", &genVy);            // GEN W boson rapidity (signal MC)
         intree->SetBranchAddress("scale1fb", &scale1fb);      // event weight per 1/fb (MC)
         intree->SetBranchAddress(metVar.c_str(), &met);       // Uncorrected PF MET
         intree->SetBranchAddress(metPhiVar.c_str(), &metPhi); // phi(MET)
         intree->SetBranchAddress("q", &q);                    // lepton charge
         intree->SetBranchAddress("lep", &lep);                // lepton 4-vector
         intree->SetBranchAddress("nTkLayers", &nTkLayers);    // lepton 4-vector
+        intree->SetBranchAddress("genV", &genV);              // GEN W boson 4-vector (signal MC)
+        intree->SetBranchAddress("genLep", &genLep);          // GEN lepton 4-vector (signal MC)
         if (doElectron)
             intree->SetBranchAddress("lep_raw", &lep_raw); // probe lepton 4-vector
 
@@ -273,8 +268,8 @@ void fitRecoilWm(TString indir,                    // input ntuple
             }
             else if (!doElectron)
             {
-                if (genMuonPt > 0)
-                    SF1 = rc.kSpreadMC(q, mu.Pt(), mu.Eta(), mu.Phi(), genMuonPt);
+                if (genLep->Pt() > 0)
+                    SF1 = rc.kSpreadMC(q, mu.Pt(), mu.Eta(), mu.Phi(), genLep->Pt());
                 else
                     SF1 = rc.kSmearMC(q, mu.Pt(), mu.Eta(), mu.Phi(), nTkLayers, gRandom->Uniform(1));
             }
@@ -293,6 +288,10 @@ void fitRecoilWm(TString indir,                    // input ntuple
                 continue;
             if (fabs(lep->Eta()) > ETA_CUT)
                 continue;
+
+            float genVy = genV->Rapidity();
+            float genVPt = genV->Pt();
+            float genVPhi = genV->Phi();
 
             // 0 is inclusive, 1 is fabs(eta)<=0.5,  2 is fabs(eta)=[0.5,1], 3 is fabs(eta)>=1
             if (etaBinCategory == 1 && fabs(genVy) > 0.5)
@@ -449,7 +448,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                 bool do_5TeV)
 {
     char pname[50];
-    char lumi[50];
+    char lumi[200];
     char ylabel[50];
     char binlabel[50];
     char binYlabel[50];
@@ -523,6 +522,12 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         name << "frac3_" << ibin;
         RooRealVar frac3(name.str().c_str(), name.str().c_str(), 0.05, 0, 0.15);
 
+        if (model == 2)
+        {
+            frac2.setVal(0.5);
+            frac2.setRange(0., 1.);
+        }
+
         if (string(plabel) == string("pfu2"))
         {
             mean1.setVal(0);
@@ -595,7 +600,8 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         // sig pdfsU1
         name.str("");
         name << "sig_" << ibin;
-        RooAddPdf sig(name.str().c_str(), name.str().c_str(), shapes, fracs);
+        // recursive: sig = frac2 * gauss2 + (1-frac2) * gauss1
+        RooAddPdf sig(name.str().c_str(), name.str().c_str(), shapes, fracs, true);
         name.str("");
 
         RooArgList parts;
@@ -817,7 +823,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         double chi2ErrArr = 0;
         if (chi2Arr > 10)
         {
-            chi2Arr = 0;
+            chi2Arr = 10000;
             chi2ErrArr = 200;
         } // just a larger number so that is easy to notice on the plot
         //    cout << " chi2Arr=" << chi2Arr << " chi2ErrArr=" << chi2ErrArr << endl;
@@ -835,9 +841,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         //    sprintf(binlabel,"%i < p_{T}(W) < %i",(Int_t)ptbins[ibin],(Int_t)ptbins[ibin+1]);
         sprintf(binlabel, "p_{T}(W) = %.1f - %.1f GeV ", ptbins[ibin], ptbins[ibin + 1]);
 
-        sprintf(chi2text, "#chi^{2}/ndf = %.2f/%i", chi2Arr, (Int_t)hv[ibin]->GetNbinsX() - sizeParam);
+        sprintf(chi2text, "#chi^{2}/ndf = %.2f/%i", chi2Arr * ((Int_t)hv[ibin]->GetNbinsX() - sizeParam), (Int_t)hv[ibin]->GetNbinsX() - sizeParam);
         sprintf(hmeantext, "Mean = %.2f", hv[ibin]->GetMean());
-        sprintf(hrmstext, "#sigma = %.2f", hv[ibin]->GetRMS());
+        sprintf(hrmstext, "RMS = %.2f", hv[ibin]->GetRMS());
 
         if (etaBinCategory == 1)
             sprintf(binYlabel, "|y| < 0.5");
@@ -856,7 +862,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
             sprintf(nbkgtext, "N_{bkg} = %.1f #pm %.1f", nbkg.getVal(), nbkg.getError());
         }
         sprintf(mean1text, "#mu_{1} = %.1f #pm %.1f", mean1Arr[ibin], mean1ErrArr[ibin]);
-        sprintf(sig1text, "#sigma = %.1f #pm %.1f", sigma1Arr[ibin], sigma1ErrArr[ibin]);
+        sprintf(sig1text, "#sigma_{1} = %.1f #pm %.1f", sigma1Arr[ibin], sigma1ErrArr[ibin]);
         if (model >= 2)
         {
             sprintf(mean2text, "#mu_{2} = %.1f #pm %.1f", mean2Arr[ibin], mean2ErrArr[ibin]);
@@ -905,7 +911,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         if (model == 1)
             plot.AddTextBox(0.70, 0.85, 0.95, 0.75, 0, kBlack, -1, 2, mean1text, sig1text);
         else if (model == 2)
-            plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 4, mean1text, sig1text, sig2text, frac2text);
+            plot.AddTextBox(0.65, 0.83, 0.92, 0.60, 0, kBlack, -1, 4, mean1text, sig1text, sig2text, frac2text);
         // plot.AddTextBox(0.70, 0.85, 0.95, 0.65, 0, kBlack, -1, 5, mean1text, mean2text, sig1text, sig2text, frac2text);
         //    else if(model==3) plot.AddTextBox(0.70,0.90,0.95,0.65,0,kBlack,-1,7,mean1text,mean2text,mean3text,sig0text,sig1text,sig2text,sig3text);
         else if (model == 3)
