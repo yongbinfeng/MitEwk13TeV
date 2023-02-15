@@ -44,7 +44,7 @@ root -l -b -q fitRecoilWm.C+\(\"${IN13W}\",2,2,1,-1,0,\"met\",\"metPhi\",\"met\"
 # # 13 TeV Z MC
 root -l -b -q fitRecoilZmm.C+\(\"${IN13}\",\"zmm.root\",2,2,1,\"met\",\"metPhi\",\"met\",\"${OUT}/ZmmMC_PF_13TeV_Keys\",${LUMI13},0,1\)
 # 13 TeV Z Data
-root -l -b -q fitRecoilZmm.C+\(\"${IN13}\",\"data.root\",2,2,1,\"met\",\"metPhi\",\"met\",\"${OUT}/ZmmData_PF_13TeV_Keys\",${LUMI13},0,1\)
+root -l -b -q fitRecoilZmm.C+\(\"${IN13}\",\"data.root\",2,2,0,\"met\",\"metPhi\",\"met\",\"${OUT}/ZmmData_PF_13TeV_Keys\",${LUMI13},0,1\)
 
 ###################################################################################################
 ###################################################################################################
