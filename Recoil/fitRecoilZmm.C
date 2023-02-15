@@ -25,6 +25,7 @@
 
 #include "Math/Minimizer.h"
 #include "Math/MinimizerOptions.h"
+#include "Math/Functor.h"
 #include "RooAbsPdf.h"
 #include "RooAddPdf.h"
 #include "RooConstVar.h"
@@ -37,6 +38,8 @@
 #include "RooHist.h"
 #include "RooHistPdf.h"
 #include "RooKeysPdf.h"
+#include "TKDE.h"
+#include "RooFunctor1DBinding.h"
 #include "RooMinuit.h"
 #include "RooPlot.h"
 #include "RooRealIntegral.h"
@@ -57,7 +60,8 @@ bool doElectron = false;
 // perform fit of recoil component
 void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Double_t *ptbins, const Int_t nbins,
                 const Int_t model, const Bool_t sigOnly,
-                const vector<RooDataSet> lDataSet, const vector<RooRealVar> lVar,
+                vector<RooDataSet> &lDataSet, vector<RooRealVar> &lVar,
+                const vector<vector<double>> &vvu, const vector<vector<double>> &vvweight,
                 TCanvas *c, const char *plabel, const char *xlabel,
                 Double_t *mean1Arr, Double_t *mean1ErrArr,
                 Double_t *mean2Arr, Double_t *mean2ErrArr,
@@ -73,6 +77,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                 const char *outputname,
                 const char *outputDir,
                 int etaBinCategory, bool do_keys,
+                bool do_kde,
                 bool do_5TeV);
 
 //=== MAIN MACRO =================================================================================================
@@ -89,7 +94,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                   Double_t lumi = 1,
                   int etaBinCategory = 0, // 0 is inclusive, 1 is fabs(eta)<=0.5,  2 is fabs(eta)=[0.5,1], 3 is fabs(eta)>=1
                   bool do_keys = 0,
-                  bool do_5TeV = 0)
+                  bool do_5TeV = 0,
+                  bool do_kde = 0)
 {
 
     //--------------------------------------------------------------------------------------------------------------
@@ -170,13 +176,18 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     //==============================================================================================================
 
     char hname[100];
+    // for regular fits
     vector<TH1D *> hPFu1v, hPFu1Bkgv;
     vector<TH1D *> hPFu2v, hPFu2Bkgv;
+    // for rookeyspdf
     vector<RooDataSet> lDataSetU1;
     vector<RooDataSet> lDataSetU2;
-
     vector<RooRealVar> vu1Var;
     vector<RooRealVar> vu2Var;
+    // for kde
+    vector<vector<double>> vvu1;     // vector of u1 values
+    vector<vector<double>> vvu2;     // vector of u2 values
+    vector<vector<double>> vvweight; // vector of weights
 
     RooWorkspace pdfsU1("pdfsU1");
     RooWorkspace pdfsU2("pdfsU2");
@@ -225,6 +236,10 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         sprintf(hname, "hDataSetU2_%i", ibin);
         RooDataSet dataSetU2(hname, hname, RooArgSet(u2Var));
         lDataSetU2.push_back(dataSetU2);
+
+        vvu1.push_back(vector<double>());
+        vvu2.push_back(vector<double>());
+        vvweight.push_back(vector<double>());
     }
 
     TFile *infile = 0;
@@ -271,6 +286,14 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         // Loop over events
         //
         int iterator = 1;
+        if (do_keys)
+        {
+            // to speed up the RooKeysPdf, we only use 1/2 of the events
+            // otherwise it takes too long
+            // Change the totalNorm accordingly
+            iterator = 1;
+            totalNorm = totalNorm / iterator;
+        }
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator)
         {
             intree->GetEntry(ientry);
@@ -403,26 +426,50 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 }
                 hPFu1v[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
                 hPFu2v[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
+            }
 
-                // this is the dataset for the RooKey
-                // clean the under/overflow
-                int range = 60;
-                if (ptbins[ipt] > 50)
-                    range = 80;
-                if (ptbins[ipt] > 80)
-                    range = 100;
-                if (ptbins[ipt] > 150)
-                    range = 120;
-                // if (pU1 < (-range - ptbins[ipt]) || pU1 > (range - ptbins[ipt])
-                if (pU1 < -range || pU1 > range)
-                    continue;
-                if (pU2 < -range || pU2 > range)
-                    continue;
+            // this is the dataset for the RooKey
+            // clean the under/overflow
+            int range = 60;
+            if (ptbins[ipt] > 50)
+                range = 80;
+            if (ptbins[ipt] > 80)
+                range = 100;
+            if (ptbins[ipt] > 150)
+                range = 120;
+            // if (pU1 < (-range - ptbins[ipt]) || pU1 > (range - ptbins[ipt])
+            if (pU1 < -range || pU1 > range)
+                continue;
+            if (pU2 < -range || pU2 > range)
+                continue;
+            vu1Var[ipt].setVal(pU1);
+            vu2Var[ipt].setVal(pU2);
 
-                vu1Var[ipt].setVal(pU1);
-                vu2Var[ipt].setVal(pU2);
-                lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt])); // need to add the weights
-                lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]));
+            double weight = scale1fb * lumi / totalNorm;
+            if (isBkgv[ifile] && !sigOnly)
+            {
+                // bkg contribute negatively
+                weight = weight * (-1);
+            }
+            else if (isBkgv[ifile] && sigOnly)
+            {
+                weight = 0;
+            }
+            lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt]), weight); // need to add the weights
+            lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]), weight);
+
+            if (!isBkgv[ifile])
+            {
+                vvu1[ipt].push_back(pU1);
+                vvu2[ipt].push_back(pU2);
+                vvweight[ipt].push_back(scale1fb * lumi / totalNorm);
+            }
+            else if (isBkgv[ifile] && !sigOnly)
+            {
+                // bkg contributes negatively to the distribution
+                vvu1[ipt].push_back(pU1);
+                vvu2[ipt].push_back(pU2);
+                vvweight[ipt].push_back(-scale1fb * lumi / totalNorm);
             }
         }
         delete infile;
@@ -463,6 +510,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU1");
     performFit(hPFu1v, hPFu1Bkgv, ptbins, nbins, pfu1model, sigOnly,
                lDataSetU1, vu1Var,
+               vvu1, vvweight,
                c, "pfu1", "u_{#parallel} + p^{ll}_{T} [GeV]",
                pfu1Mean, pfu1MeanErr,
                pfu1Mean2, pfu1Mean2Err,
@@ -478,12 +526,14 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                outpdfname,
                outputDir,
                etaBinCategory, do_keys,
+               do_kde,
                do_5TeV);
     pdfsU1.writeToFile(outpdfname, kFALSE);
 
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU2");
     performFit(hPFu2v, hPFu2Bkgv, ptbins, nbins, pfu2model, sigOnly,
                lDataSetU2, vu2Var,
+               vvu2, vvweight,
                c, "pfu2", "u_{#perp  } [GeV/c]",
                pfu2Mean, pfu2MeanErr,
                pfu2Mean2, pfu2Mean2Err,
@@ -499,6 +549,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                outpdfname,
                outputDir,
                etaBinCategory, do_keys,
+               do_kde,
                do_5TeV);
     pdfsU2.writeToFile(outpdfname, kFALSE);
 
@@ -525,7 +576,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 //--------------------------------------------------------------------------------------------------
 void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Double_t *ptbins, const Int_t nbins,
                 const Int_t model, const Bool_t sigOnly,
-                vector<RooDataSet> lDataSet, vector<RooRealVar> lVar,
+                vector<RooDataSet> &lDataSet, vector<RooRealVar> &lVar,
+                const vector<vector<double>> &vvu, const vector<vector<double>> &vvweight,
                 TCanvas *c, const char *plabel, const char *xlabel,
                 Double_t *mean1Arr, Double_t *mean1ErrArr,
                 Double_t *mean2Arr, Double_t *mean2ErrArr,
@@ -541,6 +593,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                 const char *outputname,
                 const char *outputDir,
                 int etaBinCategory, bool do_keys,
+                bool do_kde,
                 bool do_5TeV)
 {
     char lumi[200];
@@ -699,9 +752,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         //
         // Define formula for overall width (sigma0)
         //
-        char formula[100];
-        RooArgList params;
-        RooFormulaVar sigma0("sigma0", formula, params);
+        // char formula[100];
+        // RooArgList params;
+        // RooFormulaVar sigma0("sigma0", formula, params);
 
         //
         // Construct fit model
@@ -1005,8 +1058,10 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         {
             mean2Arr[ibin] = mean2.getVal();
             mean2ErrArr[ibin] = mean2.getError();
-            sigma0Arr[ibin] = sigma0.getVal();
-            sigma0ErrArr[ibin] = sigma0.getPropagatedError(*fitResult);
+            // sigma0Arr[ibin] = sigma0.getVal();
+            sigma0Arr[ibin] = 0.;
+            // sigma0ErrArr[ibin] = sigma0.getPropagatedError(*fitResult);
+            sigma0ErrArr[ibin] = 0.;
             sigma2Arr[ibin] = sigma2.getVal();
             sigma2ErrArr[ibin] = sigma2.getError();
             frac2Arr[ibin] = frac2.getVal();
@@ -1071,32 +1126,42 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         if (do_keys)
         {
 
-            //      lDataSet[ibin].Print();
+            // lDataSet[ibin].Print();
             name.str("");
             name << "key_" << ibin;
-            //      RooKeysPdf * pdf_keys = new RooKeysPdf(name.str().c_str(),name.str().c_str(), u, dataHist, RooKeysPdf::NoMirror, 2);
+            // RooKeysPdf * pdf_keys = new RooKeysPdf(name.str().c_str(),name.str().c_str(), u, dataHist, RooKeysPdf::NoMirror, 2);
             RooKeysPdf pdf_keys(name.str().c_str(), name.str().c_str(), lVar[ibin], lDataSet[ibin], RooKeysPdf::NoMirror, 2);
 
             RooPlot *xframe = lVar[ibin].frame(Title(Form("%s Zp_{T}=%.1f - %.1f GeV/c ", plabel, ptbins[ibin], ptbins[ibin + 1])));
-
             lDataSet[ibin].plotOn(xframe);
             TCanvas *c = new TCanvas("validatePDF", "validatePDF", 800, 800);
             c->cd();
             pdf_keys.plotOn(xframe, LineColor(kBlue));
             xframe->Draw();
-
-            c->SaveAs(Form("%s_%d_dataset.png", plabel, ibin));
-
-            name.str("");
+            c->SaveAs(Form("%s/plots/%s_%d_dataset.pdf", outputDir, plabel, ibin));
 
             pdf_keys.plotOn(frame, LineColor(kRed));
 
-            //      wksp->import(lDataSet[ibin]);
+            // wksp->import(lDataSet[ibin]);
             wksp->import(pdf_keys);
-            //      wksp->import(lVar[ibin],RooFit::RecycleConflictNodes(),RooFit::Silence());
-            //      wksp->import(pdf_keys,RooFit::RecycleConflictNodes(),RooFit::Silence());
-
+            // wksp->import(lVar[ibin],RooFit::RecycleConflictNodes(),RooFit::Silence());
+            // wksp->import(pdf_keys,RooFit::RecycleConflictNodes(),RooFit::Silence());
             wksp->Print();
+        }
+        else if (do_kde)
+        {
+            name.str("");
+            name << "kde_" << ibin;
+            std::cout << "min " << u.getMin() << " max " << u.getMax() << " size " << vvu[ibin].size() << " wsize " << vvweight[ibin].size() << std::endl;
+            auto *tkde = new TKDE(vvu[ibin].size(), vvu[ibin].data(), vvweight[ibin].data(), u.getMin(), u.getMax(), "KernelType:Gaussian;Iteration:Adaptive;Mirror:MirrorLeft;Binning:RelaxedBinning", 1.0);
+            std::cout << "before functor1d fine " << std::endl;
+            auto *functor = new ROOT::Math::Functor1D([&](double x)
+                                                      { return (*tkde)(x); });
+            RooFunctor1DPdfBinding pdf_kde(name.str().c_str(), name.str().c_str(), *functor, u);
+            std::cout << "constrution fine " << std::endl;
+            pdf_kde.plotOn(frame, LineColor(kRed));
+            std::cout << "plot fine " << std::endl;
+            wksp->import(pdf_kde);
         }
 
         int sizeParam = 0;

@@ -249,9 +249,15 @@ void fitRecoilWm(TString indir,                    // input ntuple
         // Loop over events
         //
         int iterator = 1;
-        // for(Int_t ientry=0; ientry<intree->GetEntries(); ientry++) {
+        if (do_keys)
+        {
+            // to speed up the RooKeysPdf, we only use 1/20 of the events
+            // otherwise it takes too long
+            // Change the totalNorm accordingly
+            iterator = 20;
+            totalNorm = totalNorm / iterator;
+        }
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator)
-        // for (Int_t ientry = 0; ientry < 1000; ientry++)
         {
             intree->GetEntry(ientry);
 
@@ -338,8 +344,19 @@ void fitRecoilWm(TString indir,                    // input ntuple
 
             vu1Var[ipt].setVal(pU1);
             vu2Var[ipt].setVal(pU2);
-            lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt])); // need to add the weights
-            lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]));
+
+            double weight = scale1fb * lumi / totalNorm;
+            if (isBkgv[ifile] && !sigOnly)
+            {
+                // bkg contribute negatively
+                weight = weight * (-1);
+            }
+            else if (isBkgv[ifile] && sigOnly)
+            {
+                weight = 0;
+            }
+            lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt]), weight); // need to add the weights
+            lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]), weight);
 
             if (isBkgv[ifile])
             {
@@ -770,13 +787,9 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
             c->cd();
             pdf_keys.plotOn(xframe, LineColor(kBlue));
             xframe->Draw();
-
-            c->SaveAs(Form("%s_%d_datasetW.png", plabel, ibin));
-
-            name.str("");
+            c->SaveAs(Form("%s/plots/%s_%d_datasetW.pdf", outputDir, plabel, ibin));
 
             pdf_keys.plotOn(frame, LineColor(kRed));
-
             wksp->import(pdf_keys);
             wksp->Print();
         }
