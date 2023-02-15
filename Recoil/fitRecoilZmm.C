@@ -105,7 +105,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
     // preserving the fine binning at low pT but the higher-pT bins (>75 GeV have been adjusted to be slightly wider)
     // Double_t ptbins[] = { 0, 5.0, 10.0, 15.0, 20.0, 25, 30.0, 40.0, 50.0, 70.0, 100, 200.0, 1000 };
-    // double ptbins[] = {0, 5.0};
+    // double ptbins[] = {0, 100.0};
     Double_t ptbins[] = {0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60, 65, 70, 75, 80, 90, 100, 125, 150, 1000};
     Int_t nbins = sizeof(ptbins) / sizeof(Double_t) - 1;
     TString infilename = indir + fname;
@@ -199,8 +199,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             range = 80;
         if (ptbins[ibin] > 80)
             range = 100;
-        if (ptbins[ibin] > 150)
-            range = 120;
+        if (ptbins[ibin] > 120)
+            range = 150;
 
         sprintf(hname, "hPFu1_%i", ibin);
         // hPFu1v.push_back(new TH1D(hname, "", 100, -range - ptbins[ibin], range - ptbins[ibin]));
@@ -230,11 +230,16 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         vu1Var.push_back(u1Var);
         vu2Var.push_back(u2Var);
 
+        name.str("");
+        name << "weight_" << ibin;
+        RooRealVar weightVar(name.str().c_str(), name.str().c_str(), -10000, 10000);
+
         sprintf(hname, "hDataSetU1_%i", ibin);
-        RooDataSet dataSetU1(hname, hname, RooArgSet(u1Var));
+        RooDataSet dataSetU1(hname, hname, RooArgSet(u1Var, weightVar), WeightVar(weightVar));
+        std::cout << " is Weighted " << dataSetU1.isWeighted() << std::endl;
         lDataSetU1.push_back(dataSetU1);
         sprintf(hname, "hDataSetU2_%i", ibin);
-        RooDataSet dataSetU2(hname, hname, RooArgSet(u2Var));
+        RooDataSet dataSetU2(hname, hname, RooArgSet(u2Var, weightVar), WeightVar(weightVar));
         lDataSetU2.push_back(dataSetU2);
 
         vvu1.push_back(vector<double>());
@@ -254,6 +259,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     for (UInt_t ifile = 0; ifile < fnamev.size(); ifile++)
     {
         cout << "Processing " << fnamev[ifile] << "..." << endl;
+        bool isData = (fnamev[ifile].Contains("data.root"));
+        cout << "IsData = " << isData << endl;
         infile = new TFile(fnamev[ifile]);
         intree = (TTree *)infile->Get("Events");
 
@@ -276,8 +283,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
         TH1D *hGenWeights;
         double totalNorm = 1.0;
-        cout << "Start running recoil calibrations " << endl;
-        if (!infilename.Contains("data"))
+        if (!isData)
         {
             hGenWeights = (TH1D *)infile->Get("hGenWeights");
             totalNorm = hGenWeights->Integral();
@@ -286,12 +292,12 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         // Loop over events
         //
         int iterator = 1;
-        if (do_keys)
+        if (do_keys && sigOnly)
         {
-            // to speed up the RooKeysPdf, we only use 1/2 of the events
+            // to speed up the RooKeysPdf, we only use 1/iterator of the events
             // otherwise it takes too long
             // Change the totalNorm accordingly
-            iterator = 1;
+            iterator = 2;
             totalNorm = totalNorm / iterator;
         }
         for (Int_t ientry = 0; ientry < intree->GetEntries(); ientry += iterator)
@@ -308,7 +314,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             mu2.SetPtEtaPhiM(lep2->Pt(), lep2->Eta(), lep2->Phi(), mu_MASS);
 
             double SF1 = 1, SF2 = 1;
-            if (infilename.Contains("data"))
+            if (isData)
             {
                 SF1 = rc.kScaleDT(q1, mu1.Pt(), mu1.Eta(), mu1.Phi()); //, s=0, m=0);
                 SF2 = rc.kScaleDT(q2, mu2.Pt(), mu2.Eta(), mu2.Phi()); // s=0, m=0);
@@ -349,9 +355,9 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             if (fabs(mu1.Eta()) > ETA_CUT || fabs(mu2.Eta()) > ETA_CUT)
                 continue;
 
-            // if (!isBkgv[ifile]) {
-            if (!infilename.Contains("data"))
+            if (sigOnly)
             {
+                // use GenV only for signals
                 double genVy = genV->Rapidity();
                 if (etaBinCategory == 1 && fabs(genVy) > 0.5)
                     continue;
@@ -369,7 +375,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 if (etaBinCategory == 3 && fabs(etall) < 1)
                     continue;
             }
-            //}
+
             Int_t ipt = -1;
             for (Int_t ibin = 0; ibin < nbins; ibin++)
             {
@@ -412,20 +418,22 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
             pU1 = pU1 + ptll;
 
+            double lumiT = lumi;
+
             if (isBkgv[ifile])
             {
-                hPFu1Bkgv[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
-                hPFu2Bkgv[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
+                hPFu1Bkgv[ipt]->Fill(pU1, scale1fb * lumiT / totalNorm);
+                hPFu2Bkgv[ipt]->Fill(pU2, scale1fb * lumiT / totalNorm);
             }
             else
             {
-                if (infilename.Contains("data"))
+                if (isData)
                 {
                     scale1fb = 1.0;
-                    lumi = 1.0;
+                    lumiT = 1.0;
                 }
-                hPFu1v[ipt]->Fill(pU1, scale1fb * lumi / totalNorm);
-                hPFu2v[ipt]->Fill(pU2, scale1fb * lumi / totalNorm);
+                hPFu1v[ipt]->Fill(pU1, scale1fb * lumiT / totalNorm);
+                hPFu2v[ipt]->Fill(pU2, scale1fb * lumiT / totalNorm);
             }
 
             // this is the dataset for the RooKey
@@ -435,8 +443,8 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 range = 80;
             if (ptbins[ipt] > 80)
                 range = 100;
-            if (ptbins[ipt] > 150)
-                range = 120;
+            if (ptbins[ipt] > 120)
+                range = 150;
             // if (pU1 < (-range - ptbins[ipt]) || pU1 > (range - ptbins[ipt])
             if (pU1 < -range || pU1 > range)
                 continue;
@@ -445,7 +453,7 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             vu1Var[ipt].setVal(pU1);
             vu2Var[ipt].setVal(pU2);
 
-            double weight = scale1fb * lumi / totalNorm;
+            double weight = scale1fb * lumiT / totalNorm;
             if (isBkgv[ifile] && !sigOnly)
             {
                 // bkg contribute negatively
@@ -455,21 +463,24 @@ void fitRecoilZmm(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             {
                 weight = 0;
             }
-            lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt]), weight); // need to add the weights
+            if (ientry < 200)
+                std::cout << "weight = " << weight << " scale1fb " << scale1fb << " lumi " << lumi << " totalNorm " << totalNorm << std::endl;
+            lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt]), weight);
             lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]), weight);
 
+            // for kde fits, not used for now
             if (!isBkgv[ifile])
             {
                 vvu1[ipt].push_back(pU1);
                 vvu2[ipt].push_back(pU2);
-                vvweight[ipt].push_back(scale1fb * lumi / totalNorm);
+                vvweight[ipt].push_back(scale1fb * lumiT / totalNorm);
             }
             else if (isBkgv[ifile] && !sigOnly)
             {
                 // bkg contributes negatively to the distribution
                 vvu1[ipt].push_back(pU1);
                 vvu2[ipt].push_back(pU2);
-                vvweight[ipt].push_back(-scale1fb * lumi / totalNorm);
+                vvweight[ipt].push_back(-scale1fb * lumiT / totalNorm);
             }
         }
         delete infile;
@@ -777,7 +788,6 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         name << "sig_" << ibin;
         // recursive: sig = frac2 * gauss2 + (1-frac2) * gauss1
         RooAddPdf sig(name.str().c_str(), name.str().c_str(), shapes, fracs, true);
-        name.str("");
 
         RooArgList parts;
         parts.add(sig);
@@ -790,10 +800,10 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         name.str("");
         name << "nsig_" << ibin;
-        RooRealVar nsig(name.str().c_str(), name.str().c_str(), 0.98 * (hv[ibin]->Integral()), 0., 1.1 * hv[ibin]->Integral()); // just to be sure that doesn't it the boundary
+        RooRealVar nsig(name.str().c_str(), name.str().c_str(), 0.98 * (hv[ibin]->Integral()), 0., 1.1 * hv[ibin]->Integral()); // just to be sure that doesn't hit the boundary
         name.str("");
         name << "nbkg_" << ibin;
-        RooRealVar nbkg(name.str().c_str(), name.str().c_str(), (hbkgv[ibin]->Integral()), 0., 1.25 * (hbkgv[ibin]->Integral()));
+        RooRealVar nbkg(name.str().c_str(), name.str().c_str(), (hbkgv[ibin]->Integral()), 0.75 * (hbkgv[ibin]->Integral()), 1.25 * (hbkgv[ibin]->Integral()));
         // RooRealVar *lAbkgFrac = new RooRealVar("AbkgFrac", "AbkgFrac", (hv[ibin]->Integral() / (hv[ibin]->Integral() + hbkgv[ibin]->Integral())), 0.9, 1.0);
 
         if (sigOnly)
@@ -819,6 +829,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         {
             fitResultLOG = modelpdf.fitTo(dataHistLog,
                                           NumCPU(4),
+                                          SumW2Error(kTRUE),
                                           Minimizer("Minuit2", "minimize"),
                                           ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
                                           // ExternalConstraints(constGauss3),
@@ -830,6 +841,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         RooFitResult *fitResult = 0;
         fitResult = modelpdf.fitTo(dataHist,
                                    NumCPU(4),
+                                   SumW2Error(kTRUE),
                                    Minimizer("Minuit2", "minimize"),
                                    ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
                                    // ExternalConstraints(constGauss3),
@@ -842,6 +854,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         {
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
+                                       SumW2Error(kTRUE),
                                        // Minimizer("Minuit2","minimize"),
                                        Minimizer("Minuit2", "scan"),
                                        ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
@@ -851,6 +864,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Save());
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
+                                       SumW2Error(kTRUE),
                                        // Minimizer("Minuit2","minimize"),
                                        Minimizer("Minuit2", "migrad"),
                                        ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
@@ -860,6 +874,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Save());
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
+                                       SumW2Error(kTRUE),
                                        // Minimizer("Minuit2","minimize"),
                                        Minimizer("Minuit2", "improve"),
                                        ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
@@ -869,6 +884,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Save());
             fitResult = modelpdf.fitTo(dataHist,
                                        NumCPU(4),
+                                       SumW2Error(kTRUE),
                                        Minimizer("Minuit2", "minimize"),
                                        ExternalConstraints(constGauss1), ExternalConstraints(constGauss2),
                                        // ExternalConstraints(constGauss3),
@@ -876,7 +892,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
                                        RooFit::Strategy(2),
                                        RooFit::Save());
             nTries++;
-        } while ((fitResult->status() > 0 || fitResult->covQual() < 3) && nTries < 3);
+        } while ((fitResult->status() > 0 || fitResult->covQual() < 3) && nTries < 2);
 
         if (doLikelihoodScan && (ibin == 5 || ibin == 15 || ibin == 25))
         {
@@ -1044,11 +1060,11 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
 
         wksp->import(u);
         wksp->import(modelpdf);
-        wksp->import(sig);
-        if (!doLog)
-            wksp->import(bkg);
-        if (doLog)
-            wksp->import(bkgLog);
+        // wksp->import(sig);
+        // if (!doLog)
+        //     wksp->import(bkg);
+        // if (doLog)
+        //     wksp->import(bkgLog);
 
         mean1Arr[ibin] = mean1.getVal();
         mean1ErrArr[ibin] = mean1.getError();
@@ -1081,7 +1097,7 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         // Plot fit results
         //
         RooPlot *frame = u.frame(Bins(100));
-        dataHist.plotOn(frame, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
+        dataHist.plotOn(frame, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"), DataError(RooAbsData::SumW2));
         modelpdf.plotOn(frame);
         frame->GetYaxis()->SetTitleOffset(1.2);
 
@@ -1121,32 +1137,31 @@ void performFit(const vector<TH1D *> hv, const vector<TH1D *> hbkgv, const Doubl
         sig.plotOn(frame, RooFit::LineColor(kBlue));
 
         // redraw the data
-        dataHist.plotOn(frame, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"));
+        dataHist.plotOn(frame, MarkerStyle(kFullCircle), MarkerSize(0.8), DrawOption("ZP"), DataError(RooAbsData::SumW2));
 
         if (do_keys)
         {
-
             // lDataSet[ibin].Print();
             name.str("");
             name << "key_" << ibin;
             // RooKeysPdf * pdf_keys = new RooKeysPdf(name.str().c_str(),name.str().c_str(), u, dataHist, RooKeysPdf::NoMirror, 2);
             RooKeysPdf pdf_keys(name.str().c_str(), name.str().c_str(), lVar[ibin], lDataSet[ibin], RooKeysPdf::NoMirror, 2);
 
-            RooPlot *xframe = lVar[ibin].frame(Title(Form("%s Zp_{T}=%.1f - %.1f GeV/c ", plabel, ptbins[ibin], ptbins[ibin + 1])));
-            lDataSet[ibin].plotOn(xframe);
-            TCanvas *c = new TCanvas("validatePDF", "validatePDF", 800, 800);
+            RooPlot *xframe = lVar[ibin].frame(Bins(100), Title(Form("%s Zp_{T}=%.1f - %.1f GeV/c ", plabel, ptbins[ibin], ptbins[ibin + 1])));
+            lDataSet[ibin].plotOn(xframe, DataError(RooAbsData::SumW2));
+            TCanvas *c = new TCanvas("validatePDF", "validatePDF", 800, 600);
             c->cd();
-            pdf_keys.plotOn(xframe, LineColor(kBlue));
+            pdf_keys.plotOn(xframe, LineColor(kRed));
             xframe->Draw();
             c->SaveAs(Form("%s/plots/%s_%d_dataset.pdf", outputDir, plabel, ibin));
 
             pdf_keys.plotOn(frame, LineColor(kRed));
 
-            // wksp->import(lDataSet[ibin]);
+            wksp->import(lDataSet[ibin]);
             wksp->import(pdf_keys);
             // wksp->import(lVar[ibin],RooFit::RecycleConflictNodes(),RooFit::Silence());
             // wksp->import(pdf_keys,RooFit::RecycleConflictNodes(),RooFit::Silence());
-            wksp->Print();
+            // wksp->Print();
         }
         else if (do_kde)
         {
