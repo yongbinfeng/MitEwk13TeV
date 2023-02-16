@@ -18,10 +18,10 @@
 #include <iostream> // standard I/O
 #include <sstream>
 
-#include "../Utils/CPlot.hh"         // helper class for plots
-#include "../Utils/MitStyleRemix.hh" // style settings for drawing
+#include "MitEwk13TeV/Utils/CPlot.hh"         // helper class for plots
+#include "MitEwk13TeV/Utils/MitStyleRemix.hh" // style settings for drawing
 
-#include "../RochesterCorr/RoccoR.cc"
+#include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
 
 #include "Math/Minimizer.h"
 #include "Math/MinimizerOptions.h"
@@ -169,7 +169,9 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     const Double_t ETA_ECAL_GAP_HIGH = 1.566;
 
     // Setting up rochester corrections
-    RoccoR rc("../RochesterCorr/RoccoR2017.txt");
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+    RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
+
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code

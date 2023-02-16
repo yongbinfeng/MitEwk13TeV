@@ -20,8 +20,8 @@
         //  gROOT->Macro("../Utils/RooVoigtianShape.cc+");
         //   gROOT->Macro("../Utils/RooCMSShape.cc+");
 
-        gROOT->Macro("../Utils/CPlot.cc++");
-        gROOT->Macro("../Utils/MitStyleRemix.cc++");
+        gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/Utils/CPlot.cc+");
+        gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/Utils/MitStyleRemix.cc+");
         //  gROOT->Macro("../Utils/PdfDiagonalizer.cc++");
 
         // gROOT->Macro("../SignalExtraction/RooVoigtianShape.cc+");
@@ -30,7 +30,7 @@
         // gROOT->Macro("../SignalExtraction/CEffUser1D.cc+");
         // gROOT->Macro("../SignalExtraction/CEffUser2D.cc+");
 
-        gROOT->Macro("../RochesterCorr/RoccoR.cc+");
+        gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/RochesterCorr/RoccoR.cc+");
 
         //gROOT->Macro("../Utils/RecoilCorrector_asym2.hh++");
         //{

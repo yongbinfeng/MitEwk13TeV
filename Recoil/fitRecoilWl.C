@@ -17,9 +17,10 @@
 #include <iostream>         // standard I/O
 #include <sstream>
 
-#include "../Utils/CPlot.hh"         // helper class for plots
-#include "../Utils/MitStyleRemix.hh" // style settings for drawing
-#include "../Utils/MyTools.hh"       // various helper functions
+#include "MitEwk13TeV/Utils/CPlot.hh"         // helper class for plots
+#include "MitEwk13TeV/Utils/MitStyleRemix.hh" // style settings for drawing
+#include "MitEwk13TeV/Utils/MyTools.hh"       // various helper functions
+#include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
 
 #include "Math/Minimizer.h"
 #include "Math/MinimizerOptions.h"
@@ -40,7 +41,6 @@
 #include "RooRealVar.h"
 #include "RooWorkspace.h"
 #include "TRandom.h"
-#include <../RochesterCorr/RoccoR.cc>
 #endif
 
 using namespace RooFit;
@@ -151,7 +151,8 @@ void fitRecoilWl(TString indir,                    // input ntuple
     const Double_t ETA_ECAL_GAP_HIGH = 1.566;
 
     // Setting up rochester corrections
-    RoccoR rc("../RochesterCorr/RoccoR2017.txt");
+    const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
+    RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code

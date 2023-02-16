@@ -6,8 +6,10 @@ doZee=True
 doWm=True
 doWe=True
 
+ERA=13TeV
+
 if [ $doZmm = True ]; then
-    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zmumu_pT20
+    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/${ERA}/Selections/Zmumu_pT20
     OUTPUTDIR=$INPUTDIR/merged
 
     if [ ! -d $OUTPUTDIR ]; then
@@ -23,7 +25,7 @@ if [ $doZmm = True ]; then
 fi
 
 if [ $doZee = True ]; then
-    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Zee_pT20
+    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/${ERA}/Selections/Zee_pT20
     OUTPUTDIR=$INPUTDIR/merged
 
     if [ ! -d $OUTPUTDIR ]; then
@@ -39,7 +41,7 @@ if [ $doZee = True ]; then
 fi
 
 if [ $doWm = True ]; then
-    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Wmunu
+    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/${ERA}/Selections/Wmunu
     OUTPUTDIR=$INPUTDIR/merged
 
     if [ ! -d $OUTPUTDIR ]; then
@@ -55,7 +57,7 @@ if [ $doWm = True ]; then
 fi
 
 if [ $doWe = True ]; then
-    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/13TeV/Selections/Wenu
+    INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/${ERA}/Selections/Wenu
     OUTPUTDIR=$INPUTDIR/merged
 
     if [ ! -d $OUTPUTDIR ]; then
