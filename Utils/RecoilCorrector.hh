@@ -66,7 +66,7 @@ public:
     void loadRooWorkspacesDiagMC(string iNameFile, int iPar, int sigma);
     void loadRooWorkspacesDiagData(string iNameFile, int iPar, int sigma);
 
-    void CorrectInvCdf(double &pfmet, double &pfmetphi, double iGenPt, double iGenPhi, double iLepPt, double iLepPhi, double &iU1, double &iU2, double iFluc, double iScale = 0, int njet = 0, bool dokeys = false, bool doDiago = false);
+    void CorrectInvCdf(double &pfmet, double &pfmetphi, double iGenPt, double iGenPhi, double iLepPt, double iLepPhi, double &iU1, double &iU2, double iFluc, double iScale = 0, int njet = 0, bool dokeys = false, bool doDiago = false, bool oldSetup = false);
 
     // Double_t dMean(const TF1 *fcn, const Double_t x, const TFitResult  *fs);
     // Double_t dSigma(const TF1 *fcn, const Double_t x, const TFitResult *fs);
@@ -80,7 +80,7 @@ public:
 protected:
     void metDistributionInvCdf(double &iMet, double &iMPhi, double iGenPt, double iGenPhi,
                                double iLepPt, double iLepPhi,
-                               double &iU1, double &iU2, double iFluc = 0, double iScale = 0);
+                               double &iU1, double &iU2, double iFluc = 0, double iScale = 0, bool oldSetup = false);
 
     double invertCDF(double p, RooAbsReal *cdfMC, RooAbsReal *cdfData, RooRealVar *xd, RooRealVar *xm);
 
@@ -352,11 +352,11 @@ void RecoilCorrector::loadRooWorkspacesMCtoCorrectKeys(std::string iFName)
     std::cout << "Loaded Workspaces Source MC - Keys" << std::endl;
 }
 
-void RecoilCorrector::CorrectInvCdf(double &met, double &metphi, double lGenPt, double lGenPhi, double lepPt, double lepPhi, double &iU1, double &iU2, double iFluc, double iScale, int njet, bool useKeys, bool diago)
+void RecoilCorrector::CorrectInvCdf(double &met, double &metphi, double lGenPt, double lGenPhi, double lepPt, double lepPhi, double &iU1, double &iU2, double iFluc, double iScale, int njet, bool useKeys, bool diago, bool oldSetup)
 {
     dokeys = useKeys;
     doDiago = diago;
-    metDistributionInvCdf(met, metphi, lGenPt, lGenPhi, lepPt, lepPhi, iU1, iU2, iFluc, iScale);
+    metDistributionInvCdf(met, metphi, lGenPt, lGenPhi, lepPt, lepPhi, iU1, iU2, iFluc, iScale, oldSetup);
 }
 
 // this could be cleaned up a bit... i think some of the PDFs are unnecessary
@@ -378,9 +378,8 @@ double RecoilCorrector::invertCDF(double p, RooAbsReal *cdfMC, RooAbsReal *cdfDa
 // The one we actually use, clean it up a bit
 void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double iGenPt, double iGenPhi,
                                             double iLepPt, double iLepPhi,
-                                            double &iU1, double &iU2, double iFluc, double iScale)
+                                            double &iU1, double &iU2, double iFluc, double iScale, bool oldSetup)
 {
-    double iGenPt2 = 0; // literally never used, also delete this variable
     Int_t nbinsPt = vZPtBins.size() - 1;
     int iBin = -1;
     for (int i = 0; i < nbinsPt; ++i)
@@ -388,7 +387,6 @@ void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double 
         if (iGenPt > vZPtBins[nbinsPt])
         {
             iBin = nbinsPt - 1;
-            iGenPt2 = (vZPtBins[nbinsPt - 1] + vZPtBins[nbinsPt - 2]) * 0.5;
             break;
         }
         if (vZPtBins[i + 1] < iGenPt)
@@ -398,7 +396,6 @@ void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double 
         if (iGenPt < vZPtBins[i + 1] && vZPtBins[i] <= iGenPt)
         {
             iBin = i;
-            iGenPt2 = (vZPtBins[i + 1] + vZPtBins[i]) * 0.5;
             break;
         }
     }
@@ -412,6 +409,13 @@ void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double 
     double pSin = (pUX * sin(iGenPhi) - pUY * cos(iGenPhi)) / pU;
     double pU1 = pU * pCos; // U1 in sample to Correct (WMC or ZMC)
     double pU2 = pU * pSin; // U2 in sample to Correct (WMC or ZMC)
+
+    if (!oldSetup)
+    {
+        // in the new setup pU1 entering the fit is acually pU1 + genVPt,
+        // such that the mean value can be around 0.
+        pU1 = pU1 + iGenPt;
+    }
 
     RooAbsPdf *thisPdfMCU1toCorr;
     RooAbsReal *thisCdfMCU1toCorr;
@@ -605,13 +609,19 @@ void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double 
     double pU2ValMzlike = invertCDF(pU2, thisCdfMCU2toCorr, thisCdfMCU2, myXmU2, myXmcU2);
 
     // invert the target MC (Z) to the (ZDATA)
-    double pU2ValDzlike = invertCDF(pU2ValMzlike, thisCdfMCU2, thisCdfDataU2, myXdU2, myXmU2);
     double pU1ValDzlike = invertCDF(pU1ValMzlike, thisCdfMCU1, thisCdfDataU1, myXdU1, myXmU1);
+    double pU2ValDzlike = invertCDF(pU2ValMzlike, thisCdfMCU2, thisCdfDataU2, myXdU2, myXmU2);
 
     // cout << "done both inversion" << endl;
     // have the newW recoil as WrecoilMC + Difference in Zdata/MC
     pU1 = pU1 + (pU1ValDzlike - pU1ValMzlike); // should this be addition or multiplication....
     pU2 = pU2 + (pU2ValDzlike - pU2ValMzlike);
+
+    if (!oldSetup)
+    {
+        pU1 = pU1 - iGenPt;
+    }
+
     iMet = calculate(0, iLepPt, iLepPhi, iGenPhi, pU1, pU2);
     iMPhi = calculate(1, iLepPt, iLepPhi, iGenPhi, pU1, pU2);
     // cout << "done" << endl;

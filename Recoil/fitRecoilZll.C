@@ -331,6 +331,8 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 }
                 else
                 {
+                    // FIX: genlep1 and genlep2 does not match with reco lep1 and lep2
+                    // should use genMuonPt1 and genMuonPt2 instead
                     SF1 = rc.kSpreadMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genlep1->Pt()); //, s=0, m=0);
                     SF2 = rc.kSpreadMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), genlep2->Pt()); //, s=0, m=0);
                     if (genlep1->Pt() == 0 && genlep2->Pt() == 0)
