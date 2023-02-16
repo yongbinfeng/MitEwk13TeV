@@ -70,6 +70,9 @@ def ReadBashScript(ifilename, ijob):
                 
 
 if __name__ == "__main__":
+    #
+    # 13 TeV
+    #
     jobscript = "runRecoilFits13TeV.sh"    
     njobs = GetNJobs(jobscript)
     print("Found %d jobs in %s" % (njobs, jobscript))
@@ -77,6 +80,16 @@ if __name__ == "__main__":
     for ijob in range(njobs):
         cmd = ReadBashScript(jobscript, ijob)
         print(cmd)
-        
         GenerateExecutable(cmd, "13TeV", ijob) 
-        #GenerateExecutable(macro, confname, outdir, ijob, logsuffix)
+        
+    #
+    # 5 TeV
+    #
+    jobscript = "runRecoilFits5TeV.sh"
+    njobs = GetNJobs(jobscript)
+    print("Found %d jobs in %s" % (njobs, jobscript))
+    
+    for ijob in range(njobs):
+        cmd = ReadBashScript(jobscript, ijob)
+        print(cmd)
+        GenerateExecutable(cmd, "5TeV", ijob)

@@ -6,7 +6,7 @@ doZee=True
 doWm=True
 doWe=True
 
-ERA=13TeV
+ERA=13TeV/20230213
 
 if [ $doZmm = True ]; then
     INPUTDIR=/eos/uscms/store/user/yofeng/Ntuples_LowPU/${ERA}/Selections/Zmumu_pT20

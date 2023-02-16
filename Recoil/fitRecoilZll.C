@@ -148,7 +148,9 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         isBkgv.push_back(kTRUE);
         fnamev.push_back(indir + "ww.root");
         isBkgv.push_back(kTRUE);
-        fnamev.push_back(indir + "zz.root");
+        fnamev.push_back(indir + "zz2l.root");
+        isBkgv.push_back(kTRUE);
+        fnamev.push_back(indir + "zz4l.root");
         isBkgv.push_back(kTRUE);
         fnamev.push_back(indir + "wz.root");
         isBkgv.push_back(kTRUE);
@@ -171,7 +173,6 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     // Setting up rochester corrections
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
     RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
-
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -297,7 +298,7 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             totalNorm = hGenWeights->Integral();
         }
         int iterator = 1;
-        if (do_keys && sigOnly)
+        if (do_keys && sigOnly && !do_5TeV)
         {
             // to speed up the RooKeysPdf, we only use 1/iterator of the events
             // otherwise it takes too long

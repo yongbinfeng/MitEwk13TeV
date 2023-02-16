@@ -268,18 +268,20 @@ void fitRecoilWl(TString indir,                    // input ntuple
         }
 
         int iterator = 1;
-        if (do_keys and sigOnly)
+        if (do_keys and sigOnly and !do_5TeV)
         {
             // to speed up the RooKeysPdf, we only use 1/iterator of the events
             // otherwise it takes too long
             // Change the totalNorm accordingly
             if (ifile == 0)
-                iterator = 50;
+                iterator = 20;
             else if (ifile == 1)
-                iterator = 10;
+                iterator = 5;
             else
                 iterator = 2;
         }
+        // if (do_5TeV and sigOnly)
+        //     iterator = 2;
         totalNorm = totalNorm / iterator;
 
         //
@@ -468,6 +470,19 @@ void fitRecoilWl(TString indir,                    // input ntuple
                do_5TeV);
     sprintf(outpdfname, "%s/%s.root", outputDir.Data(), "pdfsU2");
     pdfsU2.writeToFile(outpdfname);
+
+    // Save histograms
+    char outhistname[50];
+    sprintf(outhistname, "%s/%s.root", outputDir.Data(), "histos");
+    TFile *ofile = new TFile(outhistname, "recreate");
+    for (Int_t ibin = 0; ibin < nbins; ibin++)
+    {
+        hPFu1v[ibin]->Write();
+        hPFu2v[ibin]->Write();
+        hPFu1Bkgv[ibin]->Write();
+        hPFu2Bkgv[ibin]->Write();
+    }
+    ofile->Close();
 
     delete infile;
     infile = 0, intree = 0;
