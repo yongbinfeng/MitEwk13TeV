@@ -13,7 +13,8 @@
 #include <TFitResult.h>     // class to handle fit results
 #include <TGraphErrors.h>   // graph class
 #include <TLatex.h>
-#include <TTree.h>  // class to access ntuples
+#include <TTree.h> // class to access ntuples
+#include <TRandom3.h>
 #include <fstream>  // standard I/O
 #include <iostream> // standard I/O
 #include <sstream>
@@ -260,8 +261,10 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     TH1D *hGenWeights = 0;
 
     UInt_t category;
+    UInt_t nTkLayers1, nTkLayers2;
     Float_t scale1fb;
     Float_t met, metPhi;
+    Float_t genMuonPt1, genMuonPt2;
     Int_t q1, q2;
     TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *lep1_raw = 0, *lep2_raw = 0, *genlep1 = 0, *genlep2 = 0, *genV = 0;
 
@@ -284,7 +287,16 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         intree->SetBranchAddress("lep2", &lep2);              // probe lepton 4-vector
         intree->SetBranchAddress("genlep1", &genlep1);        // tag lepton 4-vector
         intree->SetBranchAddress("genlep2", &genlep2);        // probe lepton 4-vector
-        intree->SetBranchAddress("genV", &genV);              // generator Z boson
+        if (!doElectron)
+        {
+            // because genlep1 and genlep2 are not always matched to reco lep1 and lep2
+            intree->SetBranchAddress("genMuonPt1", &genMuonPt1); // tag lepton 4-vector
+            intree->SetBranchAddress("genMuonPt2", &genMuonPt2); // probe lepton 4-vector
+
+            intree->SetBranchAddress("nTkLayers1", &nTkLayers1); // number of tracker layers with hits
+            intree->SetBranchAddress("nTkLayers2", &nTkLayers2); // number of tracker layers with hits
+        }
+        intree->SetBranchAddress("genV", &genV); // generator Z boson
         if (doElectron)
         {
             intree->SetBranchAddress("lep1_raw", &lep1_raw); // tag lepton 4-vector
@@ -331,14 +343,21 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 }
                 else
                 {
-                    // FIX: genlep1 and genlep2 does not match with reco lep1 and lep2
-                    // should use genMuonPt1 and genMuonPt2 instead
-                    SF1 = rc.kSpreadMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genlep1->Pt()); //, s=0, m=0);
-                    SF2 = rc.kSpreadMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), genlep2->Pt()); //, s=0, m=0);
-                    if (genlep1->Pt() == 0 && genlep2->Pt() == 0)
+                    if (genMuonPt1 > 0)
                     {
-                        SF1 = 1;
-                        SF2 = 1;
+                        SF1 = rc.kSpreadMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt1); //, s=0, m=0);
+                    }
+                    else
+                    {
+                        SF1 = rc.kSmearMC(q1, mu1.Pt(), mu1.Eta(), mu1.Phi(), nTkLayers1, gRandom->Uniform(1));
+                    }
+                    if (genMuonPt2 > 0)
+                    {
+                        SF2 = rc.kSpreadMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), genMuonPt2); //, s=0, m=0);
+                    }
+                    else
+                    {
+                        SF2 = rc.kSmearMC(q2, mu2.Pt(), mu2.Eta(), mu2.Phi(), nTkLayers2, gRandom->Uniform(1));
                     }
                 }
                 mu1 *= SF1;
@@ -352,6 +371,8 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
 
             // if (!isBkgv[ifile]) {
             //  YB: I dont understand why bkg does not need to apply these cuts
+            if (q1 * q2 > 0)
+                continue;
             if (category != 1 && category != 2 && category != 3)
                 continue;
             if (mll < MASS_LOW || mll > MASS_HIGH)

@@ -228,7 +228,6 @@ void fitRecoilWl(TString indir,                    // input ntuple
     //
     UInt_t runNum, lumiSec, evtNum;
     // UInt_t  npv, npu;
-    Float_t genMuonPt;
     Float_t scale1fb, puWeight; //, scale1fbUp, scale1fbDown;
     Float_t met, metPhi;        //, mt, u1, u2;
     Int_t q;
