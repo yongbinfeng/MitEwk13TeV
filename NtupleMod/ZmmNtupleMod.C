@@ -157,7 +157,7 @@ void ZmmNtupleMod(
 
     RecoilCorrector *rcMainZ = new RecoilCorrector("", "");
     rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
-    rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesData(Form("%s/ZmmData_PF_%s_2G/", directory.Data(), sqrts.Data()));
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
     //
@@ -180,10 +180,6 @@ void ZmmNtupleMod(
         eMuSta,
         eMuTrk
     }; // event category enum
-
-    // // histograms for full selection
-    // double ZPtBins[]={0,1.25,2.5,3.75,5,6.25,7.5,8.75,10,11.25,12.5,15,17.5,20,25,30,35,40,45,50,60,70,80,90,100,110,130,150,170,190,220,250,400,1000};
-    // double Lep1PtBins[]={25,26.3,27.6,28.9,30.4,31.9,33.5,35.2,36.9,38.8,40.7,42.8,44.9,47.1,49.5,52.0,54.6,57.3,60.7,65.6,72.2,80.8,92.1,107,126,150,200,300};
 
     // Create output directory
     gSystem->mkdir(outputDir, kTRUE);
@@ -337,6 +333,10 @@ void ZmmNtupleMod(
             continue;
         // cout << "pass trigger?" << endl;
 
+        TVector2 vLepRaw1, vLepRaw2;
+        vLepRaw1.Set((lep1->Pt()) * cos(lep1->Phi()), (lep1->Pt()) * sin(lep1->Phi()));
+        vLepRaw2.Set((lep2->Pt()) * cos(lep2->Phi()), (lep2->Pt()) * sin(lep2->Phi()));
+
         if (filetype == eData)
         {
 
@@ -371,25 +371,37 @@ void ZmmNtupleMod(
 
             mass = (mu1 + mu2).M();
 
-            // skip the impactos of lepton energy scale correction on MET as they are minor
-            metVars[no] = met;
-            metVarsPhi[no] = metPhi;
+            TVector2 vLepCor1((mu1.Pt()) * cos(mu1.Phi()), (mu1.Pt()) * sin(mu1.Phi()));
+            TVector2 vLepCor2((mu2.Pt()) * cos(mu2.Phi()), (mu2.Pt()) * sin(mu2.Phi()));
+            TVector2 vMetCorr((met)*cos(metPhi), (met)*sin(metPhi));
+            Double_t corrMetWithLepton = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Mod();
+            Double_t corrMetWithLeptonPhi = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Phi();
+
+            TLorentzVector dl = mu1 + mu2;
+
+            double pUX = corrMetWithLepton * cos(corrMetWithLeptonPhi) + dl.Pt() * cos(dl.Phi());
+            double pUY = corrMetWithLepton * sin(corrMetWithLeptonPhi) + dl.Pt() * sin(dl.Phi());
+            double pU = sqrt(pUX * pUX + pUY * pUY);
+            double pCos = -(pUX * cos(dl.Phi()) + pUY * sin(dl.Phi())) / pU;
+            double pSin = (pUX * sin(dl.Phi()) - pUY * cos(dl.Phi())) / pU;
+            pU1 = pU * pCos; // U1 in data
+            pU2 = pU * pSin; // U2 in data
+
+            metVars[no] = corrMetWithLepton;
+            metVarsPhi[no] = corrMetWithLeptonPhi;
 
             // for data, no correction on recoil
-            metVars[cent] = met;
-            metVarsPhi[cent] = metPhi;
-            pU1 = u1;
-            pU2 = u2;
+            metVars[cent] = corrMetWithLepton;
+            metVarsPhi[cent] = corrMetWithLeptonPhi;
 
             // correct MET XY for data
-            metVars[cxy] = met;
-            metVarsPhi[cxy] = metPhi;
+            metVars[cxy] = corrMetWithLepton;
+            metVarsPhi[cxy] = corrMetWithLeptonPhi;
             // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
             // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1_postXY, pU2_postXY);
         }
         else
         {
-
             TLorentzVector mu1;
             TLorentzVector mu2;
             mu1.SetPtEtaPhiM(lep1->Pt(), lep1->Eta(), lep1->Phi(), mu_MASS);
@@ -504,14 +516,26 @@ void ZmmNtupleMod(
             mass = (mu1 + mu2).M();
 
             // recoil corrections
-            metVars[no] = met;
-            metVarsPhi[no] = metPhi;
-            metVars[cent] = met;
-            metVarsPhi[cent] = metPhi;
+            TVector2 vLepCor1((mu1.Pt()) * cos(mu1.Phi()), (mu1.Pt()) * sin(mu1.Phi()));
+            TVector2 vLepCor2((mu2.Pt()) * cos(mu2.Phi()), (mu2.Pt()) * sin(mu2.Phi()));
+            TVector2 vMetCorr((met)*cos(metPhi), (met)*sin(metPhi));
+            Double_t corrMetWithLepton = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Mod();
+            Double_t corrMetWithLeptonPhi = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Phi();
 
-            // to save the corrected U1 and U2
-            pU1 = u1;
-            pU2 = u2;
+            TLorentzVector dl = mu1 + mu2;
+            double pUX = corrMetWithLepton * cos(corrMetWithLeptonPhi) + dl.Pt() * cos(dl.Phi());
+            double pUY = corrMetWithLepton * sin(corrMetWithLeptonPhi) + dl.Pt() * sin(dl.Phi());
+            double pU = sqrt(pUX * pUX + pUY * pUY);
+            double pCos = -(pUX * cos(dl.Phi()) + pUY * sin(dl.Phi())) / pU;
+            double pSin = (pUX * sin(dl.Phi()) - pUY * cos(dl.Phi())) / pU;
+            pU1 = pU * pCos; // U1 in data
+            pU2 = pU * pSin; // U2 in data:
+
+            metVars[no] = corrMetWithLepton;
+            metVarsPhi[no] = corrMetWithLeptonPhi;
+            metVars[cent] = corrMetWithLepton;
+            metVarsPhi[cent] = corrMetWithLeptonPhi;
+
             if (isRecoil)
             {
                 rcMainZ->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genV->Pt(), genV->Phi(), (mu1 + mu2).Pt(), (mu1 + mu2).Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);

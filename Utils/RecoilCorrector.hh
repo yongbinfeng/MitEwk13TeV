@@ -81,7 +81,6 @@ protected:
     void metDistributionInvCdf(double &iMet, double &iMPhi, double iGenPt, double iGenPhi,
                                double iLepPt, double iLepPhi,
                                double &iU1, double &iU2, double iFluc = 0, double iScale = 0, bool oldSetup = false);
-
     double invertCDF(double p, RooAbsReal *cdfMC, RooAbsReal *cdfData, RooRealVar *xd, RooRealVar *xm);
 
     double calculate(int iMet, double iEPt, double iEPhi, double iWPhi, double iU1, double iU2);
@@ -102,7 +101,7 @@ protected:
     // preserving the fine binning at low pT but the higher-pT bins (>75 GeV have been adjusted to be slightly wider)
     std::vector<double> vZPtBins = {0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60, 65, 70, 75, 80, 90, 100, 125, 150, 1000};
 
-    int nBins = vZPtBins.size() - 1;
+    uint nBins = vZPtBins.size() - 1;
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
@@ -128,7 +127,7 @@ void RecoilCorrector::loadRooWorkspacesData(std::string iFName)
     rooWData[1] = (RooWorkspace *)lFile2->Get("pdfsU2");
     lFile2->Delete();
 
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         TString name;
         name = Form("sig_%i", i);
@@ -166,7 +165,7 @@ void RecoilCorrector::loadRooWorkspacesDiagMCtoCorrect(std::string iFName, int i
         sigma2 = sigma;
     }
 
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         RooFitResult *fitresultU1; //= (RooFitResult*)lFile->FindObject(Form("fitResultU1_%d",i));
         lFile->GetObject(Form("fitResultU1_%d", i), fitresultU1);
@@ -205,7 +204,7 @@ void RecoilCorrector::loadRooWorkspacesDiagMC(std::string iFName, int iPar, int 
         iPar2 = iPar - 6;
         sigma2 = sigma;
     }
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         RooFitResult *fitresultU1; //= (RooFitResult*)lFile->FindObject(Form("fitResultU1_%d",i));
         lFile->GetObject(Form("fitResultU1_%d", i), fitresultU1);
@@ -245,7 +244,7 @@ void RecoilCorrector::loadRooWorkspacesDiagData(std::string iFName, int iPar, in
         sigma2 = sigma;
     }
     std::cout << iPar << " " << iPar1 << "  " << sigma1 << " " << iPar2 << "  " << sigma2 << std::endl;
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         RooFitResult *fitresultU1; //= (RooFitResult*)lFile->FindObject(Form("fitResultU1_%d",i));
         lFile->GetObject(Form("fitResultU1_%d", i), fitresultU1);
@@ -277,7 +276,7 @@ void RecoilCorrector::loadRooWorkspacesMC(std::string iFName)
 
     lFile2->Delete();
     // cout << "what" << endl;
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         std::stringstream name;
         name << "sig_" << i;
@@ -306,7 +305,7 @@ void RecoilCorrector::loadRooWorkspacesMCtoCorrect(std::string iFName)
     TFile *lFile2 = new TFile((iFName + "pdfsU2.root").c_str());
     rooWMCtoCorr[1] = (RooWorkspace *)lFile2->Get("pdfsU2");
     lFile2->Delete();
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         TString name;
         name = Form("sig_%i", i);
@@ -333,7 +332,7 @@ void RecoilCorrector::loadRooWorkspacesMCtoCorrectKeys(std::string iFName)
     TFile *lFile2 = new TFile((iFName + "pdfsU2.root").c_str());
     rooWMCtoCorr[1] = (RooWorkspace *)lFile2->Get("pdfsU2");
     lFile2->Delete();
-    for (uint i = 0; i < vZPtBins.size() - 1; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
         std::stringstream name;
         name << "key_" << i;
@@ -380,27 +379,32 @@ void RecoilCorrector::metDistributionInvCdf(double &iMet, double &iMPhi, double 
                                             double iLepPt, double iLepPhi,
                                             double &iU1, double &iU2, double iFluc, double iScale, bool oldSetup)
 {
-    Int_t nbinsPt = vZPtBins.size() - 1;
     int iBin = -1;
-    for (int i = 0; i < nbinsPt; ++i)
+    for (uint i = 0; i < nBins; ++i)
     {
-        if (iGenPt > vZPtBins[nbinsPt])
+        if (iGenPt <= vZPtBins[0])
         {
-            iBin = nbinsPt - 1;
+            // underflow
+            iBin = 0;
             break;
         }
-        if (vZPtBins[i + 1] < iGenPt)
-            continue;
-        if (vZPtBins[i] > iGenPt)
-            continue;
-        if (iGenPt < vZPtBins[i + 1] && vZPtBins[i] <= iGenPt)
+        if (iGenPt > vZPtBins[nBins])
+        {
+            // overflow
+            iBin = nBins - 1;
+            break;
+        }
+        if (iGenPt > vZPtBins[i] && iGenPt <= vZPtBins[i + 1])
         {
             iBin = i;
             break;
         }
     }
     if (iBin < 0)
+    {
+        std::cout << "Bug found: Gen Pt " << iGenPt << std::endl;
         return;
+    }
 
     double pUX = iMet * cos(iMPhi) + iLepPt * cos(iLepPhi);
     double pUY = iMet * sin(iMPhi) + iLepPt * sin(iLepPhi);

@@ -134,7 +134,7 @@ void ZeeNtupleMod(
     const TString directory((envStr + "Corrections/RecoilNew").Data());
     RecoilCorrector *rcMainZ = new RecoilCorrector("", "");
     rcMainZ->loadRooWorkspacesMCtoCorrect(Form("%s/ZeeMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
-    rcMainZ->loadRooWorkspacesData(Form("%s/ZeeData_PF_%s_2G_bkg_fixRoch/", directory.Data(), sqrts.Data()));
+    rcMainZ->loadRooWorkspacesData(Form("%s/ZeeData_PF_%s_2G/", directory.Data(), sqrts.Data()));
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZeeMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
     //
@@ -246,16 +246,16 @@ void ZeeNtupleMod(
     intree->SetBranchAddress("u1", &u1);         // u1
     intree->SetBranchAddress("u2", &u2);         // u2
     // intree->SetBranchAddress("genVMass", &genVMass); // event weight per 1/fb (MC)
-    intree->SetBranchAddress("genV", &genV);     // lepton 4-vector
-    intree->SetBranchAddress("q1", &q1);         // charge of tag lepton
-    intree->SetBranchAddress("q2", &q2);         // charge of probe lepton
-    intree->SetBranchAddress("lep1_raw", &lep1); // tag lepton 4-vector
-    intree->SetBranchAddress("lep2_raw", &lep2); // probe lepton 4-vector
-    // intree->SetBranchAddress("lep1_raw",       &lep1_raw);        // tag lepton 4-vector
-    // intree->SetBranchAddress("lep2_raw",       &lep2_raw);        // probe lepton 4-vector
-    intree->SetBranchAddress("sc1", &sc1);     // sc1 4-vector
-    intree->SetBranchAddress("sc2", &sc2);     // sc2 4-vector
-    intree->SetBranchAddress("dilep", &dilep); // sc2 4-vector
+    intree->SetBranchAddress("genV", &genV);         // lepton 4-vector
+    intree->SetBranchAddress("q1", &q1);             // charge of tag lepton
+    intree->SetBranchAddress("q2", &q2);             // charge of probe lepton
+    intree->SetBranchAddress("lep1", &lep1);         // tag lepton 4-vector
+    intree->SetBranchAddress("lep2", &lep2);         // probe lepton 4-vector
+    intree->SetBranchAddress("lep1_raw", &lep1_raw); // raw tag lepton 4-vector
+    intree->SetBranchAddress("lep2_raw", &lep2_raw); // raw probe lepton 4-vector
+    intree->SetBranchAddress("sc1", &sc1);           // sc1 4-vector
+    intree->SetBranchAddress("sc2", &sc2);           // sc2 4-vector
+    intree->SetBranchAddress("dilep", &dilep);       // sc2 4-vector
     // intree->SetBranchAddress("dilepSC",   &dilepSC);      // sc2 4-vector
     intree->SetBranchAddress("r91", &r91); // sc2 4-vector
     intree->SetBranchAddress("r92", &r92); // sc2 4-vector
@@ -332,7 +332,6 @@ void ZeeNtupleMod(
     // for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
     for (Long64_t ientry = IBEGIN; ientry < IEND; ientry++)
     {
-        // for(UInt_t ientry=0; ientry<1000; ientry++) {
         if (ientry % 100000 == 0)
             cout << "Processing event " << ientry << ". " << (double)ientry / (double)intree->GetEntries() * 100 << " percent done with this file." << endl;
         intree->GetEntry(ientry);
@@ -366,6 +365,26 @@ void ZeeNtupleMod(
 
         if (!(category == 1) && !(category == 2) && !(category == 3))
             continue;
+
+        // propogate lepton energy scale corrections to MET
+        TVector2 vLepRaw1, vLepRaw2;
+        vLepRaw1.Set((lep1_raw->Pt()) * cos(lep1_raw->Phi()), (lep1_raw->Pt()) * sin(lep1_raw->Phi()));
+        vLepRaw2.Set((lep2_raw->Pt()) * cos(lep2_raw->Phi()), (lep2_raw->Pt()) * sin(lep2_raw->Phi()));
+        TVector2 vLepCor1((lep1->Pt()) * cos(lep1->Phi()), (lep1->Pt()) * sin(lep1->Phi()));
+        TVector2 vLepCor2((lep2->Pt()) * cos(lep2->Phi()), (lep2->Pt()) * sin(lep2->Phi()));
+        TVector2 vMetCorr((met)*cos(metPhi), (met)*sin(metPhi));
+        Double_t corrMetWithLepton = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Mod();
+        Double_t corrMetWithLeptonPhi = (vMetCorr + vLepRaw1 + vLepRaw2 - vLepCor1 - vLepCor2).Phi();
+
+        TLorentzVector dl = (*lep1) + (*lep2);
+        double pUX = corrMetWithLepton * cos(corrMetWithLeptonPhi) + dl.Pt() * cos(dl.Phi());
+        double pUY = corrMetWithLepton * sin(corrMetWithLeptonPhi) + dl.Pt() * sin(dl.Phi());
+        double pU = sqrt(pUX * pUX + pUY * pUY);
+        double pCos = -(pUX * cos(dl.Phi()) + pUY * sin(dl.Phi())) / pU;
+        double pSin = (pUX * sin(dl.Phi()) - pUY * cos(dl.Phi())) / pU;
+        pU1 = pU * pCos;
+        pU2 = pU * pSin;
+
         if (filetype == eData)
         {
 
@@ -403,21 +422,17 @@ void ZeeNtupleMod(
             // double massD = (l1D + l2D).M();
 
             mass = (l1 + l2).M();
-            // mass=dilepSC->M();
 
-            // skip the impactos of lepton energy scale correction on MET as they are minor
-            metVars[no] = met;
-            metVarsPhi[no] = metPhi;
+            metVars[no] = corrMetWithLepton;
+            metVarsPhi[no] = corrMetWithLeptonPhi;
 
             // for data, no correction on recoil
-            metVars[cent] = met;
-            metVarsPhi[cent] = metPhi;
-            pU1 = u1;
-            pU2 = u2;
+            metVars[cent] = corrMetWithLepton;
+            metVarsPhi[cent] = corrMetWithLeptonPhi;
 
             // correct MET XY for data
-            metVars[cxy] = met;
-            metVarsPhi[cxy] = metPhi;
+            metVars[cxy] = corrMetWithLepton;
+            metVarsPhi[cxy] = corrMetWithLeptonPhi;
             // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
             // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1_postXY, pU2_postXY);
         }
@@ -496,14 +511,12 @@ void ZeeNtupleMod(
             mass = (l1 + l2).M();
 
             // recoil corrections
-            metVars[no] = met;
-            metVarsPhi[no] = metPhi;
-            metVars[cent] = met;
-            metVarsPhi[cent] = metPhi;
+            metVars[no] = corrMetWithLepton;
+            metVarsPhi[no] = corrMetWithLeptonPhi;
+            metVars[cent] = corrMetWithLepton;
+            metVarsPhi[cent] = corrMetWithLeptonPhi;
 
             // to save the corrected U1 and U2
-            pU1 = u1;
-            pU2 = u2;
             if (isRecoil)
             {
                 rcMainZ->CorrectInvCdf(metVars[cent], metVarsPhi[cent], genV->Pt(), genV->Phi(), (l1 + l2).Pt(), (l1 + l2).Phi(), pU1, pU2, 0, 0, 0, kFALSE, kFALSE);
