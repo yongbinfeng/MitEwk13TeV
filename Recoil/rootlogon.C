@@ -29,7 +29,7 @@
         // gROOT->Macro("../SignalExtraction/RooVoigtianShape.cc+");
         // gROOT->Macro("../SignalExtraction/RooCMSShape.cc+");
 
-        gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/Utils/CEffUser2D.cc++");
+        gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/Utils/CEffUser2D.cc+");
         gROOT->Macro("$CMSSW_BASE/src/MitEwk13TeV/RochesterCorr/RoccoR.cc+");
 
         // gROOT->Macro("../Utils/RecoilCorrector_asym2.hh++");
