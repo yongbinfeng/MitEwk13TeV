@@ -79,11 +79,13 @@ void eleNtupleMod(const TString outputDir, // output directory
         stat6,
         stat7,
         stat8,
-        stat9
+        stat9,
+        org
     };
-    const string vMET[] = {"no", "cent", "eta", "keys", "ru", "rd", "stat0", "stat1", "stat2", "stat3", "stat4", "stat5", "stat6", "stat7", "stat8", "stat9"};
+    const string vMET[] = {"no", "cent", "eta", "keys", "ru", "rd", "stat0", "stat1", "stat2", "stat3", "stat4", "stat5", "stat6", "stat7", "stat8", "stat9", "org"};
     int nMET = sizeof(vMET) / sizeof(vMET[0]);
-    int ns = nMET - nNV;
+    // int ns = nMET - nNV;
+    int ns = 6;
     // front half should be nMET-nNV
 
     enum
@@ -120,8 +122,9 @@ void eleNtupleMod(const TString outputDir, // output directory
 
     const Double_t PT_CUT = 25;
     const Double_t ETA_CUT = 2.4;
-
     const Double_t ELE_MASS = 0.000511;
+
+    const bool doMETXYCorrection = true;
 
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
@@ -241,6 +244,11 @@ void eleNtupleMod(const TString outputDir, // output directory
         rcKeysWm->loadRooWorkspacesData(Form("%s/ZeeData_PF_%s_Keys/", directory.Data(), sqrts.Data()));
         rcKeysWm->loadRooWorkspacesMC(Form("%s/ZeeMC_PF_%s_Keys/", directory.Data(), sqrts.Data()));
     }
+
+    // load the MET XY correction file
+    // can the XY correction from Z's really can be applied to W's ?
+    TString channel = "ee";
+    METXYCorrector metXYCorr("XYCorrector", (envStr + "/MitEwk13TeV/Recoil/data/met_xy_" + sqrts + "_" + channel + ".root").Data());
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -392,6 +400,19 @@ void eleNtupleMod(const TString outputDir, // output directory
         if (fabs(lep->Eta()) >= ECAL_GAP_LOW && fabs(lep->Eta()) <= ECAL_GAP_HIGH)
             continue;
 
+        // org is the original MET in the ntuple
+        // without any correction
+        metVars[org] = met;
+        metVarsPhi[org] = metPhi;
+
+        if (doMETXYCorrection)
+        {
+            // apply MET XY correction before any MET corrections
+            std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+            metXYCorr.CorrectMETXY(met, metPhi, isData);
+            std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+        }
+
         TVector2 vLepCor((lep->Pt()) * cos(lep->Phi()), (lep->Pt()) * sin(lep->Phi()));
         Double_t lepPt = vLepCor.Mod();
         TVector2 vMetCorr((met)*cos(metPhi), (met)*sin(metPhi));
@@ -412,7 +433,6 @@ void eleNtupleMod(const TString outputDir, // output directory
         }
         else
         {
-
             TLorentzVector vEle;
             vEle.SetPtEtaPhiM(lep->Pt(), lep->Eta(), lep->Phi(), ELE_MASS);
 
