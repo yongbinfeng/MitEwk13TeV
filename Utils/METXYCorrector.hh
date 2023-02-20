@@ -12,85 +12,80 @@
 #include <math.h>
 #include <stdio.h>
 //
-// ** apply MET corrections **
+// ** apply MET XY corrections **
 //
+// code is modified based on https://lathomas.web.cern.ch/lathomas/METStuff/XYCorrections/XYMETCorrection_withUL17andUL18andUL16.h
 //
 
 using namespace std;
 
-class METXYCorrector {
+class METXYCorrector
+{
 
 public:
-    METXYCorrector(string iNameZDat, int iSeed = 0xDEADBEEF);
-    METXYCorrector(string iNameZDat1, string iPrefix, int iSeed = 0xDEADBEEF);
+    METXYCorrector(std::string iName, std::string iFName);
     void loadXYCorrection(string iNameFile);
-
-    void CorrectMETXY(double& pfmet, double& pfmetphi, int nPV, bool isData);
-    void CalcU1U2(double iMet, double iMPhi, double iLepPt, double iLepPhi, double iGenPt, double iGenPhi, double& pU1, double& pU2);
+    void CorrectMETXY(float &pfmet, float &pfmetphi, bool isData);
 
 private:
-    TF1* f1_metX_vs_nPV_data;
-    TF1* f1_metY_vs_nPV_data;
-    TF1* f1_metX_vs_nPV_mc;
-    TF1* f1_metY_vs_nPV_mc;
+    float mean_met_x_data;
+    float mean_met_y_data;
+    float mean_met_x_mc;
+    float mean_met_y_mc;
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 // constructors, but some of the parts are pointless lol
 
-METXYCorrector::METXYCorrector(string iNameZDat, std::string iPrefix, int iSeed)
+METXYCorrector::METXYCorrector(std::string iName, std::string iFName)
 {
-}
-
-METXYCorrector::METXYCorrector(string iNameZ, int iSeed)
-{
+    loadXYCorrection(iFName);
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 void METXYCorrector::loadXYCorrection(std::string iFName)
 {
-    TFile* lFile = new TFile(iFName.c_str());
-    f1_metX_vs_nPV_data = (TF1*)lFile->Get("f1_metX_vs_nPV_data");
-    f1_metY_vs_nPV_data = (TF1*)lFile->Get("f1_metY_vs_nPV_data");
-    f1_metX_vs_nPV_mc = (TF1*)lFile->Get("f1_metX_vs_nPV_mc");
-    f1_metY_vs_nPV_mc = (TF1*)lFile->Get("f1_metY_vs_nPV_mc");
+    TFile *lFile = new TFile(iFName.c_str());
+    mean_met_x_data = ((TH1D *)lFile->Get("hMET_x_Data"))->GetMean();
+    mean_met_y_data = ((TH1D *)lFile->Get("hMET_y_Data"))->GetMean();
+    mean_met_x_mc = ((TH1D *)lFile->Get("hMET_x_MC"))->GetMean();
+    mean_met_y_mc = ((TH1D *)lFile->Get("hMET_y_MC"))->GetMean();
     lFile->Delete();
+    std::cout << "load XY correction from " << iFName << std::endl;
+    std::cout << "mean_met_x_data " << mean_met_x_data << " mean_met_y_data " << mean_met_y_data << std::endl;
+    std::cout << "mean_met_x_mc " << mean_met_x_mc << " mean_met_y_mc " << mean_met_y_mc << std::endl;
+    std::cout << " ========= " << std::endl;
 }
 
-void METXYCorrector::CorrectMETXY(double& pfmet, double& pfmetphi, int nPV, bool isData)
+void METXYCorrector::CorrectMETXY(float &pfmet, float &pfmetphi, bool isData)
 {
-    double pfmetx = pfmet * TMath::Cos(pfmetphi);
-    double pfmety = pfmet * TMath::Sin(pfmetphi);
+    float pfmetx = pfmet * TMath::Cos(pfmetphi);
+    float pfmety = pfmet * TMath::Sin(pfmetphi);
 
-    nPV = (nPV > 10) ? 10 : nPV;
-
-    //std::cout << "pfmetx " << pfmetx << " pfmety " << pfmety << " nPV " << nPV;
-
-    if (isData) {
-        pfmetx -= f1_metX_vs_nPV_data->Eval(nPV);
-        pfmety -= f1_metY_vs_nPV_data->Eval(nPV);
-        //std::cout << " corrx " << f1_metX_vs_nPV_data->Eval(nPV) << " corry " << f1_metY_vs_nPV_data->Eval(nPV);
-    } else {
-        pfmetx -= f1_metX_vs_nPV_mc->Eval(nPV);
-        pfmety -= f1_metY_vs_nPV_mc->Eval(nPV);
+    // std::cout << "pfmetx " << pfmetx << " pfmety " << pfmety << " nPV " << nPV;
+    if (isData)
+    {
+        pfmetx -= mean_met_x_data;
+        pfmety -= mean_met_y_data;
     }
+    else
+    {
+        pfmetx -= mean_met_x_mc;
+        pfmety -= mean_met_y_mc;
+    }
+    // std::cout << " after corr pfmetx " << pfmetx << " pfmety " << pfmety << std::endl;
 
-    //std::cout << " after corr pfmetx " << pfmetx << " pfmety " << pfmety << std::endl;
-
-    pfmet = TMath::Sqrt(pfmetx*pfmetx + pfmety*pfmety);
-    pfmetphi = TMath::ATan2(pfmety, pfmetx);
+    pfmet = TMath::Sqrt(pfmetx * pfmetx + pfmety * pfmety);
+    if (pfmetx == 0 && pfmety > 0)
+        pfmetphi = TMath::Pi();
+    else if (pfmetx == 0 && pfmety < 0)
+        pfmetphi = -TMath::Pi();
+    else if (pfmetx > 0)
+        pfmetphi = TMath::ATan(pfmety / pfmetx);
+    else if (pfmetx < 0 && pfmety > 0)
+        pfmetphi = TMath::ATan(pfmety / pfmetx) + TMath::Pi();
+    else if (pfmetx < 0 && pfmety < 0)
+        pfmetphi = TMath::ATan(pfmety / pfmetx) - TMath::Pi();
+    else
+        pfmetphi = 0;
 }
-
-void METXYCorrector::CalcU1U2(double iMet, double iMPhi, double iLepPt, double iLepPhi, double iGenPt, double iGenPhi, double& pU1, double& pU2)
-{
-    // calculate the u1 and u2 based on vphi
-
-    double pUX = iMet * cos(iMPhi) + iLepPt * cos(iLepPhi);
-    double pUY = iMet * sin(iMPhi) + iLepPt * sin(iLepPhi);
-    double pU = sqrt(pUX * pUX + pUY * pUY);
-    double pCos = -(pUX * cos(iGenPhi) + pUY * sin(iGenPhi)) / pU;
-    double pSin = (pUX * sin(iGenPhi) - pUY * cos(iGenPhi)) / pU;
-    pU1 = pU * pCos; // uparallel
-    pU2 = pU * pSin; // uperp
-}
-

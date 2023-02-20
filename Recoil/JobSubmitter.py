@@ -36,7 +36,7 @@ Executable = {jobname}.sh
 Log        = {jobname}.log
 getenv      = True
 environment = "LS_SUBCWD={here}"
-+JobFlavour = "longlunch"
++JobFlavour = "workday"
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 

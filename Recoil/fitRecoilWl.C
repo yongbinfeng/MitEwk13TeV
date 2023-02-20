@@ -17,10 +17,12 @@
 #include <iostream>         // standard I/O
 #include <sstream>
 
-#include "MitEwk13TeV/Utils/CPlot.hh"         // helper class for plots
-#include "MitEwk13TeV/Utils/MitStyleRemix.hh" // style settings for drawing
-#include "MitEwk13TeV/Utils/MyTools.hh"       // various helper functions
+#include "MitEwk13TeV/Utils/CPlot.hh"          // helper class for plots
+#include "MitEwk13TeV/Utils/MitStyleRemix.hh"  // style settings for drawing
+#include "MitEwk13TeV/Utils/METXYCorrector.hh" // MET XY correction
+#include "MitEwk13TeV/Utils/MyTools.hh"        // various helper functions
 #include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
 
 #include "Math/Minimizer.h"
 #include "Math/MinimizerOptions.h"
@@ -150,9 +152,38 @@ void fitRecoilWl(TString indir,                    // input ntuple
     const Double_t ETA_ECAL_GAP_LOW = 1.4442;
     const Double_t ETA_ECAL_GAP_HIGH = 1.566;
 
+    const bool doMETXYCorrection = true;
+
     // Setting up rochester corrections
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
     RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
+
+    TString sqrts = "13TeV";
+    if (do_5TeV)
+        sqrts = "5TeV";
+    TString channel = "mumu";
+    if (doElectron)
+        channel = "ee";
+    METXYCorrector metXYCorr("XYCorrector", (envStr + "/MitEwk13TeV/Recoil/data/met_xy_" + sqrts + "_" + channel + ".root").Data());
+
+    // load efficiency corrections
+    channel = "Zmm";
+    if (doElectron)
+        channel = "Zee";
+    AppEffSF effs("");
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/" + channel + "/";
+    effs.SetBaseDir(baseDir);
+    if (doElectron)
+    {
+        effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
+        effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
+    }
+    else
+    {
+        effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
+        effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
+        effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
+    }
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -231,6 +262,7 @@ void fitRecoilWl(TString indir,                    // input ntuple
     Float_t scale1fb, puWeight; //, scale1fbUp, scale1fbDown;
     Float_t met, metPhi;        //, mt, u1, u2;
     Int_t q;
+    Float_t prefireWeight;
     UInt_t nTkLayers = 0; // for roch corr
     TLorentzVector *lep = 0, *lep_raw = 0, *genV = 0, *genLep = 0;
 
@@ -246,11 +278,12 @@ void fitRecoilWl(TString indir,                    // input ntuple
         infile = new TFile(fnamev[ifile]);
         intree = (TTree *)infile->Get("Events");
 
-        intree->SetBranchAddress("scale1fb", &scale1fb);      // event weight per 1/fb (MC)
-        intree->SetBranchAddress(metVar.c_str(), &met);       // Uncorrected PF MET
-        intree->SetBranchAddress(metPhiVar.c_str(), &metPhi); // phi(MET)
-        intree->SetBranchAddress("q", &q);                    // lepton charge
-        intree->SetBranchAddress("lep", &lep);                // lepton 4-vector
+        intree->SetBranchAddress("scale1fb", &scale1fb);           // event weight per 1/fb (MC)
+        intree->SetBranchAddress(metVar.c_str(), &met);            // Uncorrected PF MET
+        intree->SetBranchAddress(metPhiVar.c_str(), &metPhi);      // phi(MET)
+        intree->SetBranchAddress("q", &q);                         // lepton charge
+        intree->SetBranchAddress("lep", &lep);                     // lepton 4-vector
+        intree->SetBranchAddress("prefireWeight", &prefireWeight); // prefire weight for 2017 conditions (MC)
         if (!doElectron)
             intree->SetBranchAddress("nTkLayers", &nTkLayers); // lepton 4-vector
         intree->SetBranchAddress("genV", &genV);               // GEN W boson 4-vector (signal MC)
@@ -348,6 +381,14 @@ void fitRecoilWl(TString indir,                    // input ntuple
             if (ipt < 0)
                 continue;
 
+            // run the MET XY Correction first
+            if (doMETXYCorrection)
+            {
+                // std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+                metXYCorr.CorrectMETXY(met, metPhi, isData);
+                // std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+            }
+
             TVector2 vLepRaw1;
             if (doElectron)
             {
@@ -375,7 +416,14 @@ void fitRecoilWl(TString indir,                    // input ntuple
             vu1Var[ipt].setVal(pU1);
             vu2Var[ipt].setVal(pU2);
 
-            double weight = scale1fb * lumi / totalNorm;
+            double corr = 1.0;
+            if (!isData)
+                corr = effs.fullCorrections(&mu, 1);
+
+            double weight = 1.0;
+            if (!isData)
+                weight = scale1fb * lumi * corr * prefireWeight / totalNorm;
+
             if (isBkgv[ifile] && !sigOnly)
             {
                 // bkg contribute negatively

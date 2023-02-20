@@ -19,10 +19,11 @@
 #include <iostream> // standard I/O
 #include <sstream>
 
-#include "MitEwk13TeV/Utils/CPlot.hh"         // helper class for plots
-#include "MitEwk13TeV/Utils/MitStyleRemix.hh" // style settings for drawing
-
+#include "MitEwk13TeV/Utils/CPlot.hh"          // helper class for plots
+#include "MitEwk13TeV/Utils/MitStyleRemix.hh"  // style settings for drawing
+#include "MitEwk13TeV/Utils/METXYCorrector.hh" // MET XY correction
 #include "MitEwk13TeV/RochesterCorr/RoccoR.cc"
+#include "MitEwk13TeV/Utils/AppEffSF.cc"
 
 #include "Math/Minimizer.h"
 #include "Math/MinimizerOptions.h"
@@ -157,6 +158,8 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         isBkgv.push_back(kTRUE);
     }
 
+    const bool doMETXYCorrection = true;
+
     const Double_t MASS_LOW = 60;
     const Double_t MASS_HIGH = 120;
     const Double_t PT_CUT = 25;
@@ -174,6 +177,33 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     // Setting up rochester corrections
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
     RoccoR rc((envStr + "/MitEwk13TeV/RochesterCorr/RoccoR2017.txt").Data());
+
+    TString sqrts = "13TeV";
+    if (do_5TeV)
+        sqrts = "5TeV";
+    TString channel = "mumu";
+    if (doElectron)
+        channel = "ee";
+    METXYCorrector metXYCorr("XYCorrector", (envStr + "/MitEwk13TeV/Recoil/data/met_xy_" + sqrts + "_" + channel + ".root").Data());
+
+    // load efficiency corrections
+    channel = "Zmm";
+    if (doElectron)
+        channel = "Zee";
+    AppEffSF effs("");
+    TString baseDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/" + channel + "/";
+    effs.SetBaseDir(baseDir);
+    if (doElectron)
+    {
+        effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
+        effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
+    }
+    else
+    {
+        effs.loadHLT("MuHLTEff_aMCxPythia", "Positive", "Negative");
+        effs.loadSel("MuSITEff_aMCxPythia", "Combined", "Combined");
+        effs.loadSta("MuStaEff_aMCxPythia", "Combined", "Combined");
+    }
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -265,6 +295,7 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
     Float_t scale1fb;
     Float_t met, metPhi;
     Float_t genMuonPt1, genMuonPt2;
+    Float_t prefireWeight;
     Int_t q1, q2;
     TLorentzVector *dilep = 0, *lep1 = 0, *lep2 = 0, *lep1_raw = 0, *lep2_raw = 0, *genlep1 = 0, *genlep2 = 0, *genV = 0;
 
@@ -276,17 +307,18 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
         infile = new TFile(fnamev[ifile]);
         intree = (TTree *)infile->Get("Events");
 
-        intree->SetBranchAddress("category", &category);      // dilepton category
-        intree->SetBranchAddress("scale1fb", &scale1fb);      // event weight per 1/fb (MC)
-        intree->SetBranchAddress(metVar.c_str(), &met);       // Uncorrected PF MET
-        intree->SetBranchAddress(metPhiVar.c_str(), &metPhi); // phi(MET)
-        intree->SetBranchAddress("q1", &q1);                  // charge of tag lepton
-        intree->SetBranchAddress("q2", &q2);                  // charge of probe lepton
-        intree->SetBranchAddress("dilep", &dilep);            // dilepton 4-vector
-        intree->SetBranchAddress("lep1", &lep1);              // tag lepton 4-vector
-        intree->SetBranchAddress("lep2", &lep2);              // probe lepton 4-vector
-        intree->SetBranchAddress("genlep1", &genlep1);        // tag lepton 4-vector
-        intree->SetBranchAddress("genlep2", &genlep2);        // probe lepton 4-vector
+        intree->SetBranchAddress("category", &category);           // dilepton category
+        intree->SetBranchAddress("scale1fb", &scale1fb);           // event weight per 1/fb (MC)
+        intree->SetBranchAddress(metVar.c_str(), &met);            // Uncorrected PF MET
+        intree->SetBranchAddress(metPhiVar.c_str(), &metPhi);      // phi(MET)
+        intree->SetBranchAddress("q1", &q1);                       // charge of tag lepton
+        intree->SetBranchAddress("q2", &q2);                       // charge of probe lepton
+        intree->SetBranchAddress("dilep", &dilep);                 // dilepton 4-vector
+        intree->SetBranchAddress("lep1", &lep1);                   // tag lepton 4-vector
+        intree->SetBranchAddress("lep2", &lep2);                   // probe lepton 4-vector
+        intree->SetBranchAddress("genlep1", &genlep1);             // tag lepton 4-vector
+        intree->SetBranchAddress("genlep2", &genlep2);             // probe lepton 4-vector
+        intree->SetBranchAddress("prefireWeight", &prefireWeight); // prefire weight for 2017 conditions (MC)
         if (!doElectron)
         {
             // because genlep1 and genlep2 are not always matched to reco lep1 and lep2
@@ -421,7 +453,15 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             if (ipt < 0)
                 continue;
 
-            ///
+            // run the MET XY Correction first
+            if (doMETXYCorrection)
+            {
+                // std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+                metXYCorr.CorrectMETXY(met, metPhi, isData);
+                // std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+            }
+
+            //
             // propagate lepton 4-momentum corrections to MET
             //
             TVector2 vLepRaw1, vLepRaw2;
@@ -448,25 +488,29 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             double pSin = (pUX * sin(dl.Phi()) - pUY * cos(dl.Phi())) / pU;
             double pU1 = pU * pCos; // U1 in data
             double pU2 = pU * pSin; // U2 in data
-
+            // use uparal + Vpt such that the mean value can be around 0
             pU1 = pU1 + ptll;
 
-            double lumiT = lumi;
+            // apply efficiency corrections to MC
+            double corr = 1.0;
+            if (!isData)
+                corr = effs.fullCorrections(&mu1, q1, &mu2, q2);
+
+            double weight = 1.0;
+            if (!isData)
+                weight = scale1fb * lumi * corr * prefireWeight / totalNorm;
+
             if (isBkgv[ifile])
             {
-                hPFu1Bkgv[ipt]->Fill(pU1, scale1fb * lumiT / totalNorm);
-                hPFu2Bkgv[ipt]->Fill(pU2, scale1fb * lumiT / totalNorm);
+                hPFu1Bkgv[ipt]->Fill(pU1, weight);
+                hPFu2Bkgv[ipt]->Fill(pU2, weight);
             }
             else
             {
-                if (isData)
-                {
-                    scale1fb = 1.0;
-                    lumiT = 1.0;
-                }
-                hPFu1v[ipt]->Fill(pU1, scale1fb * lumiT / totalNorm);
-                hPFu2v[ipt]->Fill(pU2, scale1fb * lumiT / totalNorm);
+                hPFu1v[ipt]->Fill(pU1, weight);
+                hPFu2v[ipt]->Fill(pU2, weight);
             }
+
             // this is the dataset for the RooKey
             // clean the under/overflow
             // YB: not sure if these are still needed
@@ -485,10 +529,9 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
             vu1Var[ipt].setVal(pU1);
             vu2Var[ipt].setVal(pU2);
 
-            double weight = scale1fb * lumiT / totalNorm;
             if (isBkgv[ifile] && !sigOnly)
             {
-                // bkg contribute negatively
+                // bkg contribute negatively for RooKeysPdf
                 weight = weight * (-1);
             }
             else if (isBkgv[ifile] && sigOnly)
@@ -496,24 +539,14 @@ void fitRecoilZll(TString indir = "/eos/cms/store/user/sabrandt/StandardModel/Nt
                 weight = 0;
             }
             if (ientry < 200)
-                std::cout << "weight = " << weight << " scale1fb " << scale1fb << " lumi " << lumi << " totalNorm " << totalNorm << std::endl;
+                std::cout << "weight = " << weight << " scale1fb " << scale1fb << " lumi " << lumi << " totalNorm " << totalNorm << " corr " << corr << " prefireWeight " << prefireWeight << std::endl;
             lDataSetU1[ipt].add(RooArgSet(vu1Var[ipt]), weight);
             lDataSetU2[ipt].add(RooArgSet(vu2Var[ipt]), weight);
 
             // for kde fits, not used for now
-            if (!isBkgv[ifile])
-            {
-                vvu1[ipt].push_back(pU1);
-                vvu2[ipt].push_back(pU2);
-                vvweight[ipt].push_back(scale1fb * lumiT / totalNorm);
-            }
-            else if (isBkgv[ifile] && !sigOnly)
-            {
-                // bkg contributes negatively to the distribution
-                vvu1[ipt].push_back(pU1);
-                vvu2[ipt].push_back(pU2);
-                vvweight[ipt].push_back(-scale1fb * lumiT / totalNorm);
-            }
+            vvu1[ipt].push_back(pU1);
+            vvu2[ipt].push_back(pU2);
+            vvweight[ipt].push_back(weight);
         }
         delete infile;
         infile = 0, intree = 0;
