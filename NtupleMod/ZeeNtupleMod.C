@@ -54,9 +54,10 @@ void ZeeNtupleMod(
     {
         no,
         cent,
-        cxy
+        cxy,
+        org
     };
-    const string vMET[] = {"no", "cent", "cxy"};
+    const string vMET[] = {"no", "cent", "cxy", "org"};
     int nMET = sizeof(vMET) / sizeof(vMET[0]);
 
     enum
@@ -138,10 +139,10 @@ void ZeeNtupleMod(
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZeeMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
     //
-    // warning: this might need to be updated
+    // MET XY correction
     //
-    // METXYCorrector* metcorXY = new METXYCorrector("", "");
-    // metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+    TString channel = "ee";
+    METXYCorrector metXYCorr("XYCorrector", (envStr + "/MitEwk13TeV/Recoil/data/met_xy_" + sqrts + "_" + channel + ".root").Data());
 
     //
     // Fit options
@@ -155,6 +156,7 @@ void ZeeNtupleMod(
     const Double_t ECAL_GAP_HIGH = 1.566;
     // const Double_t ECAL_GAP_LOW = 10.;
     // const Double_t ECAL_GAP_HIGH = 10.;
+    const bool doMETXYCorrection = true;
 
     // efficiency files
 
@@ -163,9 +165,6 @@ void ZeeNtupleMod(
     effs.loadHLT("EleHLTEff_aMCxPythia", "Positive", "Negative");
     effs.loadSel("EleGSFSelEff_aMCxPythia", "Combined", "Combined");
 
-    //
-    // Warning: this would need to be updated for 5TeV
-    //
     TString sysDir = envStr + "Corrections/Efficiency/" + sqrts + "/results/Systematics/";
     TString SysFileGSFSel = sysDir + "SysUnc_EleGSFSelEff.root";
     effs.loadUncSel(SysFileGSFSel);
@@ -366,6 +365,19 @@ void ZeeNtupleMod(
         if (!(category == 1) && !(category == 2) && !(category == 3))
             continue;
 
+        // org is the original MET in the ntuple
+        // without any correction
+        metVars[org] = met;
+        metVarsPhi[org] = metPhi;
+
+        if (doMETXYCorrection)
+        {
+            // apply MET XY correction before any MET corrections
+            std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+            metXYCorr.CorrectMETXY(met, metPhi, isData);
+            std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+        }
+
         // propogate lepton energy scale corrections to MET
         TVector2 vLepRaw1, vLepRaw2;
         vLepRaw1.Set((lep1_raw->Pt()) * cos(lep1_raw->Phi()), (lep1_raw->Pt()) * sin(lep1_raw->Phi()));
@@ -387,7 +399,6 @@ void ZeeNtupleMod(
 
         if (filetype == eData)
         {
-
             TLorentzVector el1;
             TLorentzVector el2;
             el1.SetPtEtaPhiM(lep1->Pt(), lep1->Eta(), lep1->Phi(), ELE_MASS);
@@ -433,8 +444,6 @@ void ZeeNtupleMod(
             // correct MET XY for data
             metVars[cxy] = corrMetWithLepton;
             metVarsPhi[cxy] = corrMetWithLeptonPhi;
-            // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
-            // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), (l1+l2).Pt(), (l1+l2).Phi(), pU1_postXY, pU2_postXY);
         }
         else
         {
@@ -526,8 +535,6 @@ void ZeeNtupleMod(
             // XY correction on MC
             metVars[cxy] = metVars[cent];
             metVarsPhi[cxy] = metVarsPhi[cent];
-            // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
-            // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (l1+l2).Pt(), (l1+l2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree

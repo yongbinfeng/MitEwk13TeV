@@ -55,9 +55,10 @@ void ZmmNtupleMod(
     {
         no,
         cent,
-        cxy
+        cxy,
+        org
     };
-    const string vMET[] = {"no", "cent", "cxy"};
+    const string vMET[] = {"no", "cent", "cxy", "org"};
     int nMET = sizeof(vMET) / sizeof(vMET[0]);
 
     enum
@@ -137,6 +138,7 @@ void ZmmNtupleMod(
     const Double_t ETA_CUT = 2.4;
 
     const bool doRoch = true;
+    const bool doMETXYCorrection = true;
     const TString envStr = (TString)gSystem->Getenv("CMSSW_BASE") + "/src/";
 
     // efficiency files
@@ -161,10 +163,10 @@ void ZmmNtupleMod(
     rcMainZ->loadRooWorkspacesMC(Form("%s/ZmmMC_PF_%s_2G/", directory.Data(), sqrts.Data()));
 
     //
-    // Warning: this might need to be updated for 5TeV
+    // MET XY Correction
     //
-    // METXYCorrector* metcorXY = new METXYCorrector("", "");
-    // metcorXY->loadXYCorrection("/afs/cern.ch/work/y/yofeng/public/WpT/CMSSW_10_6_0/src/PostCorrNTuple/root/output_metxy.root");
+    TString channel = "mumu";
+    METXYCorrector metXYCorr("XYCorrector", (envStr + "/MitEwk13TeV/Recoil/data/met_xy_" + sqrts + "_" + channel + ".root").Data());
 
     //--------------------------------------------------------------------------------------------------------------
     // Main analysis code
@@ -333,13 +335,25 @@ void ZmmNtupleMod(
             continue;
         // cout << "pass trigger?" << endl;
 
+        // org is the original MET in the ntuple
+        // without any correction
+        metVars[org] = met;
+        metVarsPhi[org] = metPhi;
+
+        if (doMETXYCorrection)
+        {
+            // apply MET XY correction before any MET corrections
+            std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+            metXYCorr.CorrectMETXY(met, metPhi, isData);
+            std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+        }
+
         TVector2 vLepRaw1, vLepRaw2;
         vLepRaw1.Set((lep1->Pt()) * cos(lep1->Phi()), (lep1->Pt()) * sin(lep1->Phi()));
         vLepRaw2.Set((lep2->Pt()) * cos(lep2->Phi()), (lep2->Pt()) * sin(lep2->Phi()));
 
         if (filetype == eData)
         {
-
             TLorentzVector mu1;
             TLorentzVector mu2;
             mu1.SetPtEtaPhiM(lep1->Pt(), lep1->Eta(), lep1->Phi(), mu_MASS);
@@ -397,8 +411,6 @@ void ZmmNtupleMod(
             // correct MET XY for data
             metVars[cxy] = corrMetWithLepton;
             metVarsPhi[cxy] = corrMetWithLeptonPhi;
-            // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 1);
-            // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), (mu1+mu2).Pt(), (mu1+mu2).Phi(), pU1_postXY, pU2_postXY);
         }
         else
         {
@@ -545,8 +557,6 @@ void ZmmNtupleMod(
             // XY correction on MC
             metVars[cxy] = metVars[cent];
             metVarsPhi[cxy] = metVarsPhi[cent];
-            // metcorXY->CorrectMETXY(metVars[cxy], metVarsPhi[cxy], npv, 0);
-            // metcorXY->CalcU1U2(metVars[cxy], metVarsPhi[cxy], (mu1+mu2).Pt(), (mu1+mu2).Phi(), genV->Pt(), genV->Phi(), pU1_postXY, pU2_postXY);
         }
         effSFweight = corr;
         outTree->Fill(); // add new info per event to the new tree
