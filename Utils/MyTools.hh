@@ -271,14 +271,14 @@ void toolbox::fillGenBorn(TClonesArray *genPartArr, Int_t vid, TLorentzVector *v
             iv2 = i;
             pdgId2 = genloop->pdgId;
         }
-        else if ((genloop->pdgId == 11 || genloop->pdgId == 13 || genloop->pdgId == 12 || genloop->pdgId == 14 || genloop->pdgId == 15 || genloop->pdgId == 16) && iv == -1 && genloop->status == 44) // status < 50 for pythia8 means particles produced by initial state showers
+        else if ((genloop->pdgId == 11 || genloop->pdgId == 13 || genloop->pdgId == 12 || genloop->pdgId == 14 || genloop->pdgId == 15 || genloop->pdgId == 16) && iv == -1 && (genloop->status == 44 || genloop->status == 23)) // status < 50 for pythia8 means particles produced by initial state showers
         {
             lep1->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
             pdgId1 = genloop->pdgId;
         }
-        else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == -12 || genloop->pdgId == -14 || genloop->pdgId == -15 || genloop->pdgId == -16) && iv == -1 && genloop->status == 44) // status < 50 for pythia8 means particles produced by initial state showers
+        else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == -12 || genloop->pdgId == -14 || genloop->pdgId == -15 || genloop->pdgId == -16) && iv == -1 && (genloop->status == 44 || genloop->status == 23)) // status < 50 for pythia8 means particles produced by initial state showers
         {
             lep2->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
@@ -287,11 +287,13 @@ void toolbox::fillGenBorn(TClonesArray *genPartArr, Int_t vid, TLorentzVector *v
         }
         else if (iv1 != -1 && genloop->parent == iv1 && genloop->pdgId == pdgId1)
         {
+            // trace the lepton status change
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
         }
         else if (iv2 != -1 && genloop->parent == iv2 && genloop->pdgId == pdgId2)
         {
+            // trace the lepton status change
             lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
         }
