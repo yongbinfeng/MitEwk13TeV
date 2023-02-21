@@ -343,9 +343,9 @@ void ZmmNtupleMod(
         if (doMETXYCorrection)
         {
             // apply MET XY correction before any MET corrections
-            std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
-            metXYCorr.CorrectMETXY(met, metPhi, isData);
-            std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
+            // std::cout << "before correction met = " << met << " metPhi = " << metPhi << std::endl;
+            metXYCorr.CorrectMETXY(met, metPhi, filetype == eData);
+            // std::cout << "after correction met = " << met << " metPhi = " << metPhi << std::endl;
         }
 
         TVector2 vLepRaw1, vLepRaw2;
