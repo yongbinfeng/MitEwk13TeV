@@ -241,6 +241,7 @@ void toolbox::fillGenBorn(TClonesArray *genPartArr, Int_t vid, TLorentzVector *v
     // lep1, lep3 are the paricles, lep2 and lep4 are the anti-particles
     // lep1,lep2->pre-fsr. lep3,lep4->post-fsr
     Int_t iv = -1, iv1 = -1, iv2 = -1;
+    Int_t pdgId1 = -1, pdgId2 = -1;
     for (Int_t i = 0; i < genPartArr->GetEntries(); i++)
     {
         const baconhep::TGenParticle *genloop = (baconhep::TGenParticle *)((*genPartArr)[i]);
@@ -261,34 +262,75 @@ void toolbox::fillGenBorn(TClonesArray *genPartArr, Int_t vid, TLorentzVector *v
             lep1->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
+            pdgId1 = genloop->pdgId;
         }
         else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == -12 || genloop->pdgId == -14 || genloop->pdgId == -15 || genloop->pdgId == -16) && genloop->parent == iv)
         {
             lep2->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
+            pdgId2 = genloop->pdgId;
         }
         else if ((genloop->pdgId == 11 || genloop->pdgId == 13 || genloop->pdgId == 12 || genloop->pdgId == 14 || genloop->pdgId == 15 || genloop->pdgId == 16) && iv == -1 && genloop->status == 44) // status < 50 for pythia8 means particles produced by initial state showers
         {
             lep1->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
+            pdgId1 = genloop->pdgId;
         }
         else if ((genloop->pdgId == -11 || genloop->pdgId == -13 || genloop->pdgId == -12 || genloop->pdgId == -14 || genloop->pdgId == -15 || genloop->pdgId == -16) && iv == -1 && genloop->status == 44) // status < 50 for pythia8 means particles produced by initial state showers
         {
             lep2->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
+            pdgId2 = genloop->pdgId;
         }
-        else if (iv1 != -1 && genloop->parent == iv1)
+        else if (iv1 != -1 && genloop->parent == iv1 && genloop->pdgId == pdgId1)
         {
             lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv1 = i;
         }
-        else if (iv2 != -1 && genloop->parent == iv2)
+        else if (iv2 != -1 && genloop->parent == iv2 && genloop->pdgId == pdgId2)
         {
             lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
             iv2 = i;
+        }
+        else if (iv1 != -1 && genloop->parent == iv1 && pdgId1 == 15)
+        {
+            // for tau decays
+            // 15 -> 11/13 + -12/-14 + 16
+            if (fabs(pdgId2) == 16 && (fabs(genloop->pdgId) == 12 || fabs(genloop->pdgId) == 14 || fabs(genloop->pdgId) == 16))
+            {
+                // add the other neutrinos to lep2
+                TLorentzVector nu;
+                nu.SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+                (*lep2) = (*lep2) + nu;
+                (*lep4) = (*lep4) + nu;
+            }
+            else if (fabs(genloop->pdgId) == 11 || fabs(genloop->pdgId) == 13)
+            {
+                // lepton decay product of the tau lepton: either muon or electron
+                // this lepton could further FSR?
+                lep3->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            }
+        }
+        else if (iv2 != -1 && genloop->parent == iv2 && pdgId2 == -15)
+        {
+            // for tau decays
+            // -15 -> -11/-13 + 12/14 - 16
+            if (fabs(pdgId1) == 16 && (fabs(genloop->pdgId) == 12 || fabs(genloop->pdgId) == 14 || fabs(genloop->pdgId) == 16))
+            {
+                TLorentzVector nu;
+                nu.SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+                (*lep1) = (*lep1) + nu;
+                (*lep3) = (*lep3) + nu;
+            }
+            else if (fabs(genloop->pdgId) == 11 || fabs(genloop->pdgId) == 13)
+            {
+                // lepton decay product of the tau lepton: either muon or electron
+                // this lepton could further FSR?
+                lep4->SetPtEtaPhiM(genloop->pt, genloop->eta, genloop->phi, genloop->mass);
+            }
         }
     }
     if (iv == -1)

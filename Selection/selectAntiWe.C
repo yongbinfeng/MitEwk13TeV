@@ -497,9 +497,10 @@ void selectAntiWe(const TString conf = "we.conf", // input file
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
 
-                        TLorentzVector tvec = *glep1 + *glep2;
+                        // TLorentzVector tvec = *glep1 + *glep2;
                         genV = new TLorentzVector(0, 0, 0, 0);
-                        genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        // genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                         if (gvec && glep1)
                         {
                             if (toolbox::flavor(genPartArr, BOSON_ID) < 0)

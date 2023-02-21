@@ -761,9 +761,10 @@ void selectZee(const TString conf = "zee.conf", // input file
                     Bool_t match1 = (((glep1) && toolbox::deltaR(vTagfinal.Eta(), vTagfinal.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vTagfinal.Eta(), vTagfinal.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
 
                     Bool_t match2 = (((glep1) && toolbox::deltaR(vProbefinal.Eta(), vProbefinal.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vProbefinal.Eta(), vProbefinal.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
-                    TLorentzVector tvec = *glep1 + *glep2;
+                    // TLorentzVector tvec = *glep1 + *glep2;
                     genV = new TLorentzVector(0, 0, 0, 0);
-                    genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                    // genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                    genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                     genlep1 = new TLorentzVector(0, 0, 0, 0);
                     genlep2 = new TLorentzVector(0, 0, 0, 0);
                     genlep1->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());

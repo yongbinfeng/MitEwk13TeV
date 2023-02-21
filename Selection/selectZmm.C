@@ -699,10 +699,11 @@ void selectZmm(const TString conf = "zmm.conf", // input file
 
                     Bool_t match2 = (((glep1) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep1->Eta(), glep1->Phi()) < 0.3) || ((glep2) && toolbox::deltaR(vProbe.Eta(), vProbe.Phi(), glep2->Eta(), glep2->Phi()) < 0.3));
 
-                    TLorentzVector tvec = *glep1 + *glep2;
+                    // TLorentzVector tvec = *glep1 + *glep2;
                     genV = new TLorentzVector(0, 0, 0, 0);
-                    std::cout << "glep1 " << glep1->Pt() << " eta " << glep1->Eta() << std::endl;
-                    genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                    // std::cout << "glep1 " << glep1->Pt() << " eta " << glep1->Eta() << std::endl;
+                    // genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                    genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                     // genVPt   = tvec.Pt();
                     // genVPhi  = tvec.Phi();
                     // genVy    = tvec.Rapidity();

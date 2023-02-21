@@ -130,6 +130,7 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
     Float_t met, metPhi;           //, mt, u1, u2;
     Float_t puppiMet, puppiMetPhi; //, puppiMt, puppiU1, puppiU2;
     Int_t q;
+    Float_t genMuonPt;
     UInt_t nTkLayers;
     TLorentzVector *lep = 0;
     Float_t pfCombIso;
@@ -237,6 +238,7 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
         outTree->Branch("puppiMet", &puppiMet, "puppiMet/F");             // Puppi MET
         outTree->Branch("puppiMetPhi", &puppiMetPhi, "puppiMetPhi/F");    // phi(Puppi MET)
         outTree->Branch("q", &q, "q/I");                                  // lepton charge
+        outTree->Branch("genMuonPt", &genMuonPt, "genMuonPt/F");          // GEN muon pT (signal MC)
         outTree->Branch("lep", "TLorentzVector", &lep);                   // lepton 4-vector
         outTree->Branch("pfCombIso", &pfCombIso, "pfCombIso/F");          // PF combined isolation of lepton
         outTree->Branch("nTkLayers", &nTkLayers, "nTkLayers/i");          // number of tracker layers
@@ -502,9 +504,10 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
 
-                        TLorentzVector tvec = *glep1 + *glep2;
+                        // TLorentzVector tvec = *glep1 + *glep2;
                         genV = new TLorentzVector(0, 0, 0, 0);
-                        genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        // genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                         if (gvec && glep1)
                         {
                             if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
@@ -529,6 +532,10 @@ void selectAntiWm(const TString conf = "wm.conf", // input file
                         glepB1 = 0;
                         glepB2 = 0;
                     }
+
+                    if (hasGen)
+                        genMuonPt = toolbox::getGenLep(genPartArr, vLep);
+
                     scale1fb = weight;
                     scale1fbUp = weightUp;
                     scale1fbDown = weightDown;

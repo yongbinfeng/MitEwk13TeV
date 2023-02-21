@@ -144,6 +144,7 @@ void selectWm(const TString conf = "wm.conf", // input file
     Float_t mvaMet, mvaMetPhi, mvaSumEt, mvaMt, mvaU1, mvaU2;
     Float_t puppiMet, puppiMetPhi, puppiSumEt, puppiMt, puppiU1, puppiU2;
     Int_t q;
+    Float_t genMuonPt; // for the tau decays to muons; glep sometimes does not match to gen muon
     TLorentzVector *lep = 0;
     Int_t lepID;
     ///// muon specific /////
@@ -292,6 +293,7 @@ void selectWm(const TString conf = "wm.conf", // input file
         outTree->Branch("puppiU1", &puppiU1, "puppiU1/F");                // parallel component of recoil (Puppi MET)
         outTree->Branch("puppiU2", &puppiU2, "puppiU2/F");                // perpendicular component of recoil (Puppi MET)
         outTree->Branch("q", &q, "q/I");                                  // lepton charge
+        outTree->Branch("genMuonPt", &genMuonPt, "genMuonPt/F");          // generated muon pT
         outTree->Branch("lep", "TLorentzVector", &lep);                   // lepton 4-vector
         outTree->Branch("lepID", &lepID, "lepID/I");                      // lepton PDG ID
         ///// muon specific /////
@@ -603,8 +605,6 @@ void selectWm(const TString conf = "wm.conf", // input file
                     scalePDF = -999;
                     weightPDF = -999;
 
-                    // if(hasGen) genMuonPt = toolbox::getGenLep(genPartArr, vLep);
-
                     if (isRecoil && hasGen)
                     {
                         TLorentzVector *gvec = new TLorentzVector(0, 0, 0, 0);
@@ -617,9 +617,10 @@ void selectWm(const TString conf = "wm.conf", // input file
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
 
-                        TLorentzVector tvec = *glep1 + *glep2;
+                        // TLorentzVector tvec = *glep1 + *glep2;
                         genV = new TLorentzVector(0, 0, 0, 0);
-                        genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        // genV->SetPtEtaPhiM(tvec.Pt(), tvec.Eta(), tvec.Phi(), tvec.M());
+                        genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
 
                         if (gvec && glep1)
                         {
@@ -699,6 +700,9 @@ void selectWm(const TString conf = "wm.conf", // input file
                     puppiMt = sqrt(2.0 * (vLep.Pt()) * (info->puppET) * (1.0 - cos(toolbox::deltaPhi(vLep.Phi(), info->puppETphi))));
                     q = goodMuon->q;
                     lep = &vLep;
+
+                    if (hasGen)
+                        genMuonPt = toolbox::getGenLep(genPartArr, vLep);
 
                     ///// muon specific /////
                     trkIso = goodMuon->trkIso;
