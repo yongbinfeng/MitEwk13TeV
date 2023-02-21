@@ -132,6 +132,7 @@ void selectAntiWe(const TString conf = "we.conf", // input file
     Int_t q;
     TLorentzVector *lep = 0, *lep_raw = 0;
     Float_t lepError = 0;
+    Float_t pfChIso, pfGamIso, pfNeuIso;
     Float_t pfCombIso;
     TLorentzVector *sc = 0;
 
@@ -172,6 +173,9 @@ void selectAntiWe(const TString conf = "we.conf", // input file
 
         Bool_t isRecoil = (snamev[isam].Contains("zxx") || isSignal || isWrongFlavor);
         Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww") || snamev[isam].Contains("zz2l") || snamev[isam].Contains("zz4l"));
+
+        Bool_t isDY = (snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0);
+
         CSample *samp = samplev[isam];
 
         // Set up output ntuple
@@ -228,6 +232,9 @@ void selectAntiWe(const TString conf = "we.conf", // input file
         outTree->Branch("lep", "TLorentzVector", &lep);                   // lepton 4-vector
         outTree->Branch("lep_raw", "TLorentzVector", &lep_raw);           // lepton 4-vector
         outTree->Branch("lepError", &lepError, "lepError/F");             // track isolation of tag lepton
+        outTree->Branch("pfChIso", &pfChIso, "pfChIso/F");                // PF charged hadron isolation of lepton
+        outTree->Branch("pfGamIso", &pfGamIso, "pfGamIso/F");             // PF photon isolation of lepton
+        outTree->Branch("pfNeuIso", &pfNeuIso, "pfNeuIso/F");             // PF neutral hadron isolation of lepton
         outTree->Branch("pfCombIso", &pfCombIso, "pfCombIso/F");          // PF combined isolation of electron
         outTree->Branch("sc", "TLorentzVector", &sc);                     // supercluster 4-vector
 
@@ -492,7 +499,7 @@ void selectAntiWe(const TString conf = "we.conf", // input file
                         TLorentzVector *glep2 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB2 = new TLorentzVector(0, 0, 0, 0);
-                        if ((snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0)) // DY only
+                        if (isDY)
                             toolbox::fillGenBorn(genPartArr, 23, gvec, glepB1, glepB2, glep1, glep2);
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
@@ -503,15 +510,33 @@ void selectAntiWe(const TString conf = "we.conf", // input file
                         genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                         if (gvec && glep1)
                         {
-                            if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
-                            { // means it's a W+ and charged lepton is anti-particle
-                                genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
-                                genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                            if (!isDY)
+                            {
+                                if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
+                                { // means it's a W+ and charged lepton is anti-particle
+                                    genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                    genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                }
+                                if (toolbox::flavor(genPartArr, BOSON_ID) > 0)
+                                { // means it's a W- and charged lepton is particle
+                                    genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                    genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                }
                             }
-                            if (toolbox::flavor(genPartArr, BOSON_ID) > 0)
-                            { // means it's a W- and charged lepton is particle
-                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
-                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                            else
+                            {
+                                if (goodEle->q > 0)
+                                {
+                                    // lepton pdgId: -11
+                                    genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                    genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                }
+                                else
+                                {
+                                    // lepton pdgId: 11
+                                    genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                    genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                }
                             }
                         }
                         delete gvec;
@@ -539,6 +564,9 @@ void selectAntiWe(const TString conf = "we.conf", // input file
 
                     ///// electron specific /////
                     sc = &vSC;
+                    pfChIso = goodEle->chHadIso;
+                    pfGamIso = goodEle->gammaIso;
+                    pfNeuIso = goodEle->neuHadIso;
                     pfCombIso = goodEle->chHadIso + TMath::Max(goodEle->neuHadIso + goodEle->gammaIso - (info->rhoIso) * getEffAreaEl(goodEle->eta), 0.);
 
                     outTree->Fill();

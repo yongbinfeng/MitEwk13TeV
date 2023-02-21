@@ -182,6 +182,9 @@ void selectWe(const TString conf = "we.conf", // input file
 
         Bool_t isRecoil = (snamev[isam].Contains("zxx") || isSignal || isWrongFlavor);
         Bool_t noGen = (snamev[isam].Contains("zz") || snamev[isam].Contains("wz") || snamev[isam].Contains("ww") || snamev[isam].Contains("zz2l") || snamev[isam].Contains("zz4l"));
+
+        Bool_t isDY = (snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0);
+
         CSample *samp = samplev[isam];
 
         // Set up output ntuple
@@ -519,7 +522,7 @@ void selectWe(const TString conf = "we.conf", // input file
                         TLorentzVector *glep2 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB2 = new TLorentzVector(0, 0, 0, 0);
-                        if ((snamev[isam].CompareTo("zxx", TString::kIgnoreCase) == 0)) // DY only
+                        if (DY)
                             toolbox::fillGenBorn(genPartArr, 23, gvec, glepB1, glepB2, glep1, glep2);
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
@@ -530,15 +533,33 @@ void selectWe(const TString conf = "we.conf", // input file
                         genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                         if (gvec && glep1)
                         {
-                            if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
-                            { // means it's a W+ and charged lepton is anti-particle
-                                genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
-                                genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                            if (!DY)
+                            {
+                                if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
+                                { // means it's a W+ and charged lepton is anti-particle
+                                    genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                    genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                }
+                                if (toolbox::flavor(genPartArr, BOSON_ID) > 0)
+                                { // means it's a W- and charged lepton is particle
+                                    genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                    genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                }
                             }
-                            if (toolbox::flavor(genPartArr, BOSON_ID) > 0)
-                            { // means it's a W- and charged lepton is particle
-                                genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
-                                genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                            else
+                            {
+                                if (goodEle->q > 0)
+                                {
+                                    // lepton pdgId: -11
+                                    genLep->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                    genNu->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                }
+                                else
+                                {
+                                    // lepton pdgId: 11
+                                    genLep->SetPtEtaPhiM(glep1->Pt(), glep1->Eta(), glep1->Phi(), glep1->M());
+                                    genNu->SetPtEtaPhiM(glep2->Pt(), glep2->Eta(), glep2->Phi(), glep2->M());
+                                }
                             }
                         }
                         delete gvec;
