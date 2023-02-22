@@ -522,7 +522,7 @@ void selectWe(const TString conf = "we.conf", // input file
                         TLorentzVector *glep2 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB1 = new TLorentzVector(0, 0, 0, 0);
                         TLorentzVector *glepB2 = new TLorentzVector(0, 0, 0, 0);
-                        if (DY)
+                        if (isDY)
                             toolbox::fillGenBorn(genPartArr, 23, gvec, glepB1, glepB2, glep1, glep2);
                         else
                             toolbox::fillGenBorn(genPartArr, BOSON_ID, gvec, glepB1, glepB2, glep1, glep2);
@@ -533,7 +533,7 @@ void selectWe(const TString conf = "we.conf", // input file
                         genV->SetPtEtaPhiM(gvec->Pt(), gvec->Eta(), gvec->Phi(), gvec->M());
                         if (gvec && glep1)
                         {
-                            if (!DY)
+                            if (!isDY)
                             {
                                 if (toolbox::flavor(genPartArr, BOSON_ID) < 0)
                                 { // means it's a W+ and charged lepton is anti-particle
