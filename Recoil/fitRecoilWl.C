@@ -263,7 +263,8 @@ void fitRecoilWl(TString indir,                    // input ntuple
     Float_t met, metPhi;        //, mt, u1, u2;
     Int_t q;
     Float_t prefireWeight;
-    UInt_t nTkLayers = 0; // for roch corr
+    UInt_t nTkLayers = 0;  // for roch corr
+    Float_t genMuonPt = 0; // gen muon pt for roch corr
     TLorentzVector *lep = 0, *lep_raw = 0, *genV = 0, *genLep = 0;
 
     //   Float_t puWeight;
@@ -285,9 +286,12 @@ void fitRecoilWl(TString indir,                    // input ntuple
         intree->SetBranchAddress("lep", &lep);                     // lepton 4-vector
         intree->SetBranchAddress("prefireWeight", &prefireWeight); // prefire weight for 2017 conditions (MC)
         if (!doElectron)
+        {
             intree->SetBranchAddress("nTkLayers", &nTkLayers); // lepton 4-vector
-        intree->SetBranchAddress("genV", &genV);               // GEN W boson 4-vector (signal MC)
-        intree->SetBranchAddress("genLep", &genLep);           // GEN lepton 4-vector (signal MC)
+            intree->SetBranchAddress("genMuonPt", &genMuonPt); // GEN muon pt (signal MC
+        }
+        intree->SetBranchAddress("genV", &genV);     // GEN W boson 4-vector (signal MC)
+        intree->SetBranchAddress("genLep", &genLep); // GEN lepton 4-vector (signal MC)
         if (doElectron)
             intree->SetBranchAddress("lep_raw", &lep_raw); // probe lepton 4-vector
 
@@ -338,8 +342,8 @@ void fitRecoilWl(TString indir,                    // input ntuple
                 }
                 else
                 {
-                    if (genLep->Pt() > 0)
-                        SF1 = rc.kSpreadMC(q, mu.Pt(), mu.Eta(), mu.Phi(), genLep->Pt());
+                    if (genMuonPt > 0)
+                        SF1 = rc.kSpreadMC(q, mu.Pt(), mu.Eta(), mu.Phi(), genMuonPt);
                     else
                         SF1 = rc.kSmearMC(q, mu.Pt(), mu.Eta(), mu.Phi(), nTkLayers, gRandom->Uniform(1));
                 }
