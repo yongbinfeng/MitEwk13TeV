@@ -297,6 +297,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     Int_t q;
     UInt_t nTkLayers;
     TLorentzVector *lep = 0, *genV = 0, *genLep = 0;
+    Float_t genMuonPt;
     Float_t pfCombIso;
     UInt_t npv;
     // intree->SetBranchAddress("genVPt", &genVPt); // GEN W boson pT (signal MC)
@@ -322,6 +323,7 @@ void muonNtupleMod(const TString outputDir, // output directory
     intree->SetBranchAddress("lep", &lep);             // lepton 4-vector
     intree->SetBranchAddress("genLep", &genLep);       // lepton 4-vector
     intree->SetBranchAddress("genV", &genV);           // lepton 4-vector
+    intree->SetBranchAddress("genMuonPt", &genMuonPt); // gen muon pt
     intree->SetBranchAddress("pfCombIso", &pfCombIso); // lepton 4-vector
     intree->SetBranchAddress("nTkLayers", &nTkLayers); // lepton 4-vector
     intree->SetBranchAddress("npv", &npv);
@@ -532,7 +534,6 @@ void muonNtupleMod(const TString outputDir, // output directory
             double rand = gRandom->Uniform(1);
             double mcSF1 = 1;
 
-            double genMuonPt = genLep->Pt();
             if (genMuonPt > 0)
             {
                 mcSF1 = rc.kSpreadMC(q, mu1.Pt(), mu1.Eta(), mu1.Phi(), genMuonPt);
