@@ -391,8 +391,12 @@ void muonNtupleMod(const TString outputDir, // output directory
     //
     std::cout << "Number of Events = " << intree->GetEntries() << ", among these processing " << IEND - IBEGIN << std::endl;
     // for (UInt_t ientry = 0; ientry < intree->GetEntries(); ientry++) {
+    int count = 0;
     for (Long64_t ientry = IBEGIN; ientry < IEND; ientry++)
     {
+        ++count;
+        if (count > 100)
+            break;
         intree->GetEntry(ientry);
         if (ientry % 10000 == 0)
             cout << "Event " << ientry << ". " << (double)ientry / (double)intree->GetEntries() * 100 << " % done with this file." << endl;
@@ -659,6 +663,11 @@ void muonNtupleMod(const TString outputDir, // output directory
                             rcStatW[i]->CorrectInvCdf(metVars[ofs], metVarsPhi[ofs], genVPt, genVPhi, lep->Pt(), lep->Phi(), pU1, pU2, 0, 0, 0, kFALSE, kTRUE);
                         }
                     }
+                }
+                std::cout << "recoils " << std::endl;
+                for (int i = 0; i < nMET; i++)
+                {
+                    std::cout << metVars[i] << " " << metVarsPhi[i] << std::endl;
                 }
             }
             mtCorr = sqrt(2.0 * (lep->Pt()) * (metVars[cent]) * (1.0 - cos(toolbox::deltaPhi(lep->Phi(), metVarsPhi[cent]))));
