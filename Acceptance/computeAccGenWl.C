@@ -255,8 +255,8 @@ void computeAccGenWl(const TString conf,       // input file
                 else
                     mtgen = sqrt(2.0 * (lep3->Pt()) * (lep4->Pt()) * (1.0 - cos(toolbox::deltaPhi(lep3->Phi(), lep4->Phi()))));
 
-                // if (mtgen < 20)
-                //     continue;
+                if (mtgen < 40)
+                    continue;
 
                 nEvtsAfterMT += weight;
 

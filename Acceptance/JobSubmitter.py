@@ -52,7 +52,7 @@ def GenerateExecutable(cmd_run, cmd_env, outdir, idx):
             bashscript.write(cmd+"\n")
         bashscript.write(cmd_run+"\n")
 
-        bashscript.write("xrdcp -r ./ResultsGEN/* root://cmseos.fnal.gov/" + outdir + "/\n")
+        bashscript.write("xrdcp -r ./ResultsGEN root://cmseos.fnal.gov/" + outdir + "/\n")
 
     # change it to executable
     os.system("chmod +x " + jobname + ".sh")
@@ -64,6 +64,7 @@ Output     = {jobname}.out
 Error      = {jobname}.error
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
+request_memory = 4000
 queue 1\n
 """.format(jobname = jobname, here = pwd)
 
@@ -71,7 +72,7 @@ queue 1\n
         outfile.write(job_desc)
         outfile.close()
 
-    #os.system("condor_submit " + jobname + ".condor")
+    os.system("condor_submit " + jobname + ".condor")
     time.sleep(0.01)
 
     return
@@ -85,11 +86,11 @@ if __name__ == '__main__':
     print(len(commands_run), " jobs to be submitted. ")
     print(len(commands_com), " jobs to be submitted. ")
 
-    outdir = "/store/user/yofeng/LowPUResults/TestAccept"
+    outdir = "/store/user/yofeng/LowPUResults/TestAccept/13TeV"
     # creat the outdir first
     os.system('/usr/bin/eos root://cmseos.fnal.gov rm -r ' + outdir)
     os.system('/usr/bin/eos root://cmseos.fnal.gov mkdir -p ' + outdir)
 
     # generate the executable
-    for ijob in xrange(len(commands_run)):
+    for ijob in range(len(commands_run)):
         GenerateExecutable(commands_run[ijob], commands_com, outdir, str(ijob))
